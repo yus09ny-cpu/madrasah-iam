@@ -115,9 +115,12 @@ export function useAuth() {
   async function signInWithGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: 'https://auditjiwa.madrasahiam.com' },
     })
-    if (error) throw error
+    if (error) {
+      console.error('Google auth error:', error)
+      throw error
+    }
   }
 
   async function signOut() {
