@@ -22,6 +22,8 @@ const TUJUAN_COLOR: Record<string, string> = {
   dedah_syaitan: '#f87171',
   dedah_nafsu: '#a78bfa',
   tunjuk_jalan: '#c9a96e',
+  untuk_baru: '#7dd3a8',
+  untuk_kembali: '#7dd3a8',
 }
 
 const AUDIT_AI_PROMPT = `Kamu adalah sistem Audit Jiwa Madrasah I AM.
@@ -95,8 +97,7 @@ function AuditCard({
           {index + 1}
         </div>
         <p className="text-[#8a7a65] text-xs">
-          {q.tujuan === 'dedah_syaitan' ? t('audit_jiwa.dedah_syaitan') :
-           q.tujuan === 'dedah_nafsu' ? t('audit_jiwa.dedah_nafsu') : t('audit_jiwa.tunjuk_jalan')}
+          {t(`audit_jiwa.${q.tujuan}`)}
         </p>
       </div>
 
@@ -444,6 +445,7 @@ export default function MuhasabahPage() {
                 { color: '#f87171', label: t('audit_jiwa.dedah_syaitan') },
                 { color: '#a78bfa', label: t('audit_jiwa.dedah_nafsu') },
                 { color: '#c9a96e', label: t('audit_jiwa.tunjuk_jalan') },
+                { color: '#7dd3a8', label: t('audit_jiwa.untuk_baru') },
               ].map(hint => (
                 <div key={hint.label} className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: hint.color }} />
