@@ -83,7 +83,7 @@ export function useAuth() {
         }
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: newProfile } = await (supabase.from('profiles') as any)
+        const { data: newProfile, error: insertError } = await (supabase.from('profiles') as any)
           .insert({
             id: userId,
             email,
@@ -93,9 +93,24 @@ export function useAuth() {
           })
           .select()
           .single()
-        if (newProfile) setUser(newProfile as User)
+
+        if (insertError) console.error('Profile insert error:', insertError)
+
+        // Walau apa pun keputusan insert — pastikan setUser dipanggil supaya
+        // isAuthenticated jadi true dan tak terbalik ke /login
+        setUser(
+          (newProfile as User) ?? {
+            id: userId,
+            email,
+            name: metaName ?? null,
+            tier: 'free',
+            onboarding_complete: false,
+            created_at: new Date().toISOString(),
+          },
+        )
       }
-    } catch {
+    } catch (err) {
+      console.error('syncProfile error:', err)
       // profiles table not yet created — set minimal user, skip onboarding
       setUser({
         id: userId,
