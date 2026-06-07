@@ -14,22 +14,10 @@ export function useAuth() {
 
   useEffect(() => {
     let cancelled = false
-    console.log('=== AUTH DEBUG ===')
-    console.log('[debug] URL hash:', window.location.hash)
-    console.log('[debug] URL search:', window.location.search)
-    console.log('[debug] localStorage madrasah-iam-auth:', localStorage.getItem('madrasah-iam-auth'))
-
-    supabase.auth.getSession().then(({ data, error }) => {
-      console.log('[debug] getSession data:', data)
-      console.log('[debug] getSession error:', error)
-    })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (cancelled) return
-        console.log('[onAuthStateChange] event:', event)
-        console.log('[onAuthStateChange] session:', session)
-        console.log('[onAuthStateChange] user:', session?.user)
 
         if (event === 'INITIAL_SESSION') {
           if (session?.user) {
