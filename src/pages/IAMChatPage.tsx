@@ -198,6 +198,16 @@ export default function IAMChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
+  // Pastikan input kekal kelihatan apabila papan kekunci muncul di mobile
+  useEffect(() => {
+    function handleViewportResize() {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }
+    const viewport = window.visualViewport
+    viewport?.addEventListener('resize', handleViewportResize)
+    return () => viewport?.removeEventListener('resize', handleViewportResize)
+  }, [])
+
   const sendMessage = useCallback(async (text?: string) => {
     const content = (text ?? input).trim()
     if (!content || isTyping || !user || isLimitReached) return
