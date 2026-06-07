@@ -140,7 +140,10 @@ export default function OnboardingPage() {
   }
 
   async function handleFinish() {
-    if (!user) return
+    if (!user) {
+      console.error('handleFinish: no user in store, aborting')
+      return
+    }
     setSaving(true)
     try {
       const isMalaysia = form.country === 'Malaysia'
@@ -156,14 +159,20 @@ export default function OnboardingPage() {
         onboarding_complete: true,
       }
       try {
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('profiles update timed out')), 8000)
+        )
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('profiles') as any)
-          .update(updates)
-          .eq('id', user.id)
-          .abortSignal(AbortSignal.timeout(8000))
-      } catch { /* table may not exist yet, or request timed out — continue anyway */ }
+        const updatePromise = (supabase.from('profiles') as any).update(updates).eq('id', user.id)
+        const { error } = (await Promise.race([updatePromise, timeout])) as { error: unknown }
+        if (error) console.error('Onboarding profile update error:', error)
+      } catch (err) {
+        console.error('Onboarding profile update threw:', err)
+      }
       setUser({ ...user, ...updates } as User)
       navigate('/dashboard', { replace: true })
+    } catch (err) {
+      console.error('handleFinish error:', err)
     } finally {
       setSaving(false)
     }
