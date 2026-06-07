@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore'
 import { supabase } from '@/lib/supabase'
 import { FREE_SYSTEM_PROMPT, PRO_SYSTEM_PROMPT } from '@/lib/systemPrompts'
 import { sendIAMMessage } from '@/lib/iam-chat'
+import { IAM_QUESTIONS } from '@/data/iam-questions'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 
@@ -32,13 +33,9 @@ const OPENING_MSGS = [
   },
 ]
 
-const STARTER_QUESTIONS = [
-  'Mengapa zikir ini tidak diajar secara meluas?',
-  'Apa bezanya Zikir Jahar dan Zikir Biasa?',
-  'Saya ada masalah yang dah lama tidak selesai. Boleh zikir bantu?',
-  'Adakah ada hadith sahih tentang Zikir Khafi?',
-  'Macam mana nak tahu kalau hati saya sudah bersedia?',
-]
+function pickRandomQuestions(count: number): string[] {
+  return [...IAM_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, count)
+}
 
 // ─── API Call ─────────────────────────────────────────────────────────────────
 
@@ -168,6 +165,7 @@ export default function IAMChatPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [usedToday, setUsedToday] = useState(0)
   const [openingIdx] = useState(() => Math.floor(Math.random() * OPENING_MSGS.length))
+  const [starterQuestions] = useState(() => pickRandomQuestions(5))
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -308,10 +306,11 @@ export default function IAMChatPage() {
 
             {/* Starter questions */}
             <div className="space-y-2">
-              <p className="text-[#8a7a65] text-xs text-center">Atau pilih soalan permulaan:</p>
-              {STARTER_QUESTIONS.map((q, i) => (
+              <p className="text-[#c9a96e] text-xs text-center font-serif">✦ Soalan untuk anda fikirkan:</p>
+              <p className="text-[#8a7a65] text-[11px] text-center">Klik untuk berbual dengan I AM</p>
+              {starterQuestions.map((q, i) => (
                 <button key={i} onClick={() => sendMessage(q)}
-                  className="w-full text-left px-4 py-2.5 bg-[#0d1821] border border-[#1e2d40] rounded-xl text-sm text-[#8a7a65] hover:border-[#c9a96e30] hover:text-[#e8dcc8] transition-all">
+                  className="w-full text-left px-4 py-3.5 bg-transparent border border-[#c9a96e4d] rounded-xl text-sm text-[#c9a96e] hover:bg-[#c9a96e1a] hover:border-[#c9a96e] transition-all leading-relaxed">
                   {q}
                 </button>
               ))}
