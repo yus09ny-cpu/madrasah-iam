@@ -4,6 +4,16 @@ import { useAuthStore } from '@/store/authStore'
 import type { User } from '@/types'
 import i18n from '@/lib/i18n'
 
+// Sesetengah panggilan Supabase boleh tergantung tanpa resolve/reject
+// (sama seperti signOut di Sidebar.tsx) — race dengan timeout supaya
+// UI tak terus berputar selama-lamanya.
+function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timeout`)), ms)),
+  ])
+}
+
 export function useAuth() {
   // Single store call — destructure everything needed here
   const { user, isAuthenticated, setUser, logout } = useAuthStore()
@@ -57,11 +67,11 @@ export function useAuth() {
 
   async function syncProfile(userId: string, email: string, metaName?: string) {
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
+      const { data: profile } = await withTimeout(
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        10000,
+        'profile fetch',
+      )
 
       if (profile) {
         setUser(profile as User)
@@ -114,16 +124,20 @@ export function useAuth() {
   }
 
   async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await withTimeout(
+      supabase.auth.signInWithPassword({ email, password }),
+      10000,
+      'signIn',
+    )
     if (error) throw error
   }
 
   async function signUp(email: string, password: string, name: string) {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
-    })
+    const { error } = await withTimeout(
+      supabase.auth.signUp({ email, password, options: { data: { name } } }),
+      10000,
+      'signUp',
+    )
     if (error) throw error
   }
 

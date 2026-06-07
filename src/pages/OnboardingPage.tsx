@@ -162,10 +162,16 @@ export default function OnboardingPage() {
         const timeout = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('profiles update timed out')), 8000)
         )
+        // .select() forces PostgREST to return the updated row so we can detect
+        // a silent 0-row update (e.g. missing RLS UPDATE policy) — without it,
+        // Supabase returns no error even when the row was never written.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updatePromise = (supabase.from('profiles') as any).update(updates).eq('id', user.id)
-        const { error } = (await Promise.race([updatePromise, timeout])) as { error: unknown }
+        const updatePromise = (supabase.from('profiles') as any).update(updates).eq('id', user.id).select()
+        const { data, error } = (await Promise.race([updatePromise, timeout])) as { data: unknown[] | null; error: unknown }
         if (error) console.error('Onboarding profile update error:', error)
+        else if (!data || data.length === 0) {
+          console.error('Onboarding profile update affected 0 rows — check RLS UPDATE policy on "profiles" (auth.uid() = id)')
+        }
       } catch (err) {
         console.error('Onboarding profile update threw:', err)
       }
