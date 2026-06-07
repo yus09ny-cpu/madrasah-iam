@@ -17,7 +17,6 @@ i18n
       id: { translation: id },
       ar: { translation: ar },
     },
-    lng: 'bm',
     fallbackLng: 'bm',
     interpolation: { escapeValue: false },
     detection: {
@@ -26,5 +25,11 @@ i18n
       lookupLocalStorage: 'madrasah_language',
     },
   })
+
+// Arab ditulis dari kanan ke kiri — kemaskini arah dokumen setiap kali bahasa bertukar
+i18n.on('languageChanged', (lng) => {
+  document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr'
+  document.documentElement.lang = lng
+})
 
 export default i18n

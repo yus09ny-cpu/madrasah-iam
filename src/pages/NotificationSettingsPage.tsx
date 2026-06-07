@@ -3,6 +3,7 @@ import { Bell, Loader2, CheckCircle2 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
+import type { AppLanguage } from '@/types'
 
 const NOTIF_ITEMS = [
   {
@@ -78,7 +79,7 @@ export default function NotificationSettingsPage() {
     i18n.changeLanguage(lang)
     localStorage.setItem('madrasah_language', lang)
     if (user) {
-      setUser({ ...user, language: lang as 'bm' | 'en' })
+      setUser({ ...user, language: lang as AppLanguage })
       // Update Supabase in background — tanpa await supaya tak hang
       const raw = localStorage.getItem('madrasah-iam-auth')
       const stored = raw ? JSON.parse(raw) : null

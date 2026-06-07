@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ChevronLeft, Loader2, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import i18n from '@/lib/i18n'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import type { User, AppLanguage } from '@/types'
@@ -90,6 +91,13 @@ export default function OnboardingPage() {
 
   function update<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function selectLanguage(lang: AppLanguage) {
+    update('language', lang)
+    // Tukar bahasa serta-merta supaya pratonton UI sepadan dengan pilihan
+    i18n.changeLanguage(lang)
+    localStorage.setItem('madrasah_language', lang)
   }
 
   function toggleBackground(id: string) {
@@ -303,7 +311,7 @@ export default function OnboardingPage() {
               <label className="text-xs font-medium text-[#8a7a65] uppercase tracking-wider">Bahasa Pilihan</label>
               <div className="grid grid-cols-2 gap-2">
                 {LANGUAGES.map(lang => (
-                  <button key={lang.value} onClick={() => update('language', lang.value)}
+                  <button key={lang.value} onClick={() => selectLanguage(lang.value)}
                     className={cn(
                       'flex flex-col items-center gap-2 py-4 rounded-2xl border transition-all',
                       form.language === lang.value ? 'border-[#c9a96e] bg-[#c9a96e15]' : 'border-[#1e2d40] hover:border-[#2a3d55]'
