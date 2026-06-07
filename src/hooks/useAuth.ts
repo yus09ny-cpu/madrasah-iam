@@ -19,11 +19,13 @@ export function useAuth() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
+    console.log('[OAuth callback] URL semasa:', window.location.href)
+    console.log('[OAuth callback] code dijumpai?', code)
     if (!code) return
 
     window.history.replaceState({}, '', window.location.pathname)
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (error) console.error('OAuth code exchange error:', error)
+    supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+      console.log('[OAuth callback] hasil exchange — data:', data, 'error:', error)
     })
   }, [])
 
