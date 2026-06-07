@@ -1,5 +1,5 @@
 export type UserTier = 'free' | 'pro' | 'family'
-export type AppLanguage = 'bm' | 'en' | 'ar'
+export type AppLanguage = 'bm' | 'en' | 'ar' | 'id'
 
 export type UserMaqam = 'islam' | 'iman' | 'ihsan'
 

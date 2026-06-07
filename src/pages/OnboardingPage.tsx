@@ -43,8 +43,9 @@ const RELIGIOUS_BACKGROUNDS = [
 
 const LANGUAGES: { value: AppLanguage; label: string; native: string; flag: string }[] = [
   { value: 'bm', label: 'Bahasa Melayu', native: 'BM', flag: '🇲🇾' },
-  { value: 'en', label: 'English', native: 'EN', flag: '🌐' },
-  { value: 'ar', label: 'العربية', native: 'AR', flag: '🕌' },
+  { value: 'en', label: 'English', native: 'EN', flag: '🇬🇧' },
+  { value: 'ar', label: 'العربية', native: 'AR', flag: '🇸🇦' },
+  { value: 'id', label: 'Bahasa Indonesia', native: 'ID', flag: '🇮🇩' },
 ]
 
 function getPersona(age: number): { title: string; icon: string; desc: string } {
@@ -300,7 +301,7 @@ export default function OnboardingPage() {
           {step === 7 && (
             <div className="space-y-3">
               <label className="text-xs font-medium text-[#8a7a65] uppercase tracking-wider">Bahasa Pilihan</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {LANGUAGES.map(lang => (
                   <button key={lang.value} onClick={() => update('language', lang.value)}
                     className={cn(
@@ -311,6 +312,9 @@ export default function OnboardingPage() {
                     <p className={cn('font-medium text-xs text-center', form.language === lang.value ? 'text-[#c9a96e]' : 'text-[#e8dcc8]')}>
                       {lang.label}
                     </p>
+                    {form.language === lang.value && (
+                      <span className="text-[10px] text-[#c9a96e]">● Dipilih</span>
+                    )}
                   </button>
                 ))}
               </div>

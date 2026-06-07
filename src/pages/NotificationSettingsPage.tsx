@@ -63,7 +63,8 @@ const DEFAULTS: NotifPrefs = {
 
 const LANGUAGES = [
   { code: 'bm', flag: '🇲🇾', label: 'Bahasa Melayu' },
-  { code: 'en', flag: '🌐', label: 'English' },
+  { code: 'en', flag: '🇬🇧', label: 'English' },
+  { code: 'ar', flag: '🇸🇦', label: 'العربية' },
   { code: 'id', flag: '🇮🇩', label: 'Bahasa Indonesia' },
 ]
 
