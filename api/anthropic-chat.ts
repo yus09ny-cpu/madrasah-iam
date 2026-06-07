@@ -1,22 +1,22 @@
-// Vercel Serverless Function — proxy pengeluaran untuk Anthropic API
+// Vercel Serverless Function — proxy pengeluaran untuk Anthropic Messages API
 // Vite proxy dalam vite.config.ts hanya wujud semasa `npm run dev`.
 // Dalam pengeluaran (Vercel), fungsi inilah yang menyelesaikan isu CORS & 405.
 
 export const config = { runtime: 'edge' }
 
 export default async function handler(req: Request): Promise<Response> {
-  const url = new URL(req.url)
-  const upstreamPath = url.pathname.replace(/^\/api\/anthropic-api/, '')
-  const target = `https://api.anthropic.com${upstreamPath}${url.search}`
+  if (req.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 })
+  }
 
-  const upstream = await fetch(target, {
-    method: req.method,
+  const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
     headers: {
-      'Content-Type': req.headers.get('content-type') ?? 'application/json',
+      'Content-Type': 'application/json',
       'x-api-key': req.headers.get('x-api-key') ?? '',
       'anthropic-version': req.headers.get('anthropic-version') ?? '2023-06-01',
     },
-    body: ['GET', 'HEAD'].includes(req.method) ? undefined : await req.text(),
+    body: await req.text(),
   })
 
   return new Response(upstream.body, {

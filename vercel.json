@@ -1,6 +1,5 @@
 {
   "rewrites": [
-    { "source": "/anthropic-api/:path*", "destination": "/api/anthropic-api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -1,6 +1,6 @@
-// Anthropic API melalui Vite proxy (/anthropic-api → api.anthropic.com)
-// Proxy dalam vite.config.ts menyelesaikan isu CORS browser.
-// Jangan guna @anthropic-ai/sdk terus dari browser — CORS akan blok.
+// Anthropic API melalui /api/anthropic-chat — Vercel Edge Function dalam
+// pengeluaran, dan proksi Vite (vite.config.ts) semasa dev. Kedua-dua
+// menyelesaikan isu CORS browser (jangan guna @anthropic-ai/sdk terus dari browser).
 
 import { FREE_SYSTEM_PROMPT, PRO_SYSTEM_PROMPT } from './systemPrompts'
 
@@ -33,7 +33,7 @@ export async function sendIAMMessage(
 
   console.log('[IAM] Hantar permintaan... model:', resolveModel(userTier), 'tier:', userTier)
 
-  const res = await fetch('/anthropic-api/v1/messages', {
+  const res = await fetch('/api/anthropic-chat', {
     method: 'POST',
     signal,
     headers: {

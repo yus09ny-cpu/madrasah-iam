@@ -12,11 +12,12 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Proxy Anthropic API — selesaikan isu CORS dalam browser
-      '/anthropic-api': {
+      // Proxy Anthropic API semasa dev — dalam pengeluaran, /api/anthropic-chat
+      // (Vercel Edge Function) yang menyelesaikan isu CORS & 405.
+      '/api/anthropic-chat': {
         target: 'https://api.anthropic.com',
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/anthropic-api/, ''),
+        rewrite: () => '/v1/messages',
       },
     },
   },
