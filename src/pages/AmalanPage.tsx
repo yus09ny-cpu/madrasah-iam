@@ -45,12 +45,6 @@ const FATIHAH_FALLBACK_LABELS = [
   { num: 'الفاتحة الثالثة', label: 'Fatihah Ketiga', to: 'Semua Muslimin dan Muslimat' },
 ]
 
-const BREATH_PHASES = [
-  { label: 'Tarik Nafas', sub: 'Hadirkan Allah', secs: 4, color: '#a78bfa', rgb: '167,139,250', rScale: 1.0 },
-  { label: 'Tahan', sub: "Hati sebut 'Allah'", secs: 2, color: '#c9a96e', rgb: '201,169,110', rScale: 1.0 },
-  { label: 'Hembus Nafas', sub: 'Ikut degupan jantung', secs: 6, color: '#4ade80', rgb: '74,222,128', rScale: 0.55 },
-]
-
 const AYAT_LIST = [
   { arab: 'وَلَذِكْرُ اللَّهِ أَكْبَرُ', tr: '"Dan sesungguhnya zikir kepada Allah adalah yang paling agung"', src: 'Al-Ankabut: 45' },
   { arab: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ', tr: '"Ketahuilah, hanya dengan mengingati Allah hati menjadi tenang"', src: "Ar-Ra'd: 28" },

@@ -52,7 +52,7 @@ export function useSaveMuhasabah() {
           headers: {
             'Content-Type': 'application/json',
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${session.access_token}`,
+            'Authorization': `Bearer ${accessToken}`,
             'Prefer': 'resolution=merge-duplicates,return=minimal',
           },
           body: JSON.stringify({ user_id: user.id, date: today, answers, mood }),

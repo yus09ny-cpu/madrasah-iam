@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Bell, Loader2, CheckCircle2 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
-import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 

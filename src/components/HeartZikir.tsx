@@ -9,11 +9,10 @@ const IRAMA = [
 ]
 
 export function HeartZikir({ isRunning }: { isRunning: boolean }) {
-  const [phaseIdx, setPhaseIdx] = useState(0)
   const [scale, setScale] = useState(1)
   const [color, setColor] = useState('#a78bfa')
   const [activeSuku, setActiveSuku] = useState('')
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const aliveRef = useRef(false)
 
   useEffect(() => {
@@ -23,7 +22,6 @@ export function HeartZikir({ isRunning }: { isRunning: boolean }) {
       setScale(1)
       setActiveSuku('')
       setColor('#a78bfa')
-      setPhaseIdx(0)
       return
     }
 
@@ -33,7 +31,6 @@ export function HeartZikir({ isRunning }: { isRunning: boolean }) {
     const runPhase = () => {
       if (!aliveRef.current) return
       const p = IRAMA[current]
-      setPhaseIdx(current)
       setColor(p.color)
       setActiveSuku(p.suku)
       setScale(p.scale)
