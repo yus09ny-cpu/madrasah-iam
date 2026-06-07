@@ -157,8 +157,11 @@ export default function OnboardingPage() {
       }
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('profiles') as any).update(updates).eq('id', user.id)
-      } catch { /* table may not exist yet — continue */ }
+        await (supabase.from('profiles') as any)
+          .update(updates)
+          .eq('id', user.id)
+          .abortSignal(AbortSignal.timeout(8000))
+      } catch { /* table may not exist yet, or request timed out — continue anyway */ }
       setUser({ ...user, ...updates } as User)
       navigate('/dashboard', { replace: true })
     } finally {
