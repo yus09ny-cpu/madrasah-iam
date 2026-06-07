@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 
@@ -39,6 +40,15 @@ export default function LoginPage() {
   const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) })
 
   const isLoading = loginForm.formState.isSubmitting || registerForm.formState.isSubmitting
+
+  useEffect(() => {
+    console.log('[LoginPage debug] URL hash:', window.location.hash)
+    console.log('[LoginPage debug] URL search:', window.location.search)
+    supabase.auth.getSession().then(({ data, error }) => {
+      console.log('[LoginPage debug] session:', data.session)
+      console.log('[LoginPage debug] error:', error)
+    })
+  }, [])
 
   async function handleLogin(data: LoginForm) {
     setError('')
