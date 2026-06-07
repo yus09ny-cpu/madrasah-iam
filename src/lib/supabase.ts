@@ -12,7 +12,9 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
+    // Dimatikan: auto-detection dalaman bergantung pada mekanisme yang sama
+    // dengan getSession() yang hang dalam projek ini — di-exchange manual dalam useAuth.ts
+    detectSessionInUrl: false,
     storageKey: 'madrasah-iam-auth',
   },
 })

@@ -12,6 +12,21 @@ export function useAuth() {
   // New visitors start with loading = true until session check completes.
   const [loading, setLoading] = useState(!isAuthenticated)
 
+  // Exchange kod PKCE (?code=) selepas redirect Google OAuth — manual,
+  // sebab detectSessionInUrl bawaan Supabase hang dalam projek ini
+  // (sama punca dengan getSession() yang hang — lihat syncProfile/useMuhasabah).
+  // exchangeCodeForSession() akan trigger SIGNED_IN melalui listener di bawah.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
+    if (!code) return
+
+    window.history.replaceState({}, '', window.location.pathname)
+    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+      if (error) console.error('OAuth code exchange error:', error)
+    })
+  }, [])
+
   useEffect(() => {
     let cancelled = false
 
