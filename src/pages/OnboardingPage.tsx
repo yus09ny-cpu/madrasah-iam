@@ -142,24 +142,28 @@ export default function OnboardingPage() {
   async function handleFinish() {
     if (!user) return
     setSaving(true)
-    const isMalaysia = form.country === 'Malaysia'
-    const updates = {
-      nickname: form.nickname.trim(),
-      name: form.nickname.trim(),
-      age: age || null,
-      country: form.country,
-      state: isMalaysia ? form.state : null,
-      education_level: form.education_level,
-      religious_background: form.religious_background.join('|'),
-      language: form.language,
-      onboarding_complete: true,
-    }
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('profiles') as any).update(updates).eq('id', user.id)
-    } catch { /* table may not exist yet — continue */ }
-    setUser({ ...user, ...updates } as User)
-    navigate('/dashboard', { replace: true })
+      const isMalaysia = form.country === 'Malaysia'
+      const updates = {
+        nickname: form.nickname.trim(),
+        name: form.nickname.trim(),
+        age: age || null,
+        country: form.country,
+        state: isMalaysia ? form.state : null,
+        education_level: form.education_level,
+        religious_background: form.religious_background.join('|'),
+        language: form.language,
+        onboarding_complete: true,
+      }
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('profiles') as any).update(updates).eq('id', user.id)
+      } catch { /* table may not exist yet — continue */ }
+      setUser({ ...user, ...updates } as User)
+      navigate('/dashboard', { replace: true })
+    } finally {
+      setSaving(false)
+    }
   }
 
   function handleSkip() {
