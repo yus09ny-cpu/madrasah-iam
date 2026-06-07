@@ -1,0 +1,423 @@
+{
+  "app": {
+    "name": "Madrasah I AM",
+    "tagline": "إِلَٰهِي أَنْتَ مَقْصُودِي"
+  },
+  "nav": {
+    "utama": "Home",
+    "solat": "Prayer",
+    "audit_jiwa": "Soul Audit",
+    "zikir": "Zikir",
+    "pintu_rezeki": "Gate of Provision",
+    "hablum": "Hablum",
+    "iam": "I AM Interactive",
+    "amalan": "TQN Practice",
+    "tetapan": "Settings",
+    "notifikasi": "Notifications",
+    "tinggalkan": "Sign Out"
+  },
+  "solat": {
+    "tajuk": "Five Daily Prayers",
+    "subuh": "Fajr",
+    "zohor": "Dhuhr",
+    "asar": "Asr",
+    "maghrib": "Maghrib",
+    "isyak": "Isha",
+    "waktu_sekarang": "Current Prayer Time",
+    "tandakan": "Mark as Complete",
+    "selesai": "Alhamdulillah — Done",
+    "terlajak": "Time Has Passed",
+    "dalam": "in",
+    "refleksi": "Prayer Reflection",
+    "kualiti": "How was the quality of your prayer?",
+    "khusyuk": "Focused",
+    "sederhana": "Moderate",
+    "perlu_baiki": "Needs improvement",
+    "belum_ditandakan": "Not marked yet",
+    "alhamdulillah": "Alhamdulillah — Done",
+    "masa_tinggal": "Time Remaining",
+    "wirid_subuh": "Wirid After Fajr",
+    "simpan": "Save ✓",
+    "simpan_refleksi": "Save Reflection ✓",
+    "seterusnya_wirid": "Next — Wirid →",
+    "selesai_wirid": "Wirid Complete ✓",
+    "tandakan_selesai_baca": "Mark as read",
+    "selesai_dibaca": "✓ Read complete",
+    "semua_selesai": "Alhamdulillah! All prayers complete.",
+    "waktu_seterusnya": "Next Prayer Time",
+    "dari_5_selesai": "of 5 done",
+    "waktu_sekarang_prayer": "{{prayer}} time now."
+  },
+  "audit_jiwa": {
+    "tajuk": "Soul Audit",
+    "sub": "Revealing the 2 obstacles in your life's mission",
+    "mulakan": "Begin Audit",
+    "simpan": "Save & Get I AM Guidance",
+    "panduan_iam": "I AM Guidance",
+    "loading": "I AM is reflecting...",
+    "soalan": "Today's Questions",
+    "jawapan": "Answer honestly...",
+    "selesai": "Today's Soul Audit is complete.",
+    "kemajuan": "Today's Progress",
+    "mood": "How does your heart feel today?",
+    "pelajari_zikir": "✦ Learn Zikir Jahar & Khafi",
+    "mood_berat": "Heavy",
+    "mood_sedih": "Sad",
+    "mood_biasa": "Normal",
+    "mood_baik": "Good",
+    "mood_syukur": "Grateful",
+    "dedah_syaitan": "Expose external attacks",
+    "dedah_nafsu": "Expose inner temptations",
+    "tunjuk_jalan": "Show the way out",
+    "refleksi_iam": "Reflection from I AM",
+    "audit_baru": "You have just completed a Soul Audit. You are now aware of the 2 obstacles in your mission in this world. The Most Merciful Allah has already given the solution.",
+    "mahu_tahu": "Want to know more?",
+    "ya_tunjukkan": "✦ Yes — Show Me",
+    "gunakan_lalai": "Use Default Reflection",
+    "kembali_solat": "Back to Prayer"
+  },
+  "zikir": {
+    "tajuk": "Zikir",
+    "sub": "Remembering Allah — the path to tranquility",
+    "zikir_am": "Zikir Am",
+    "zikir_khas": "Zikir Khas",
+    "mulakan": "Begin Zikir",
+    "selesai": "Alhamdulillah ✦",
+    "target": "Target",
+    "kiraan": "Count",
+    "ketuk": "TAP",
+    "set_semula": "Reset",
+    "graf": "Today's Chart",
+    "tooltip_am": "General zikir performed after prayer — great reward",
+    "tooltip_khas": "Zikir to elevate spiritual rank — requires talqin from a teacher"
+  },
+  "pintu_rezeki": {
+    "tajuk": "Gate of Provision",
+    "sub": "Audit of Allah's Trust",
+    "mulakan": "Begin Trust Audit",
+    "sifat": "Allah's Attributes",
+    "seterusnya": "Next",
+    "refleksi": "Your reflection..."
+  },
+  "iam": {
+    "tajuk": "I AM Interactive",
+    "sub": "Madrasah I AM Guidance System",
+    "placeholder": "Type your question or concern...",
+    "hantar": "Send",
+    "had_free": "{{count}} conversations left",
+    "had_habis": "{{count}} conversations today complete.",
+    "loading": "I AM is reflecting...",
+    "percuma": "Free",
+    "pro": "Pro",
+    "keluarga": "Family"
+  },
+  "auth": {
+    "log_masuk": "Login",
+    "kembali_madrasah": "Return to Madrasah",
+    "daftar": "Register",
+    "mulakan_perjalanan": "Begin Your Journey →",
+    "log_keluar": "Logout",
+    "email": "Email",
+    "kata_laluan": "Password",
+    "sahkan_kata_laluan": "Confirm Password",
+    "nama": "Name",
+    "google": "Continue with Google",
+    "lupa_kata_laluan": "Forgot password?",
+    "tiada_akaun": "Don't have an account?",
+    "ada_akaun": "Already have an account?"
+  },
+  "dashboard": {
+    "selamat_pagi": "Good Morning",
+    "selamat_tengahari": "Good Afternoon",
+    "selamat_petang": "Good Evening",
+    "selamat_malam": "Good Night",
+    "amalan_hari_ini": "Today's Practice",
+    "solat_hari_ini": "Today's Prayers",
+    "streak": "Day Streak",
+    "tindakan_pantas": "Quick Actions",
+    "aktiviti": "Today's Activities",
+    "dua_tali": "Two Bonds",
+    "hablumminallah": "Hablumminallah",
+    "hablumminallah_sub": "Bond with Allah",
+    "hablumminannas": "Hablumminannas",
+    "hablumminannas_sub": "Bond with People",
+    "pro_unlock": "Pro — unlock full access →",
+    "soalan_menanti": "questions waiting",
+    "selesai_solat": "done",
+    "mesej_hari": "msg/day",
+    "rohani": "Spiritual Guide",
+    "solat_sub": "{{done}}/5 done",
+    "iam_sub_free": "Spiritual Guide · {{count}} msg/day",
+    "iam_sub_pro": "Spiritual Guide · {{count}} msg/day"
+  },
+  "hablum": {
+    "solat": "Prayer",
+    "zikir": "Zikir",
+    "audit": "Soul Audit",
+    "taqwa": "Taqwa",
+    "akhlak": "Character",
+    "silaturrahim": "Silaturrahim",
+    "maaf": "Forgiveness",
+    "khidmat": "Service"
+  },
+  "umum": {
+    "simpan": "Save",
+    "batal": "Cancel",
+    "tutup": "Close",
+    "seterusnya": "Next",
+    "kembali": "Back",
+    "selesai": "Done",
+    "cuba_semula": "Try Again",
+    "loading": "Preparing...",
+    "ralat": "Something went wrong. Please try again.",
+    "tiada_data": "No records yet",
+    "lihat_semua": "View All",
+    "atau": "or"
+  },
+  "bahasa": {
+    "tajuk": "Bahasa / Language",
+    "sub": "Choose your preferred language",
+    "bm": "Bahasa Melayu",
+    "en": "English",
+    "id": "Bahasa Indonesia",
+    "aktif": "Active",
+    "arab_kekal": "Arabic text, Quranic verses and hadith remain in Arabic."
+  },
+  "ayat": {
+    "ali_imran_112": "...except through a bond with Allah and a bond with people",
+    "zariyat_55": "And remind, for indeed reminders benefit the believers."
+  },
+  "kebun": {
+    "subur_label": "Thriving — Alhamdulillah ✦",
+    "normal_label": "Still growing — keep going",
+    "layu_label": "Needs watering — today",
+    "baru_label": "New tree — plant it today",
+    "subur_desc": "Your tree is thriving today. Keep going — don't let it wither tomorrow.",
+    "normal_desc": "Your tree is still green. Don't let it wither.",
+    "layu_desc": "This tree needs water today. Yesterday's deeds are not enough for today.",
+    "baru_desc": "A new tree is waiting to be planted. Begin today.",
+    "ayat_hijr": "\"Worship your Lord until certainty comes to you\" — Al-Hijr: 99",
+    "bulan_baru": "✦ A New Month Has Arrived",
+    "bulan_baru_ayat": "\"Every day He is in a matter\" — Ar-Rahman: 29",
+    "bulan_baru_desc": "Don't rely on past deeds. Today you are still a servant who needs His mercy."
+  },
+  "upgrade": {
+    "tajuk": "This Journey Goes Deeper...",
+    "sub": "Open the next door",
+    "butang": "Unlock Full Journey",
+    "teruskan": "Continue with free version"
+  },
+  "tetapan": {
+    "tajuk": "Spiritual Reminders",
+    "sub": "Settings for heartfelt reminders",
+    "simpan": "Save Settings",
+    "tersimpan": "Saved",
+    "notif_browser": "Browser Notifications",
+    "diaktifkan": "Enabled ✓",
+    "dihalang": "Blocked — check your browser settings",
+    "belum": "Not enabled yet",
+    "aktifkan": "Enable Notifications"
+  },
+  "audit_soalan": {
+    "a1": {
+      "soalan": "During that prayer — at what moment did your thoughts begin to wander?",
+      "ikutan": "What appeared in your mind at that moment?"
+    },
+    "a2": {
+      "soalan": "What was the first thing you thought about after the prayer's salam?",
+      "ikutan": "Was that thing more important than Allah at that moment?"
+    },
+    "a3": {
+      "soalan": "Was there a whisper of 'finish the prayer quickly, I have other things to do' during that prayer?",
+      "ikutan": "That whisper — where did it come from?"
+    },
+    "a4": {
+      "soalan": "How many times did you need to 'pull back' your thoughts to the prayer during that rak'ah?",
+      "ikutan": "What kept pulling your thoughts away at that time?"
+    },
+    "a5": {
+      "soalan": "Did you feel watched by Allah throughout that prayer?",
+      "ikutan": "If yes — why were there still distracting thoughts?"
+    },
+    "a6": {
+      "soalan": "What most easily steals your heart's presence during prayer?",
+      "ikutan": "How long has that thing been disturbing you?"
+    },
+    "a7": {
+      "soalan": "Did you ever forget how many rak'ahs you had completed during that prayer?",
+      "ikutan": "What were you thinking about at that moment?"
+    },
+    "a8": {
+      "soalan": "Imagine a shaytan saying: 'Finish the prayer quickly.' Did you hear that voice during that prayer?",
+      "ikutan": "How did that voice feel — subtle or strong?"
+    },
+    "a9": {
+      "soalan": "Was there a feeling of heaviness about getting up to pray beforehand?",
+      "ikutan": "What made it feel heavy?"
+    },
+    "a10": {
+      "soalan": "After the prayer — did you feel something was 'missed' or 'incomplete'?",
+      "ikutan": "What felt incomplete?"
+    },
+    "a11": {
+      "soalan": "During that prayer — were you aware of the exact moment your heart began to wander?",
+      "ikutan": "How did it feel when you realised your heart had strayed far?"
+    },
+    "a12": {
+      "soalan": "What dreams or future plans appeared during that prayer?",
+      "ikutan": "Where did those thoughts come from during prayer time?"
+    },
+    "a13": {
+      "soalan": "Was there a moment during that prayer when you felt 'very far' from Allah?",
+      "ikutan": "What happened at that moment?"
+    },
+    "a14": {
+      "soalan": "When was the last time you prayed with no distracting thoughts at all?",
+      "ikutan": "What was different then compared to today?"
+    },
+    "a15": {
+      "soalan": "Did your phone or notifications cross your mind during that prayer?",
+      "ikutan": "How strong was that pull during the prayer?"
+    },
+    "a16": {
+      "soalan": "After the salam — how many seconds before you picked up your phone?",
+      "ikutan": "What drove you to do that so quickly?"
+    },
+    "a17": {
+      "soalan": "Was there a voice in your head saying your prayer was not accepted or not good enough?",
+      "ikutan": "Where did that voice come from — and did you believe it?"
+    },
+    "a18": {
+      "soalan": "Rushing in prayer — for the sake of what?",
+      "ikutan": "What was more important than Allah at that moment?"
+    },
+    "a19": {
+      "soalan": "Was there a moment during that prayer when you felt Allah was very close?",
+      "ikutan": "What happened after that beautiful moment?"
+    },
+    "a20": {
+      "soalan": "If shaytan had a KPI to disrupt your prayer — did he succeed today?",
+      "ikutan": "What was his most effective strategy against you?"
+    },
+    "b1": {
+      "soalan": "Was there a part of you that 'didn't want' to pray beforehand?",
+      "ikutan": "What excuse did the nafs give you at that time?"
+    },
+    "b2": {
+      "soalan": "That prayer — was it merely fulfilling an obligation or a genuine desire to meet Allah?",
+      "ikutan": "Honestly — which more accurately describes your prayer?"
+    },
+    "b3": {
+      "soalan": "Were you satisfied with the quality of that prayer?",
+      "ikutan": "If satisfied — is that a sign of success or a nafs that is easily content?"
+    },
+    "b4": {
+      "soalan": "How many times today did you prioritise your own desires over Allah's commands?",
+      "ikutan": "Who won more today — you or your nafs?"
+    },
+    "b5": {
+      "soalan": "Was Fajr prayer today done with full awareness or merely performed?",
+      "ikutan": "What is the difference for you between those two states?"
+    },
+    "b6": {
+      "soalan": "What did you crave more — rest or prayer — before that prayer?",
+      "ikutan": "That is the nafs speaking. What does your soul say?"
+    },
+    "b7": {
+      "soalan": "Did you pray out of fear of sin or out of love for Allah?",
+      "ikutan": "Which was stronger in your heart during that prayer?"
+    },
+    "b8": {
+      "soalan": "After prayer — did you feel better or exactly the same?",
+      "ikutan": "If the same — what might be preventing the prayer from having an effect?"
+    },
+    "b9": {
+      "soalan": "When was the last time you cried during prayer or felt deeply moved?",
+      "ikutan": "What was different then compared to today's prayer?"
+    },
+    "b10": {
+      "soalan": "Was there a feeling of pride after prayer — 'alhamdulillah I've prayed'?",
+      "ikutan": "That pride — from a grateful soul or from a nafs that feels it has done enough?"
+    },
+    "b11": {
+      "soalan": "What do you most enjoy doing after prayer?",
+      "ikutan": "Does it bring you closer to or further from Allah?"
+    },
+    "b12": {
+      "soalan": "Do you pray the same way as 10 years ago?",
+      "ikutan": "If yes — what has changed in your heart compared to your prayer back then?"
+    },
+    "b13": {
+      "soalan": "Nafs always calls to evil — as Allah says in Surah Yusuf. Today, what did your nafs call you to?",
+      "ikutan": "How many times did you hear that call — and how many times did you comply?"
+    },
+    "b14": {
+      "soalan": "Did the prayer change how you treat others afterwards?",
+      "ikutan": "If not — why hasn't prayer yet impacted your behaviour?"
+    },
+    "b15": {
+      "soalan": "What does your nafs dislike most about the practice of prayer?",
+      "ikutan": "That is precisely what most needs to be guarded — why?"
+    },
+    "b16": {
+      "soalan": "Are you more easily drawn to what the nafs desires than to what Allah commands?",
+      "ikutan": "Give one example that happened today."
+    },
+    "b17": {
+      "soalan": "After prayer — how quickly did you return to old habits?",
+      "ikutan": "What pulled you back so fast?"
+    },
+    "b18": {
+      "soalan": "Is there something you knew was wrong but still did today?",
+      "ikutan": "Who won that battle — your conscience or your nafs?"
+    },
+    "b19": {
+      "soalan": "If nafs is the enemy within — what is its most effective weapon against you?",
+      "ikutan": "When is it strongest — morning, afternoon, or night?"
+    },
+    "b20": {
+      "soalan": "Allah says nafs always calls to evil. Today — what evil did nafs call you to?",
+      "ikutan": "Were you aware of it while it was happening or only after?"
+    },
+    "c1": {
+      "soalan": "Imagine there is a fortress that closes all doors for shaytan. Do you want to know this fortress?",
+      "ikutan": "What has been stopping you from seeking it all this time?"
+    },
+    "c2": {
+      "soalan": "The awliya of Allah practise a special zikir to ward off shaytan from outside and nafs from within. Do you want to know this zikir?",
+      "ikutan": "What do you hope will change if you practise it?"
+    },
+    "c3": {
+      "soalan": "If there is a remedy for the two diseases blocking your mission in this world — do you want to know this remedy?",
+      "ikutan": "What makes you confident or doubtful about it?"
+    },
+    "c4": {
+      "soalan": "Allah declares that zikir is the most magnificent of deeds. Have you ever wondered why?",
+      "ikutan": "What answer have you found so far?"
+    },
+    "c5": {
+      "soalan": "Have you ever experienced a prayer that was truly calm — no shaytan interference, no nafs persuasion?",
+      "ikutan": "Would you like that feeling to be the experience of every prayer?"
+    },
+    "c6": {
+      "soalan": "If you could add only one practice to your life that would have the greatest impact — what would it be?",
+      "ikutan": "What is stopping you from practising it now?"
+    },
+    "c7": {
+      "soalan": "What is the single biggest change you want to see in your prayer in the next 30 days?",
+      "ikutan": "What do you feel is the first step to take?"
+    },
+    "c8": {
+      "soalan": "The Prophet ﷺ said: 'For everything there is a polish, and the polish of the heart is the remembrance of Allah.' What does this mean to you?",
+      "ikutan": "When did you last truly polish your heart?"
+    },
+    "c9": {
+      "soalan": "If your soul could speak — what would it ask of you today?",
+      "ikutan": "What is stopping you from giving it that?"
+    },
+    "c10": {
+      "soalan": "What is the one thing about your relationship with Allah that you most urgently want to improve?",
+      "ikutan": "What is the greatest obstacle to be overcome?"
+    }
+  }
+}

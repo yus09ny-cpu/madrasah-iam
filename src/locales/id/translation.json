@@ -1,0 +1,423 @@
+{
+  "app": {
+    "name": "Madrasah I AM",
+    "tagline": "إِلَٰهِي أَنْتَ مَقْصُودِي"
+  },
+  "nav": {
+    "utama": "Beranda",
+    "solat": "Sholat",
+    "audit_jiwa": "Audit Jiwa",
+    "zikir": "Zikir",
+    "pintu_rezeki": "Pintu Rezeki",
+    "hablum": "Hablum",
+    "iam": "I AM Interaktif",
+    "amalan": "Amalan TQN",
+    "tetapan": "Pengaturan",
+    "notifikasi": "Notifikasi",
+    "tinggalkan": "Keluar"
+  },
+  "solat": {
+    "tajuk": "Sholat Lima Waktu",
+    "subuh": "Subuh",
+    "zohor": "Dzuhur",
+    "asar": "Ashar",
+    "maghrib": "Maghrib",
+    "isyak": "Isya",
+    "waktu_sekarang": "Waktu Sholat Saat Ini",
+    "tandakan": "Tandai Selesai",
+    "selesai": "Alhamdulillah — Selesai",
+    "terlajak": "Waktu Telah Berlalu",
+    "dalam": "dalam",
+    "refleksi": "Refleksi Sholat",
+    "kualiti": "Bagaimana kualitas sholat Anda?",
+    "khusyuk": "Khusyuk",
+    "sederhana": "Sedang",
+    "perlu_baiki": "Perlu diperbaiki",
+    "belum_ditandakan": "Belum ditandai",
+    "alhamdulillah": "Alhamdulillah — Selesai",
+    "masa_tinggal": "Waktu Tersisa",
+    "wirid_subuh": "Wirid Setelah Subuh",
+    "simpan": "Simpan ✓",
+    "simpan_refleksi": "Simpan Refleksi ✓",
+    "seterusnya_wirid": "Selanjutnya — Wirid →",
+    "selesai_wirid": "Wirid Selesai ✓",
+    "tandakan_selesai_baca": "Tandai selesai",
+    "selesai_dibaca": "✓ Selesai dibaca",
+    "semua_selesai": "Alhamdulillah! Semua waktu selesai.",
+    "waktu_seterusnya": "Waktu Sholat Selanjutnya",
+    "dari_5_selesai": "dari 5 selesai",
+    "waktu_sekarang_prayer": "Waktu {{prayer}} saat ini."
+  },
+  "audit_jiwa": {
+    "tajuk": "Audit Jiwa",
+    "sub": "Mengungkap 2 penghalang misi Anda di dunia",
+    "mulakan": "Mulai Audit",
+    "simpan": "Simpan & Dapatkan Panduan I AM",
+    "panduan_iam": "Panduan I AM",
+    "loading": "I AM sedang merenungkan...",
+    "soalan": "Pertanyaan Hari Ini",
+    "jawapan": "Jawab dengan jujur...",
+    "selesai": "Audit Jiwa hari ini selesai.",
+    "kemajuan": "Kemajuan Hari Ini",
+    "mood": "Bagaimana perasaan hati Anda hari ini?",
+    "pelajari_zikir": "✦ Pelajari Zikir Jahar & Khafi",
+    "mood_berat": "Berat",
+    "mood_sedih": "Sedih",
+    "mood_biasa": "Biasa",
+    "mood_baik": "Baik",
+    "mood_syukur": "Syukur",
+    "dedah_syaitan": "Ungkap serangan luar",
+    "dedah_nafsu": "Ungkap godaan dalam",
+    "tunjuk_jalan": "Tunjukkan jalan keluar",
+    "refleksi_iam": "Refleksi dari I AM",
+    "audit_baru": "Anda baru saja melakukan Audit Jiwa. Anda sudah sadar ada 2 penghalang dalam misi Anda di dunia ini. Allah Yang Maha Pengasih sudah memberikan solusinya.",
+    "mahu_tahu": "Mau tahu lebih lanjut?",
+    "ya_tunjukkan": "✦ Ya — Tunjukkan Saya",
+    "gunakan_lalai": "Gunakan Refleksi Default",
+    "kembali_solat": "Kembali ke Sholat"
+  },
+  "zikir": {
+    "tajuk": "Zikir",
+    "sub": "Mengingat Allah — jalan menuju ketenangan hati",
+    "zikir_am": "Zikir Am",
+    "zikir_khas": "Zikir Khas",
+    "mulakan": "Mulai Zikir",
+    "selesai": "Alhamdulillah ✦",
+    "target": "Target",
+    "kiraan": "Hitungan",
+    "ketuk": "KETUK",
+    "set_semula": "Atur Ulang",
+    "graf": "Grafik Hari Ini",
+    "tooltip_am": "Zikir umum yang diamalkan setelah sholat — mendapat pahala yang besar",
+    "tooltip_khas": "Zikir untuk meningkatkan maqam rohani — perlu talkin dari guru"
+  },
+  "pintu_rezeki": {
+    "tajuk": "Pintu Rezeki",
+    "sub": "Audit Amanah Allah",
+    "mulakan": "Mulai Audit Amanah",
+    "sifat": "Sifat Allah",
+    "seterusnya": "Selanjutnya",
+    "refleksi": "Refleksi Anda..."
+  },
+  "iam": {
+    "tajuk": "I AM Interaktif",
+    "sub": "Sistem Panduan Madrasah I AM",
+    "placeholder": "Ketik pertanyaan atau beban Anda...",
+    "hantar": "Kirim",
+    "had_free": "{{count}} percakapan lagi",
+    "had_habis": "{{count}} percakapan hari ini selesai.",
+    "loading": "I AM sedang merenungkan...",
+    "percuma": "Gratis",
+    "pro": "Pro",
+    "keluarga": "Keluarga"
+  },
+  "auth": {
+    "log_masuk": "Masuk",
+    "kembali_madrasah": "Kembali ke Madrasah",
+    "daftar": "Daftar",
+    "mulakan_perjalanan": "Mulai Perjalanan →",
+    "log_keluar": "Keluar",
+    "email": "Email",
+    "kata_laluan": "Kata Sandi",
+    "sahkan_kata_laluan": "Konfirmasi Kata Sandi",
+    "nama": "Nama",
+    "google": "Lanjutkan dengan Google",
+    "lupa_kata_laluan": "Lupa kata sandi?",
+    "tiada_akaun": "Belum punya akun?",
+    "ada_akaun": "Sudah punya akun?"
+  },
+  "dashboard": {
+    "selamat_pagi": "Selamat Pagi",
+    "selamat_tengahari": "Selamat Siang",
+    "selamat_petang": "Selamat Sore",
+    "selamat_malam": "Selamat Malam",
+    "amalan_hari_ini": "Amalan Hari Ini",
+    "solat_hari_ini": "Sholat Hari Ini",
+    "streak": "Hari Berturut-turut",
+    "tindakan_pantas": "Tindakan Cepat",
+    "aktiviti": "Aktivitas Hari Ini",
+    "dua_tali": "Dua Tali Hubungan",
+    "hablumminallah": "Hablumminallah",
+    "hablumminallah_sub": "Hubungan dengan Allah",
+    "hablumminannas": "Hablumminannas",
+    "hablumminannas_sub": "Hubungan dengan Manusia",
+    "pro_unlock": "Pro — buka akses penuh →",
+    "soalan_menanti": "pertanyaan menanti",
+    "selesai_solat": "selesai",
+    "mesej_hari": "pesan/hari",
+    "rohani": "Panduan Rohani",
+    "solat_sub": "{{done}}/5 selesai",
+    "iam_sub_free": "Panduan Rohani · {{count}} pesan/hari",
+    "iam_sub_pro": "Panduan Rohani · {{count}} pesan/hari"
+  },
+  "hablum": {
+    "solat": "Sholat",
+    "zikir": "Zikir",
+    "audit": "Audit Jiwa",
+    "taqwa": "Taqwa",
+    "akhlak": "Akhlak",
+    "silaturrahim": "Silaturrahim",
+    "maaf": "Maaf",
+    "khidmat": "Pelayanan"
+  },
+  "umum": {
+    "simpan": "Simpan",
+    "batal": "Batal",
+    "tutup": "Tutup",
+    "seterusnya": "Selanjutnya",
+    "kembali": "Kembali",
+    "selesai": "Selesai",
+    "cuba_semula": "Coba Lagi",
+    "loading": "Sedang menyiapkan...",
+    "ralat": "Ada gangguan. Silakan coba lagi.",
+    "tiada_data": "Belum ada riwayat",
+    "lihat_semua": "Lihat Semua",
+    "atau": "atau"
+  },
+  "bahasa": {
+    "tajuk": "Bahasa / Language",
+    "sub": "Pilih bahasa yang Anda nyaman",
+    "bm": "Bahasa Melayu",
+    "en": "English",
+    "id": "Bahasa Indonesia",
+    "aktif": "Aktif",
+    "arab_kekal": "Teks Arab, ayat Al-Quran dan hadits tetap dalam Bahasa Arab."
+  },
+  "ayat": {
+    "ali_imran_112": "...kecuali dengan tali hubungan dari Allah dan tali hubungan dari manusia",
+    "zariyat_55": "Dan tetaplah memberi peringatan, karena sesungguhnya peringatan itu bermanfaat bagi orang-orang yang beriman."
+  },
+  "kebun": {
+    "subur_label": "Subur — Alhamdulillah ✦",
+    "normal_label": "Masih hijau — teruskan",
+    "layu_label": "Butuh siraman — hari ini",
+    "baru_label": "Pohon baru — tanam hari ini",
+    "subur_desc": "Pohon ini subur hari ini. Teruskan — jangan biarkan layu besok.",
+    "normal_desc": "Pohon ini masih hijau. Jangan biarkan layu.",
+    "layu_desc": "Pohon ini butuh air hari ini. Amalan kemarin tidak cukup untuk hari ini.",
+    "baru_desc": "Pohon baru sedang menunggu untuk ditanam. Mulai hari ini.",
+    "ayat_hijr": "\"Sembahlah Tuhanmu hingga datang keyakinan kepadamu\" — Al-Hijr: 99",
+    "bulan_baru": "✦ Bulan Baru Telah Tiba",
+    "bulan_baru_ayat": "\"Setiap hari Dia dalam urusan baru\" — Ar-Rahman: 29",
+    "bulan_baru_desc": "Jangan bergantung pada amal yang lalu. Hari ini Anda masih hamba yang membutuhkan rahmat-Nya."
+  },
+  "upgrade": {
+    "tajuk": "Perjalanan Ini Lebih Dalam...",
+    "sub": "Buka pintu selanjutnya",
+    "butang": "Buka Perjalanan Lengkap",
+    "teruskan": "Lanjutkan dengan versi gratis"
+  },
+  "tetapan": {
+    "tajuk": "Pengingat Rohani",
+    "sub": "Pengaturan pengingat yang menyentuh hati",
+    "simpan": "Simpan Pengaturan",
+    "tersimpan": "Tersimpan",
+    "notif_browser": "Notifikasi Browser",
+    "diaktifkan": "Diaktifkan ✓",
+    "dihalang": "Diblokir — periksa pengaturan browser Anda",
+    "belum": "Belum diaktifkan",
+    "aktifkan": "Aktifkan Notifikasi"
+  },
+  "audit_soalan": {
+    "a1": {
+      "soalan": "Saat shalat tadi — pada momen apa pikiran mulai melayang ke hal lain?",
+      "ikutan": "Apa yang muncul dalam pikiran pada saat itu?"
+    },
+    "a2": {
+      "soalan": "Apa hal pertama yang Anda pikirkan setelah salam shalat tadi?",
+      "ikutan": "Apakah hal itu lebih penting dari Allah pada saat itu?"
+    },
+    "a3": {
+      "soalan": "Apakah ada bisikan 'selesaikan shalat cepat-cepat, ada urusan lain' saat shalat tadi?",
+      "ikutan": "Bisikan itu — datang dari mana?"
+    },
+    "a4": {
+      "soalan": "Berapa kali Anda perlu 'menarik kembali' pikiran ke shalat dalam rakaat tadi?",
+      "ikutan": "Apa yang terus menarik pikiran Anda saat itu?"
+    },
+    "a5": {
+      "soalan": "Apakah Anda merasa diperhatikan oleh Allah sepanjang shalat tadi?",
+      "ikutan": "Jika ya — mengapa masih ada gangguan pikiran?"
+    },
+    "a6": {
+      "soalan": "Apa yang paling mudah mencuri kehadiran hati Anda dalam shalat?",
+      "ikutan": "Sudah berapa lama hal itu mengganggu Anda?"
+    },
+    "a7": {
+      "soalan": "Apakah pernah dalam shalat tadi Anda lupa sudah berapa rakaat yang dilakukan?",
+      "ikutan": "Apa yang sedang Anda pikirkan saat itu?"
+    },
+    "a8": {
+      "soalan": "Bayangkan setan berkata: 'Selesaikan shalat cepat-cepat.' Apakah Anda mendengar suara itu dalam shalat tadi?",
+      "ikutan": "Bagaimana suara itu terasa — halus atau kuat?"
+    },
+    "a9": {
+      "soalan": "Apakah ada rasa berat untuk bangkit shalat sebelumnya?",
+      "ikutan": "Apa yang membuatnya terasa berat?"
+    },
+    "a10": {
+      "soalan": "Setelah shalat — apakah Anda merasa ada sesuatu yang 'terlewat' atau 'tidak lengkap'?",
+      "ikutan": "Apa yang terasa tidak lengkap itu?"
+    },
+    "a11": {
+      "soalan": "Dalam shalat tadi — apakah Anda sadar kapan tepatnya hati mulai melayang?",
+      "ikutan": "Bagaimana rasanya ketika sadar hati sudah jauh?"
+    },
+    "a12": {
+      "soalan": "Apa mimpi atau rencana masa depan yang muncul dalam shalat tadi?",
+      "ikutan": "Dari mana datang pikiran itu pada waktu shalat?"
+    },
+    "a13": {
+      "soalan": "Apakah ada saat dalam shalat tadi ketika Anda merasa 'sangat jauh' dari Allah?",
+      "ikutan": "Apa yang terjadi pada saat itu?"
+    },
+    "a14": {
+      "soalan": "Kapan terakhir kali Anda shalat tanpa gangguan pikiran sama sekali?",
+      "ikutan": "Apa yang berbeda saat itu dibanding hari ini?"
+    },
+    "a15": {
+      "soalan": "Apakah ponsel atau notifikasi terlintas dalam pikiran saat shalat tadi?",
+      "ikutan": "Seberapa kuat tarikan itu dalam shalat?"
+    },
+    "a16": {
+      "soalan": "Setelah salam — berapa detik sebelum Anda mengambil ponsel?",
+      "ikutan": "Apa yang mendorong Anda melakukannya begitu cepat?"
+    },
+    "a17": {
+      "soalan": "Apakah ada suara dalam kepala yang berkata shalat Anda tidak diterima atau tidak cukup baik?",
+      "ikutan": "Dari mana datang suara itu — dan apakah Anda mempercayainya?"
+    },
+    "a18": {
+      "soalan": "Tergesa-gesa dalam shalat — demi apa?",
+      "ikutan": "Apa yang lebih utama dari Allah pada saat itu?"
+    },
+    "a19": {
+      "soalan": "Apakah ada saat dalam shalat tadi ketika Anda merasa Allah sangat dekat?",
+      "ikutan": "Apa yang terjadi setelah momen indah itu?"
+    },
+    "a20": {
+      "soalan": "Jika setan punya KPI untuk mengganggu shalat Anda — apakah dia berhasil hari ini?",
+      "ikutan": "Apa strateginya yang paling efektif terhadap Anda?"
+    },
+    "b1": {
+      "soalan": "Apakah ada bagian dari diri yang 'tidak mau' shalat sebelumnya?",
+      "ikutan": "Alasan apa yang nafsu berikan kepada Anda saat itu?"
+    },
+    "b2": {
+      "soalan": "Shalat tadi — sekadar menggugurkan kewajiban atau benar-benar ingin berjumpa Allah?",
+      "ikutan": "Jujur — mana yang lebih tepat menggambarkan shalat Anda?"
+    },
+    "b3": {
+      "soalan": "Apakah Anda puas dengan kualitas shalat tadi?",
+      "ikutan": "Jika puas — apakah itu tanda keberhasilan atau nafsu yang mudah puas?"
+    },
+    "b4": {
+      "soalan": "Berapa kali hari ini Anda lebih mengutamakan keinginan diri daripada perintah Allah?",
+      "ikutan": "Siapa yang lebih banyak menang hari ini — Anda atau nafsu Anda?"
+    },
+    "b5": {
+      "soalan": "Apakah shalat Subuh tadi dilakukan dengan penuh kesadaran atau sekadar menunaikan?",
+      "ikutan": "Apa bedanya bagi Anda antara dua kondisi itu?"
+    },
+    "b6": {
+      "soalan": "Apa yang lebih Anda rindukan — istirahat atau shalat — sebelum shalat tadi?",
+      "ikutan": "Itu adalah jawaban nafsu. Apa jawaban jiwa Anda?"
+    },
+    "b7": {
+      "soalan": "Apakah Anda shalat karena takut dosa atau karena cinta kepada Allah?",
+      "ikutan": "Mana yang lebih kuat dalam hati saat shalat tadi?"
+    },
+    "b8": {
+      "soalan": "Setelah shalat — apakah Anda merasa lebih baik atau sama saja?",
+      "ikutan": "Jika sama saja — apa yang mungkin menghalangi shalat dari memberikan efek?"
+    },
+    "b9": {
+      "soalan": "Kapan terakhir kali Anda menangis dalam shalat atau merasa sangat terharu?",
+      "ikutan": "Apa yang berbeda saat itu dibanding shalat hari ini?"
+    },
+    "b10": {
+      "soalan": "Apakah ada rasa bangga setelah shalat — 'alhamdulillah saya sudah shalat'?",
+      "ikutan": "Rasa bangga itu — dari jiwa yang bersyukur atau dari nafsu yang merasa cukup?"
+    },
+    "b11": {
+      "soalan": "Apa yang paling Anda sukai lakukan setelah shalat?",
+      "ikutan": "Apakah itu membawa Anda lebih dekat atau lebih jauh dari Allah?"
+    },
+    "b12": {
+      "soalan": "Apakah Anda shalat dengan cara yang sama seperti 10 tahun lalu?",
+      "ikutan": "Jika ya — apa yang berubah dalam hati dibanding shalat Anda dulu?"
+    },
+    "b13": {
+      "soalan": "Nafsu selalu mengajak kepada kejahatan — kata Allah dalam Surah Yusuf. Hari ini, nafsu mengajak Anda kepada apa?",
+      "ikutan": "Berapa kali Anda mendengar ajakannya — dan berapa kali Anda menuruti?"
+    },
+    "b14": {
+      "soalan": "Apakah shalat mengubah cara Anda memperlakukan orang lain setelahnya?",
+      "ikutan": "Jika tidak — mengapa shalat belum memberi dampak pada perilaku?"
+    },
+    "b15": {
+      "soalan": "Apa yang paling tidak disukai nafsu Anda dari ibadah shalat?",
+      "ikutan": "Itulah yang sebenarnya paling penting untuk dijaga — mengapa?"
+    },
+    "b16": {
+      "soalan": "Apakah Anda lebih mudah melakukan hal yang disukai nafsu dibanding yang diperintahkan Allah?",
+      "ikutan": "Berikan satu contoh yang terjadi hari ini."
+    },
+    "b17": {
+      "soalan": "Setelah shalat — seberapa cepat Anda kembali ke kebiasaan lama?",
+      "ikutan": "Apa yang menarik Anda kembali begitu cepat?"
+    },
+    "b18": {
+      "soalan": "Apakah ada hal yang Anda tahu salah tapi tetap dilakukan hari ini?",
+      "ikutan": "Siapa yang menang dalam pertarungan itu — kesadaran Anda atau nafsu Anda?"
+    },
+    "b19": {
+      "soalan": "Jika nafsu adalah musuh dalam diri — apa senjatanya yang paling efektif terhadap Anda?",
+      "ikutan": "Kapan ia paling kuat — pagi, siang, atau malam?"
+    },
+    "b20": {
+      "soalan": "Allah mengatakan nafsu selalu mengajak kepada kejahatan. Hari ini — kejahatan apa yang nafsu ajak?",
+      "ikutan": "Apakah Anda sadar saat itu sedang terjadi atau sadar setelahnya?"
+    },
+    "c1": {
+      "soalan": "Bayangkan ada benteng yang menutup semua pintu masuk setan. Apakah Anda ingin mengetahui benteng itu?",
+      "ikutan": "Apa yang menghalangi Anda dari mencarinya selama ini?"
+    },
+    "c2": {
+      "soalan": "Para wali Allah mengamalkan zikir khusus untuk menghalau setan dari luar dan nafsu dari dalam. Apakah Anda ingin mengetahui zikir itu?",
+      "ikutan": "Apa yang Anda harapkan berubah jika Anda mengamalkannya?"
+    },
+    "c3": {
+      "soalan": "Jika ada obat untuk dua penyakit yang menghalangi misi Anda di dunia — apakah Anda ingin mengetahui obat itu?",
+      "ikutan": "Apa yang membuat Anda yakin atau ragu tentang obat itu?"
+    },
+    "c4": {
+      "soalan": "Allah menyatakan bahwa zikir adalah amal yang paling agung. Pernahkah Anda bertanya mengapa?",
+      "ikutan": "Jawaban apa yang Anda dapatkan selama ini?"
+    },
+    "c5": {
+      "soalan": "Pernahkah Anda merasakan shalat yang benar-benar tenang — tanpa gangguan setan, tanpa bujukan nafsu?",
+      "ikutan": "Maukah perasaan itu menjadi pengalaman setiap shalat?"
+    },
+    "c6": {
+      "soalan": "Jika Anda hanya bisa menambah satu amalan saja dalam hidup yang memberi dampak terbesar — apa itu?",
+      "ikutan": "Apa yang menghalangi Anda dari mengamalkannya sekarang?"
+    },
+    "c7": {
+      "soalan": "Apa satu perubahan terbesar yang ingin Anda lihat dalam shalat Anda dalam 30 hari ke depan?",
+      "ikutan": "Apa langkah pertama yang Anda rasa perlu diambil?"
+    },
+    "c8": {
+      "soalan": "Nabi ﷺ bersabda: 'Setiap sesuatu ada pembersihnya, dan pembersih hati adalah dzikrullah.' Apa makna ini bagi Anda?",
+      "ikutan": "Kapan terakhir kali Anda benar-benar membersihkan hati?"
+    },
+    "c9": {
+      "soalan": "Jika jiwa Anda bisa berbicara — apa yang akan dimintanya dari Anda hari ini?",
+      "ikutan": "Apa yang menghalangi Anda dari memberikannya?"
+    },
+    "c10": {
+      "soalan": "Apa satu hal tentang hubungan Anda dengan Allah yang paling ingin Anda perbaiki segera?",
+      "ikutan": "Apa hambatan terbesar yang perlu diatasi?"
+    }
+  }
+}

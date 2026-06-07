@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-background: #060d16;
+  --color-surface: #0d1821;
+  --color-surface-2: #1a2535;
+  --color-gold: #c9a96e;
+  --color-gold-light: #e2c89a;
+  --color-gold-dark: #a07840;
+  --color-text: #e8dcc8;
+  --color-text-muted: #8a7a65;
+  --color-border: #1e2d40;
+
+  --font-serif: 'Lora', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+  height: 100dvh;
+}
+
+body {
+  background-color: #060d16;
+  color: #e8dcc8;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+/* Prevent input zoom on iOS — minimum 16px */
+input, textarea, select {
+  font-size: max(16px, 1em);
+}
+
+/* Touch-friendly buttons */
+button, a {
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+/* Safe area utilities */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1821;
+}
+::-webkit-scrollbar-thumb {
+  background: #c9a96e40;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c9a96e80;
+}
