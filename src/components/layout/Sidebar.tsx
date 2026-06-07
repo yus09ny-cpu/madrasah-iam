@@ -47,9 +47,19 @@ export default function Sidebar() {
     'Percuma'
 
   async function handleLogout() {
-    await supabase.auth.signOut()
-    logout()
-    navigate('/login', { replace: true })
+    try {
+      // Jangan biar signOut() yang tergantung (cth. disekat oleh extension browser)
+      // menghalang pengguna daripada log keluar secara tempatan
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('signOut timeout')), 4000)),
+      ])
+    } catch (err) {
+      console.error('[Sidebar] signOut gagal/timeout:', err)
+    } finally {
+      logout()
+      navigate('/login', { replace: true })
+    }
   }
 
   return (
