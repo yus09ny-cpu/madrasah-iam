@@ -14,8 +14,54 @@ function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Pro
   ])
 }
 
+// Fungsi tindakan auth — taburkan ke mana-mana komponen tanpa memulakan
+// subscription/sync baharu (elak race condition bila dipanggil dari
+// pelbagai tempat seperti LoginPage dan AppRoutes serentak).
+export async function signIn(email: string, password: string) {
+  const { error } = await withTimeout(
+    supabase.auth.signInWithPassword({ email, password }),
+    10000,
+    'signIn',
+  )
+  if (error) throw error
+}
+
+export async function signUp(email: string, password: string, name: string) {
+  const { error } = await withTimeout(
+    supabase.auth.signUp({ email, password, options: { data: { name } } }),
+    10000,
+    'signUp',
+  )
+  if (error) throw error
+}
+
+export async function signInWithGoogle() {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: `${window.location.origin}/dashboard` },
+  })
+  if (error) {
+    console.error('Google auth error:', error)
+    throw error
+  }
+}
+
+export async function signOut() {
+  try {
+    await withTimeout(supabase.auth.signOut(), 4000, 'signOut')
+  } catch (err) {
+    console.error('signOut gagal/timeout:', err)
+  } finally {
+    useAuthStore.getState().logout()
+  }
+}
+
+// Hook utama — memulakan subscription onAuthStateChange + sync profil.
+// PENTING: panggil hook ini di SATU tempat sahaja (App.tsx/AppRoutes).
+// Komponen lain yang cuma perlukan signIn/signUp/dll boleh import terus
+// fungsi di atas, supaya tak timbul subscription berganda yang
+// menyebabkan race condition pada baris `profiles` yang sama.
 export function useAuth() {
-  // Single store call — destructure everything needed here
   const { user, isAuthenticated, setUser, logout } = useAuthStore()
 
   // Returning users (persisted session) skip the loading spinner.
@@ -92,10 +138,22 @@ export function useAuth() {
           .select()
           .single()
 
-        if (insertError) console.error('Profile insert error:', insertError)
+        if (insertError) {
+          console.error('Profile insert error:', insertError)
+          // Insert gagal (cth. row sudah wujud — race dengan proses lain).
+          // Cuba sekali lagi baca profil sebenar daripada terus guna fallback
+          // onboarding_complete:false yang akan hantar user ke onboarding semula.
+          const { data: existing } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle()
+          if (existing) {
+            setUser(existing as User)
+            return
+          }
+        }
 
-        // Walau apa pun keputusan insert — pastikan setUser dipanggil supaya
-        // isAuthenticated jadi true dan tak terbalik ke /login
         setUser(
           (newProfile as User) ?? {
             id: userId,
@@ -121,40 +179,6 @@ export function useAuth() {
     } finally {
       setLoading(false)
     }
-  }
-
-  async function signIn(email: string, password: string) {
-    const { error } = await withTimeout(
-      supabase.auth.signInWithPassword({ email, password }),
-      10000,
-      'signIn',
-    )
-    if (error) throw error
-  }
-
-  async function signUp(email: string, password: string, name: string) {
-    const { error } = await withTimeout(
-      supabase.auth.signUp({ email, password, options: { data: { name } } }),
-      10000,
-      'signUp',
-    )
-    if (error) throw error
-  }
-
-  async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
-    })
-    if (error) {
-      console.error('Google auth error:', error)
-      throw error
-    }
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut()
-    logout()
   }
 
   return { user, isAuthenticated, loading, signIn, signUp, signInWithGoogle, signOut }

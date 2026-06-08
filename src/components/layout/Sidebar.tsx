@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, BookHeart, Sparkles, Clock, MessageCircle, LogOut, Heart, Bell, Star, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
-import { supabase } from '@/lib/supabase'
+import { signOut } from '@/hooks/useAuth'
 import { useTranslation } from 'react-i18next'
 
 type SidebarItem =
@@ -23,7 +23,7 @@ const AMALAN_ITEM: SidebarItem = { to: '/amalan', icon: Star, label: 'Amalan TQN
 
 export default function Sidebar() {
   const navigate = useNavigate()
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
   const { t } = useTranslation()
 
   const navItems = user?.talqin_jahar ? [...BASE_NAV_ITEMS, AMALAN_ITEM] : BASE_NAV_ITEMS
@@ -47,19 +47,8 @@ export default function Sidebar() {
     'Percuma'
 
   async function handleLogout() {
-    try {
-      // Jangan biar signOut() yang tergantung (cth. disekat oleh extension browser)
-      // menghalang pengguna daripada log keluar secara tempatan
-      await Promise.race([
-        supabase.auth.signOut(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('signOut timeout')), 4000)),
-      ])
-    } catch (err) {
-      console.error('[Sidebar] signOut gagal/timeout:', err)
-    } finally {
-      logout()
-      navigate('/login', { replace: true })
-    }
+    await signOut()
+    navigate('/login', { replace: true })
   }
 
   return (

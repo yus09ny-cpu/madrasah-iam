@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+import { signIn, signUp, signInWithGoogle } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 
@@ -27,7 +27,6 @@ type RegisterForm = z.infer<typeof registerSchema>
 export default function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { signIn, signUp, signInWithGoogle } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
