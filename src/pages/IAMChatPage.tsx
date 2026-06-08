@@ -257,10 +257,17 @@ export default function IAMChatPage() {
         .catch(() => {})
     } catch (err) {
       const errDetail = err instanceof Error ? err.message : 'Ralat tidak diketahui'
+      // Jangan dedahkan ralat dalaman (cth. status bil/kredit Anthropic) kepada
+      // pengguna — papar mesej mesra umum dan log butiran sebenar untuk admin.
+      const isBillingError = /credit balance|billing|plans & billing/i.test(errDetail)
+      if (isBillingError) console.error('[IAM] Billing/credit error (disembunyikan dari user):', errDetail)
+      const userMessage = isBillingError
+        ? 'Maaf, perkhidmatan I AM Chat sedang tidak tersedia buat masa ini. Sila cuba sebentar lagi.'
+        : `Maaf, berlaku ralat: ${errDetail}\n\nSila cuba sekali lagi atau hubungi admin.`
       setMessages(prev => [...prev, {
         id: `err-${Date.now()}`,
         role: 'assistant',
-        content: `Maaf, berlaku ralat: ${errDetail}\n\nSila cuba sekali lagi atau hubungi admin.`,
+        content: userMessage,
         created_at: new Date().toISOString(),
       }])
     } finally {
