@@ -75,6 +75,16 @@ export async function sendIAMMessage(
     return 'Maaf, cuba sekali lagi.'
   }
 
-  console.log('[IAM] Response berjaya, panjang:', text.length, 'aksara')
+  const usage = data.usage ?? {}
+  const cacheRead = usage.cache_read_input_tokens ?? 0
+  const cacheWrite = usage.cache_creation_input_tokens ?? 0
+  if (cacheRead > 0) {
+    console.log(`[IAM] Cache HIT ✓ — ${cacheRead} tokens dari cache (hemat ~90%). Output: ${usage.output_tokens}`)
+  } else if (cacheWrite > 0) {
+    console.log(`[IAM] Cache WRITE — ${cacheWrite} tokens disimpan. Seterusnya akan hemat. Output: ${usage.output_tokens}`)
+  } else {
+    console.warn('[IAM] Tiada cache — input:', usage.input_tokens, 'output:', usage.output_tokens)
+  }
+
   return text
 }
