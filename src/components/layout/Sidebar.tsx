@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, BookHeart, Sparkles, Clock, MessageCircle, LogOut, Heart, Bell, Star, Shield } from 'lucide-react'
+import { LayoutDashboard, BookHeart, Sparkles, Clock, MessageCircle, LogOut, Heart, Bell, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { signOut } from '@/hooks/useAuth'
@@ -19,14 +19,14 @@ const BASE_NAV_ITEMS: SidebarItem[] = [
   { to: '/rezeki', emoji: '🗝️', label: 'Pintu Rezeki' },
 ]
 
-const AMALAN_ITEM: SidebarItem = { to: '/amalan', icon: Star, label: 'Amalan TQN' }
-
 export default function Sidebar() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { t } = useTranslation()
 
-  const navItems = user?.talqin_jahar ? [...BASE_NAV_ITEMS, AMALAN_ITEM] : BASE_NAV_ITEMS
+  // 'talqin_jahar' bukan lajur dalam 'profiles' — menu Amalan TQN disembunyikan
+  // sehingga status talqin disokong dalam pangkalan data.
+  const navItems = BASE_NAV_ITEMS
 
   const NAV_LABELS: Record<string, string> = {
     '/dashboard': t('nav.utama'),

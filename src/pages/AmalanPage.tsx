@@ -751,8 +751,10 @@ function Dashboard({ onStart, user }: { onStart: () => void; user: { id: string 
 export default function AmalanPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const isTalqin = user?.talqin_jahar === true
-  const tabName = user?.gender === 'female' ? 'Ahwat ✦' : 'Ikhwan ✦'
+  // 'talqin_jahar'/'gender' bukan lajur dalam 'profiles' — guna nilai lalai
+  // sehingga lajur ini disokong dalam pangkalan data.
+  const isTalqin = false
+  const tabName = 'Ikhwan ✦'
 
   const [phase, setPhase] = useState<SessionPhase>('dashboard')
   const [content, setContent] = useState<AmalanItem[]>([])

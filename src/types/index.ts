@@ -1,14 +1,13 @@
 export type UserTier = 'free' | 'pro' | 'family'
 export type AppLanguage = 'bm' | 'en' | 'ar' | 'id'
 
-export type UserMaqam = 'islam' | 'iman' | 'ihsan'
-
 export interface User {
   id: string
+  // Email tidak disimpan dalam jadual 'profiles' — diambil terus dari
+  // auth.users (session.user.email) dan dicantum ke objek User di klien.
   email: string
   name: string | null
   nickname?: string | null
-  gender?: 'male' | 'female' | null
   age?: number | null
   country?: string | null
   state?: string | null
@@ -16,11 +15,7 @@ export interface User {
   religious_background?: string | null
   language?: AppLanguage | null
   tier: UserTier
-  maqam?: UserMaqam | null
-  avatar_url?: string | null
-  onboarding_complete?: boolean | null
-  talqin_jahar?: boolean | null
-  talqin_khafi?: boolean | null
+  onboarded?: boolean | null
   solat_tarekat_unlocked?: boolean | null
   solat_hakikat_unlocked?: boolean | null
   darajat_activated?: boolean | null

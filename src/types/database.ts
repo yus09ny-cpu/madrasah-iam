@@ -7,7 +7,6 @@ export interface Database {
       profiles: {
         Row: {
           id: string
-          email: string
           name: string | null
           nickname: string | null
           age: number | null
@@ -17,14 +16,12 @@ export interface Database {
           religious_background: string | null
           language: 'bm' | 'en' | null
           tier: 'free' | 'pro' | 'family'
-          avatar_url: string | null
-          onboarding_complete: boolean
+          onboarded: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
           id: string
-          email: string
           name?: string | null
           nickname?: string | null
           age?: number | null
@@ -34,8 +31,7 @@ export interface Database {
           religious_background?: string | null
           language?: 'bm' | 'en' | null
           tier?: 'free' | 'pro' | 'family'
-          avatar_url?: string | null
-          onboarding_complete?: boolean
+          onboarded?: boolean
           created_at?: string
           updated_at?: string
         }

@@ -120,20 +120,22 @@ export function useAuth() {
       )
 
       if (profile) {
-        setUser(profile as User)
-        if ((profile as User).language) {
-          i18n.changeLanguage((profile as User).language as string)
-          localStorage.setItem('madrasah_language', (profile as User).language as string)
+        // 'email' bukan lajur dalam jadual 'profiles' — ia datang dari
+        // auth.users, jadi cantumkan secara eksplisit di sini.
+        const merged = { ...(profile as object), email } as User
+        setUser(merged)
+        if (merged.language) {
+          i18n.changeLanguage(merged.language as string)
+          localStorage.setItem('madrasah_language', merged.language as string)
         }
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: newProfile, error: insertError } = await (supabase.from('profiles') as any)
           .insert({
             id: userId,
-            email,
             name: metaName ?? null,
             tier: 'free',
-            onboarding_complete: false,
+            onboarded: false,
           })
           .select()
           .single()
@@ -142,27 +144,29 @@ export function useAuth() {
           console.error('Profile insert error:', insertError)
           // Insert gagal (cth. row sudah wujud — race dengan proses lain).
           // Cuba sekali lagi baca profil sebenar daripada terus guna fallback
-          // onboarding_complete:false yang akan hantar user ke onboarding semula.
+          // onboarded:false yang akan hantar user ke onboarding semula.
           const { data: existing } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', userId)
             .maybeSingle()
           if (existing) {
-            setUser(existing as User)
+            setUser({ ...(existing as object), email } as User)
             return
           }
         }
 
         setUser(
-          (newProfile as User) ?? {
-            id: userId,
-            email,
-            name: metaName ?? null,
-            tier: 'free',
-            onboarding_complete: false,
-            created_at: new Date().toISOString(),
-          },
+          newProfile
+            ? ({ ...(newProfile as object), email } as User)
+            : {
+                id: userId,
+                email,
+                name: metaName ?? null,
+                tier: 'free',
+                onboarded: false,
+                created_at: new Date().toISOString(),
+              },
         )
       }
     } catch (err) {
@@ -173,7 +177,7 @@ export function useAuth() {
         email,
         name: metaName ?? null,
         tier: 'free',
-        onboarding_complete: true,
+        onboarded: true,
         created_at: new Date().toISOString(),
       })
     } finally {

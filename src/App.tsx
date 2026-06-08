@@ -46,7 +46,7 @@ function AppRoutes() {
 
   // Only require onboarding if explicitly set to false (new accounts created after onboarding was added).
   // undefined/null = existing user or tables not yet created → skip onboarding.
-  const needsOnboarding = isAuthenticated && user?.onboarding_complete === false
+  const needsOnboarding = isAuthenticated && user?.onboarded === false
 
   return (
     <Routes>

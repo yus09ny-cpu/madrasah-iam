@@ -156,7 +156,7 @@ export default function OnboardingPage() {
         education_level: form.education_level,
         religious_background: form.religious_background.join('|'),
         language: form.language,
-        onboarding_complete: true,
+        onboarded: true,
       }
       try {
         const timeout = new Promise((_, reject) =>
@@ -186,7 +186,7 @@ export default function OnboardingPage() {
 
   function handleSkip() {
     if (!user) return
-    setUser({ ...user, onboarding_complete: true } as User)
+    setUser({ ...user, onboarded: true } as User)
     navigate('/dashboard', { replace: true })
   }
 

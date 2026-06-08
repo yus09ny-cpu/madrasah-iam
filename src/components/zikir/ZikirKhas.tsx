@@ -529,7 +529,9 @@ function ZikirJahar() {
   const { user } = useAuthStore()
   const { mutateAsync: saveZikir, isPending } = useSaveZikir()
   const today = format(new Date(), 'yyyy-MM-dd')
-  const isTalqin = user?.talqin_jahar === true
+  // 'talqin_jahar' bukan lajur dalam 'profiles' — anggap belum ditalqin
+  // sehingga status ini disokong dalam pangkalan data.
+  const isTalqin = false
 
   const [jaharSaved, setJaharSaved] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -783,8 +785,9 @@ function KhafiTimer() {
 // ─── Zikir Khafi Section ───────────────────────────────────────────────────────
 
 function ZikirKhafi({ hasJaharRequest }: { hasJaharRequest: boolean }) {
-  const { user } = useAuthStore()
-  const isTalqin = user?.talqin_khafi === true
+  // 'talqin_khafi' bukan lajur dalam 'profiles' — anggap belum ditalqin
+  // sehingga status ini disokong dalam pangkalan data.
+  const isTalqin = false
 
   return (
     <div className="space-y-4">
@@ -1049,7 +1052,9 @@ type KhasScreen = 'penerangan' | 'hubungi' | 'content'
 export default function ZikirKhas({ onBackToAmm }: { onBackToAmm?: () => void }) {
   const { user } = useAuthStore()
   const isPro = user?.tier === 'pro' || user?.tier === 'family'
-  const hasTalqin = user?.talqin_jahar === true || user?.talqin_khafi === true
+  // 'talqin_jahar'/'talqin_khafi' bukan lajur dalam 'profiles' — anggap belum
+  // ditalqin sehingga status ini disokong dalam pangkalan data.
+  const hasTalqin = false
 
   const [screen, setScreen] = useState<KhasScreen>(hasTalqin ? 'content' : 'penerangan')
   const [hasJaharRequest, setHasJaharRequest] = useState(false)

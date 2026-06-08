@@ -27,17 +27,12 @@ const TIERS: { value: UserTier; label: string; color: string; active: string }[]
 
 export default function AdminPage() {
   const navigate = useNavigate()
-  const { user, devModeActive, setDevTier, exitDevMode, setUser } = useAuthStore()
+  const { user, devModeActive, setDevTier, exitDevMode } = useAuthStore()
 
   if (!user) return null
 
   const currentTier = user.tier
   const originalTier = localStorage.getItem('madrasah-dev-original-tier') ?? currentTier
-
-  function toggleTalqin() {
-    if (!user) return
-    setUser({ ...user, talqin_jahar: !user.talqin_jahar })
-  }
 
   return (
     <div className="min-h-full px-4 py-8 max-w-lg mx-auto space-y-6">
@@ -108,25 +103,6 @@ export default function AdminPage() {
             Kembali ke Tier Asal ({originalTier})
           </button>
         )}
-      </div>
-
-      {/* Talqin toggle */}
-      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
-        <p className="text-[#8a7a65] text-xs uppercase tracking-wider">Status Talqin</p>
-        <button
-          onClick={toggleTalqin}
-          className={cn(
-            'w-full py-3 rounded-xl text-sm font-medium border transition-all',
-            user.talqin_jahar
-              ? 'bg-emerald-900/20 border-emerald-600/50 text-emerald-400'
-              : 'border-[#1e2d40] text-[#8a7a65] hover:border-emerald-600/30 hover:text-emerald-400'
-          )}
-        >
-          {user.talqin_jahar ? '✓ talqin_jahar: true' : '✗ talqin_jahar: false'}
-        </button>
-        <p className="text-[#8a7a65] text-[11px] leading-relaxed">
-          Mengaktifkan talqin_jahar akan menampilkan menu <span className="text-[#c9a96e]">Amalan TQN</span> dalam navigasi.
-        </p>
       </div>
 
       {/* App info */}

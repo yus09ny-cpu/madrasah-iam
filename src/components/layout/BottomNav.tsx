@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, BookHeart, Sparkles, Clock, Star, LogOut } from 'lucide-react'
+import { LayoutDashboard, BookHeart, Sparkles, Clock, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { supabase } from '@/lib/supabase'
@@ -17,14 +17,12 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { to: '/rezeki', emoji: '🗝️', label: 'Rezeki' },
 ]
 
-const AMALAN_ITEM: NavItem = { to: '/amalan', icon: Star, label: 'Amalan' }
-
 export default function BottomNav() {
   const navigate = useNavigate()
-  const { user, logout } = useAuthStore()
+  const { logout } = useAuthStore()
   const { t } = useTranslation()
 
-  const navItems = user?.talqin_jahar ? [...BASE_NAV_ITEMS, AMALAN_ITEM] : BASE_NAV_ITEMS
+  const navItems = BASE_NAV_ITEMS
 
   const NAV_LABELS: Record<string, string> = {
     '/dashboard': t('nav.utama'),
