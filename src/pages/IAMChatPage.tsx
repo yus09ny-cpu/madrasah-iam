@@ -212,6 +212,22 @@ export default function IAMChatPage() {
     const content = (text ?? input).trim()
     if (!content || isTyping || !user || isLimitReached) return
 
+    // Semak semula terus dari Supabase (bukan state tempatan sahaja) sebelum
+    // panggil API Anthropic — elak had harian dipintas bila pengguna buka
+    // berbilang tab/peranti serentak (state tempatan boleh jadi lapuk).
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const { count } = await supabase
+      .from('chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('role', 'user')
+      .gte('created_at', `${today}T00:00:00`)
+
+    if (count !== null && count >= limit) {
+      setUsedToday(count)
+      return
+    }
+
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 

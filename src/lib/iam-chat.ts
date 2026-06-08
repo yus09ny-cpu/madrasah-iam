@@ -9,9 +9,8 @@ function resolveModel(userTier: string): string {
 }
 
 function resolveMaxTokens(userTier: string): number {
-  if (userTier === 'free') return 1024
-  if (userTier === 'pro') return 2048
-  return 4096
+  if (userTier === 'free') return 500
+  return 1024
 }
 
 function resolveSystemPrompt(userTier: string): string {
@@ -45,7 +44,17 @@ export async function sendIAMMessage(
     body: JSON.stringify({
       model: resolveModel(userTier),
       max_tokens: resolveMaxTokens(userTier),
-      system: systemPrompt ?? resolveSystemPrompt(userTier),
+      // System prompt boleh sehingga ~16K token (Pro) — tanda ia sebagai
+      // cache_control supaya Anthropic guna prompt caching: permintaan
+      // berulang dalam tempoh cache (~5 minit) dikenakan kos token-baca-cache
+      // yang jauh lebih murah berbanding token input penuh.
+      system: [
+        {
+          type: 'text',
+          text: systemPrompt ?? resolveSystemPrompt(userTier),
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
       messages,
     }),
   })
