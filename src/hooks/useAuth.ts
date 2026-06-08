@@ -61,6 +61,12 @@ export async function signOut() {
 // Komponen lain yang cuma perlukan signIn/signUp/dll boleh import terus
 // fungsi di atas, supaya tak timbul subscription berganda yang
 // menyebabkan race condition pada baris `profiles` yang sama.
+// onAuthStateChange boleh tembak INITIAL_SESSION dan SIGNED_IN serentak untuk
+// pengguna yang sama (terutama semasa daftar/log masuk baharu) — tanpa
+// dedup ini, dua syncProfile() berlumba mencipta row 'profiles' yang sama
+// dan salah satu gagal dengan ralat duplicate-key (23505).
+const inFlightProfileSyncs = new Map<string, Promise<void>>()
+
 export function useAuth() {
   const { user, isAuthenticated, setUser, logout } = useAuthStore()
 
@@ -112,6 +118,19 @@ export function useAuth() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function syncProfile(userId: string, email: string, metaName?: string) {
+    const inFlight = inFlightProfileSyncs.get(userId)
+    if (inFlight) {
+      await inFlight
+      return
+    }
+    const promise = syncProfileImpl(userId, email, metaName).finally(() => {
+      inFlightProfileSyncs.delete(userId)
+    })
+    inFlightProfileSyncs.set(userId, promise)
+    await promise
+  }
+
+  async function syncProfileImpl(userId: string, email: string, metaName?: string) {
     try {
       const { data: profile } = await withTimeout(
         supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
@@ -142,17 +161,23 @@ export function useAuth() {
 
         if (insertError) {
           console.error('Profile insert error:', insertError)
-          // Insert gagal (cth. row sudah wujud — race dengan proses lain).
-          // Cuba sekali lagi baca profil sebenar daripada terus guna fallback
-          // onboarded:false yang akan hantar user ke onboarding semula.
-          const { data: existing } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle()
-          if (existing) {
-            setUser({ ...(existing as object), email } as User)
-            return
+          // '23505' = row sudah wujud (race — proses lain berjaya cipta profil
+          // serentak). Row itu PASTI wujud, jadi cuba baca semula beberapa kali
+          // dengan jeda — elak terus guna fallback onboarded:false yang akan
+          // hantar user ke onboarding walaupun profil sebenar sudah lengkap.
+          const isDuplicateKey = (insertError as { code?: string })?.code === '23505'
+          const attempts = isDuplicateKey ? 4 : 1
+          for (let i = 0; i < attempts; i++) {
+            if (i > 0) await new Promise(r => setTimeout(r, 350 * i))
+            const { data: existing } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .maybeSingle()
+            if (existing) {
+              setUser({ ...(existing as object), email } as User)
+              return
+            }
           }
         }
 
