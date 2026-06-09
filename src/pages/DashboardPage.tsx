@@ -46,7 +46,7 @@ export default function DashboardPage() {
 
   const QUICK_ACTIONS = [
     {
-      to: '/muhasabah',
+      to: '/audit-jiwa',
       icon: BookHeart,
       label: t('nav.audit_jiwa'),
       sublabel: muhasabahDone
