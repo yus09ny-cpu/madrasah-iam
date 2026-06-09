@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { BookHeart, Sparkles, Clock, MessageCircle, TrendingUp, ChevronRight, CheckCircle2 } from 'lucide-react'
+import { BookHeart, Sparkles, Clock, MessageCircle, TrendingUp, ChevronRight, CheckCircle2, Star } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useTodaySolat } from '@/hooks/useSolat'
 import { useTodayMuhasabah } from '@/hooks/useMuhasabah'
@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const greeting = getGreeting()
 
   const isPro = user?.tier === 'pro' || user?.tier === 'family'
+  const hasTalqin = user?.talqin_completed === true
   const displayName = user?.nickname ?? user?.name?.split(' ')[0] ?? 'Sahabat'
   const today = format(new Date(), 'EEEE, d MMMM yyyy', { locale: ms })
 
@@ -84,6 +85,15 @@ export default function DashboardPage() {
       color: 'text-violet-400',
       bg: 'bg-violet-900/20',
     },
+    ...(hasTalqin ? [{
+      to: '/amalan',
+      icon: Star,
+      label: t('nav.amalan'),
+      sublabel: 'Zikir Jahar · Zikir Khafi',
+      done: false,
+      color: 'text-[#c9a96e]',
+      bg: 'bg-[#c9a96e15]',
+    }] : []),
   ]
 
   return (

@@ -11,22 +11,26 @@ type NavItem =
 
 const BASE_NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Utama' },
-  { to: '/muhasabah', icon: BookHeart, label: 'Audit Jiwa' },
+  { to: '/audit-jiwa', icon: BookHeart, label: 'Audit Jiwa' },
   { to: '/zikir', icon: Sparkles, label: 'Zikir' },
   { to: '/solat', icon: Clock, label: 'Solat' },
   { to: '/rezeki', emoji: '🗝️', label: 'Rezeki' },
 ]
 
+const AMALAN_ITEM: NavItem = { to: '/amalan', emoji: '✦', label: 'Amalan' }
+
 export default function BottomNav() {
   const navigate = useNavigate()
-  const { logout } = useAuthStore()
+  const { logout, user } = useAuthStore()
   const { t } = useTranslation()
 
-  const navItems = BASE_NAV_ITEMS
+  const navItems = user?.talqin_completed
+    ? [...BASE_NAV_ITEMS, AMALAN_ITEM]
+    : BASE_NAV_ITEMS
 
   const NAV_LABELS: Record<string, string> = {
     '/dashboard': t('nav.utama'),
-    '/muhasabah': t('nav.audit_jiwa'),
+    '/audit-jiwa': t('nav.audit_jiwa'),
     '/zikir': t('nav.zikir'),
     '/solat': t('nav.solat'),
     '/rezeki': t('nav.pintu_rezeki'),

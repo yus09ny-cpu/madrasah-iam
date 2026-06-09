@@ -1,0 +1,253 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { CheckCircle2, Loader2, User } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/store/authStore'
+import { cn } from '@/lib/utils'
+import type { AppLanguage } from '@/types'
+
+const LANGUAGES: { value: AppLanguage; label: string; flag: string }[] = [
+  { value: 'bm', label: 'Bahasa Melayu', flag: '🇲🇾' },
+  { value: 'en', label: 'English', flag: '🇬🇧' },
+  { value: 'id', label: 'Bahasa Indonesia', flag: '🇮🇩' },
+  { value: 'ar', label: 'العربية', flag: '🇸🇦' },
+]
+
+const COUNTRIES = [
+  'Malaysia', 'Indonesia', 'Singapura', 'Brunei', 'Thailand', 'Arab Saudi',
+  'Emiriah Arab Bersatu', 'United Kingdom', 'Australia', 'Lain-lain',
+]
+
+const EDU_LEVELS = [
+  'SPM / Setaraf', 'Diploma', 'Ijazah Sarjana Muda', 'Sarjana', 'Doktor Falsafah',
+  'Pondok / Agama', 'Lain-lain',
+]
+
+const RELIGIOUS_BG = [
+  'Muslim sejak lahir', 'Muallaf (baru memeluk Islam)',
+  'Sedang mendalami agama', 'Sudah lama belajar agama', 'Lain-lain',
+]
+
+export default function ProfileSettingsPage() {
+  const navigate = useNavigate()
+  const { user, setUser } = useAuthStore()
+
+  const [form, setForm] = useState({
+    name: user?.name ?? '',
+    nickname: user?.nickname ?? '',
+    age: user?.age?.toString() ?? '',
+    country: user?.country ?? '',
+    state: user?.state ?? '',
+    education_level: user?.education_level ?? '',
+    religious_background: user?.religious_background ?? '',
+    language: user?.language ?? 'bm',
+  })
+
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  function set(key: string, value: string) {
+    setForm(f => ({ ...f, [key]: value }))
+    setSaved(false)
+  }
+
+  async function handleSave() {
+    if (!user) return
+    setSaving(true)
+    setError('')
+    try {
+      const updates = {
+        name: form.name.trim() || null,
+        nickname: form.nickname.trim() || null,
+        age: form.age ? parseInt(form.age) : null,
+        country: form.country || null,
+        state: form.state.trim() || null,
+        education_level: form.education_level || null,
+        religious_background: form.religious_background || null,
+        language: form.language as AppLanguage,
+        updated_at: new Date().toISOString(),
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: err } = await (supabase.from('profiles') as any)
+        .update(updates)
+        .eq('id', user.id)
+      if (err) throw err
+      setUser({ ...user, ...updates })
+      setSaved(true)
+    } catch (e: unknown) {
+      setError((e as Error)?.message ?? 'Gagal menyimpan')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const tierLabel = user?.tier === 'pro' ? '✦ Pro' : user?.tier === 'family' ? '✦ Keluarga' : 'Percuma'
+  const initial = (user?.nickname ?? user?.name ?? 'U').charAt(0).toUpperCase()
+
+  return (
+    <div className="p-5 md:p-8 max-w-lg mx-auto space-y-6 pb-8">
+
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-[#c9a96e30] border border-[#c9a96e40] flex items-center justify-center text-[#c9a96e] text-2xl font-serif font-bold">
+          {initial}
+        </div>
+        <div>
+          <h1 className="text-[#e8dcc8] font-semibold text-lg">{user?.nickname ?? user?.name ?? 'Profil'}</h1>
+          <p className="text-[#8a7a65] text-xs">{user?.email}</p>
+          <span className="text-xs text-[#c9a96e]">{tierLabel}</span>
+        </div>
+      </div>
+
+      {/* Form */}
+      <div className="space-y-4">
+
+        {/* Name */}
+        <div className="space-y-1.5">
+          <label className="text-[#8a7a65] text-xs">Nama Penuh</label>
+          <input
+            value={form.name}
+            onChange={e => set('name', e.target.value)}
+            placeholder="Nama penuh anda"
+            className="w-full px-4 py-3 bg-[#0d1821] border border-[#1e2d40] rounded-xl text-[#e8dcc8] text-sm focus:outline-none focus:border-[#c9a96e40] placeholder:text-[#8a7a65]"
+          />
+        </div>
+
+        {/* Nickname */}
+        <div className="space-y-1.5">
+          <label className="text-[#8a7a65] text-xs">Nama Panggilan <span className="text-[#c9a96e60]">(dipapar pada aplikasi)</span></label>
+          <input
+            value={form.nickname}
+            onChange={e => set('nickname', e.target.value)}
+            placeholder="Nama yang ingin dipapar"
+            className="w-full px-4 py-3 bg-[#0d1821] border border-[#1e2d40] rounded-xl text-[#e8dcc8] text-sm focus:outline-none focus:border-[#c9a96e40] placeholder:text-[#8a7a65]"
+          />
+        </div>
+
+        {/* Age + Country row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="text-[#8a7a65] text-xs">Umur</label>
+            <input
+              type="number"
+              min={1}
+              max={120}
+              value={form.age}
+              onChange={e => set('age', e.target.value)}
+              placeholder="—"
+              className="w-full px-4 py-3 bg-[#0d1821] border border-[#1e2d40] rounded-xl text-[#e8dcc8] text-sm focus:outline-none focus:border-[#c9a96e40] placeholder:text-[#8a7a65]"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[#8a7a65] text-xs">Negara</label>
+            <select
+              value={form.country}
+              onChange={e => set('country', e.target.value)}
+              className="w-full px-4 py-3 bg-[#0d1821] border border-[#1e2d40] rounded-xl text-[#e8dcc8] text-sm focus:outline-none"
+            >
+              <option value="">Pilih negara</option>
+              {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* State */}
+        <div className="space-y-1.5">
+          <label className="text-[#8a7a65] text-xs">Negeri / Bandar</label>
+          <input
+            value={form.state}
+            onChange={e => set('state', e.target.value)}
+            placeholder="cth. Selangor, Kuala Lumpur"
+            className="w-full px-4 py-3 bg-[#0d1821] border border-[#1e2d40] rounded-xl text-[#e8dcc8] text-sm focus:outline-none focus:border-[#c9a96e40] placeholder:text-[#8a7a65]"
+          />
+        </div>
+
+        {/* Education */}
+        <div className="space-y-1.5">
+          <label className="text-[#8a7a65] text-xs">Tahap Pendidikan</label>
+          <select
+            value={form.education_level}
+            onChange={e => set('education_level', e.target.value)}
+            className="w-full px-4 py-3 bg-[#0d1821] border border-[#1e2d40] rounded-xl text-[#e8dcc8] text-sm focus:outline-none"
+          >
+            <option value="">Pilih tahap</option>
+            {EDU_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </div>
+
+        {/* Religious background */}
+        <div className="space-y-1.5">
+          <label className="text-[#8a7a65] text-xs">Latar Belakang Agama</label>
+          <select
+            value={form.religious_background}
+            onChange={e => set('religious_background', e.target.value)}
+            className="w-full px-4 py-3 bg-[#0d1821] border border-[#1e2d40] rounded-xl text-[#e8dcc8] text-sm focus:outline-none"
+          >
+            <option value="">Pilih latar belakang</option>
+            {RELIGIOUS_BG.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
+
+        {/* Language */}
+        <div className="space-y-2">
+          <label className="text-[#8a7a65] text-xs">Bahasa Antara Muka</label>
+          <div className="grid grid-cols-2 gap-2">
+            {LANGUAGES.map(lang => (
+              <button
+                key={lang.value}
+                onClick={() => set('language', lang.value)}
+                className={cn(
+                  'flex items-center gap-2.5 px-4 py-3 rounded-xl border text-sm transition-all',
+                  form.language === lang.value
+                    ? 'bg-[#c9a96e20] border-[#c9a96e40] text-[#c9a96e]'
+                    : 'border-[#1e2d40] text-[#8a7a65] hover:border-[#2a3d55] hover:text-[#e8dcc8]'
+                )}
+              >
+                <span>{lang.flag}</span>
+                <span>{lang.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-900/20 border border-red-500/30 rounded-xl px-4 py-3">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="space-y-3">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={cn(
+            'w-full py-4 rounded-2xl text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50',
+            saved
+              ? 'bg-emerald-600 text-white'
+              : 'text-[#060d16]'
+          )}
+          style={!saved ? { background: 'linear-gradient(135deg, #c9a96e, #a07840)' } : {}}
+        >
+          {saving ? (
+            <><Loader2 size={16} className="animate-spin" /> Menyimpan...</>
+          ) : saved ? (
+            <><CheckCircle2 size={16} /> Tersimpan</>
+          ) : (
+            <><User size={16} /> Simpan Profil</>
+          )}
+        </button>
+
+        <button
+          onClick={() => navigate(-1)}
+          className="w-full py-3 rounded-2xl text-sm text-[#8a7a65] border border-[#1e2d40] hover:text-[#e8dcc8] hover:border-[#2a3d55] transition-colors"
+        >
+          ← Kembali
+        </button>
+      </div>
+    </div>
+  )
+}

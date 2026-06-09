@@ -11,7 +11,9 @@ import HablumPage from '@/pages/HablumPage'
 import AmalanPage from '@/pages/AmalanPage'
 import PintuRezekiPage from '@/pages/PintuRezekiPage'
 import NotificationSettingsPage from '@/pages/NotificationSettingsPage'
+import ProfileSettingsPage from '@/pages/ProfileSettingsPage'
 import AdminPage from '@/pages/AdminPage'
+import AuditJiwaPage from '@/pages/AuditJiwaPage'
 import LoginPage from '@/pages/LoginPage'
 import OnboardingPage from '@/pages/OnboardingPage'
 import { useAuth } from '@/hooks/useAuth'
@@ -86,6 +88,7 @@ function AppRoutes() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="muhasabah" element={<MuhasabahPage />} />
+        <Route path="audit-jiwa" element={<AuditJiwaPage />} />
         <Route path="zikir" element={<ZikirPage />} />
         <Route path="solat" element={<SolatPage />} />
         <Route path="iam" element={<IAMChatPage />} />
@@ -93,6 +96,7 @@ function AppRoutes() {
         <Route path="amalan" element={<AmalanPage />} />
         <Route path="rezeki" element={<PintuRezekiPage />} />
         <Route path="settings/notifications" element={<NotificationSettingsPage />} />
+        <Route path="settings/profile" element={<ProfileSettingsPage />} />
         <Route path="admin" element={<AdminPage />} />
       </Route>
 

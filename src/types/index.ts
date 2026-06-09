@@ -1,5 +1,6 @@
 export type UserTier = 'free' | 'pro' | 'family'
 export type AppLanguage = 'bm' | 'en' | 'ar' | 'id'
+export type AdminRole = 'user' | 'master_admin' | 'super_admin' | 'wakil_talkin'
 
 export interface User {
   id: string
@@ -15,10 +16,69 @@ export interface User {
   religious_background?: string | null
   language?: AppLanguage | null
   tier: UserTier
+  role?: AdminRole | null
   onboarded?: boolean | null
+  talqin_completed?: boolean | null
   solat_tarekat_unlocked?: boolean | null
   solat_hakikat_unlocked?: boolean | null
   darajat_activated?: boolean | null
+  created_at: string
+}
+
+// ─── Admin types ──────────────────────────────────────────────────────────────
+
+export interface WakilTalkinRecord {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  bio: string | null
+  specialization: 'beginner' | 'advanced' | 'specific_issues' | null
+  languages: string | null
+  availability_status: 'available' | 'full' | 'on_leave'
+  max_students: number
+  current_students: number
+  contact_methods: string | null
+  is_verified: boolean
+  verified_by: string | null
+  verified_at: string | null
+  status: 'active' | 'inactive' | 'suspended'
+  created_at: string
+  updated_at: string
+}
+
+export interface UserWakilTalkinRecord {
+  id: string
+  user_id: string
+  wakil_talkin_id: string
+  audit_id: string | null
+  talkin_status: 'pending' | 'active' | 'completed' | 'paused'
+  talkin_start_date: string | null
+  talkin_completion_date: string | null
+  talkin_sessions_count: number
+  talkin_notes: string | null
+  amalan_status: 'not_started' | 'in_progress' | 'completed'
+  amalan_start_date: string | null
+  amalan_completion_date: string | null
+  amalan_weeks_completed: number
+  amalan_notes: string | null
+  pro_unlocked_at: string | null
+  admin_notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TalkinSessionRecord {
+  id: string
+  assignment_id: string
+  user_id: string
+  wakil_talkin_id: string
+  session_date: string
+  duration_minutes: number | null
+  topic: string | null
+  notes: string | null
+  user_feedback: string | null
+  next_session_date: string | null
   created_at: string
 }
 

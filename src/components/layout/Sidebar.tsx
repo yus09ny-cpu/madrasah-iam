@@ -11,7 +11,7 @@ type SidebarItem =
 
 const BASE_NAV_ITEMS: SidebarItem[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Ruang Utama' },
-  { to: '/muhasabah', icon: BookHeart, label: 'Audit Jiwa' },
+  { to: '/audit-jiwa', icon: BookHeart, label: 'Audit Jiwa' },
   { to: '/zikir', icon: Sparkles, label: 'Zikir' },
   { to: '/solat', icon: Clock, label: 'Solat' },
   { to: '/iam', icon: MessageCircle, label: 'I AM' },
@@ -19,18 +19,20 @@ const BASE_NAV_ITEMS: SidebarItem[] = [
   { to: '/rezeki', emoji: '🗝️', label: 'Pintu Rezeki' },
 ]
 
+const AMALAN_ITEM: SidebarItem = { to: '/amalan', emoji: '✦', label: 'Amalan TQN' }
+
 export default function Sidebar() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { t } = useTranslation()
 
-  // 'talqin_jahar' bukan lajur dalam 'profiles' — menu Amalan TQN disembunyikan
-  // sehingga status talqin disokong dalam pangkalan data.
-  const navItems = BASE_NAV_ITEMS
+  const navItems = user?.talqin_completed
+    ? [...BASE_NAV_ITEMS, AMALAN_ITEM]
+    : BASE_NAV_ITEMS
 
   const NAV_LABELS: Record<string, string> = {
     '/dashboard': t('nav.utama'),
-    '/muhasabah': t('nav.audit_jiwa'),
+    '/audit-jiwa': t('nav.audit_jiwa'),
     '/zikir': t('nav.zikir'),
     '/solat': t('nav.solat'),
     '/iam': t('nav.iam'),
@@ -85,7 +87,11 @@ export default function Sidebar() {
 
       {/* User info + Logout */}
       <div className="p-4 border-t border-[#1e2d40] space-y-2">
-        <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-[#1a2535]">
+        <NavLink to="/settings/profile"
+          className={({ isActive }) => cn(
+            'flex items-center gap-3 px-3 py-3 rounded-xl transition-all',
+            isActive ? 'bg-[#c9a96e15] border border-[#c9a96e30]' : 'bg-[#1a2535] hover:bg-[#1e2d40]'
+          )}>
           <div className="w-8 h-8 rounded-full bg-[#c9a96e30] flex items-center justify-center text-[#c9a96e] text-sm font-semibold flex-shrink-0">
             {initial}
           </div>
@@ -93,7 +99,7 @@ export default function Sidebar() {
             <p className="text-sm text-[#e8dcc8] truncate">{displayName}</p>
             <p className="text-xs text-[#c9a96e]">{tierLabel}</p>
           </div>
-        </div>
+        </NavLink>
         <NavLink to="/settings/notifications"
           className={({ isActive }) => cn(
             'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200',
@@ -102,14 +108,16 @@ export default function Sidebar() {
           <Bell size={16} />
           <span>{t('nav.notifikasi')}</span>
         </NavLink>
-        <NavLink to="/admin"
-          className={({ isActive }) => cn(
-            'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200',
-            isActive ? 'text-[#c9a96e]' : 'text-[#8a7a65] hover:text-[#e8dcc8] hover:bg-[#1a2535]'
-          )}>
-          <Shield size={16} />
-          <span>Admin</span>
-        </NavLink>
+        {(user?.role === 'master_admin' || user?.role === 'super_admin' || user?.role === 'wakil_talkin') && (
+          <NavLink to="/admin"
+            className={({ isActive }) => cn(
+              'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200',
+              isActive ? 'text-[#c9a96e]' : 'text-[#8a7a65] hover:text-[#e8dcc8] hover:bg-[#1a2535]'
+            )}>
+            <Shield size={16} />
+            <span>{user?.role === 'master_admin' ? 'Master Admin' : 'Admin'}</span>
+          </NavLink>
+        )}
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-[#8a7a65] hover:text-red-400 hover:bg-red-900/10 transition-all duration-200"

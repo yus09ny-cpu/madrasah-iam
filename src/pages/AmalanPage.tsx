@@ -25,6 +25,15 @@ interface AmalanItem {
 }
 
 type SessionPhase = 'dashboard' | 1 | 2 | 3 | '4a' | '4b' | '4c' | 'done'
+type AmalanTab = 'zikir' | 'khataman' | 'manakiban' | 'inabah' | 'ziarah'
+
+const AMALAN_TABS: { id: AmalanTab; label: string; arabic: string; soon?: boolean }[] = [
+  { id: 'zikir',     label: 'Zikir',     arabic: 'الذِّكْر'     },
+  { id: 'khataman',  label: 'Khataman',  arabic: 'الخَتْم',  soon: true },
+  { id: 'manakiban', label: 'Manakiban', arabic: 'المَنَاقِب', soon: true },
+  { id: 'inabah',    label: 'Inabah',    arabic: 'الإِنَابَة', soon: true },
+  { id: 'ziarah',    label: 'Ziarah',    arabic: 'الزِّيَارَة', soon: true },
+]
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -746,16 +755,325 @@ function Dashboard({ onStart, user }: { onStart: () => void; user: { id: string 
   )
 }
 
+// ─── Khataman Tab ──────────────────────────────────────────────────────────────
+
+function KhatamanTab() {
+  const today = new Date().getDay() // 0=Sun,1=Mon,...,4=Thu
+  const DAYS = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu']
+  const isRecommended = today === 1 || today === 4 // Mon or Thu
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center space-y-1 py-2">
+        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">الخَتْم</p>
+        <h2 className="font-serif text-[#e8dcc8] text-lg">Khataman TQN</h2>
+        <p className="text-[#8a7a65] text-xs">Makanan Roh — Soul Food</p>
+      </div>
+
+      {/* Hari ini indicator */}
+      {isRecommended && (
+        <div className="bg-[#c9a96e15] border border-[#c9a96e40] rounded-2xl p-4 flex items-center gap-3">
+          <span className="text-2xl">✦</span>
+          <div>
+            <p className="text-[#c9a96e] text-sm font-medium">Malam {DAYS[today]} — Malam Khataman</p>
+            <p className="text-[#8a7a65] text-xs">Malam yang disyorkan untuk hadir khataman berjemaah</p>
+          </div>
+        </div>
+      )}
+
+      {/* Weekly tracker */}
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
+        <p className="text-[#8a7a65] text-xs uppercase tracking-wider">Jadual Minggu Ini</p>
+        <div className="grid grid-cols-7 gap-1">
+          {DAYS.map((day, i) => {
+            const isToday = i === today
+            const isRec = i === 1 || i === 4
+            return (
+              <div key={day} className={cn(
+                'flex flex-col items-center gap-1 py-2 rounded-xl border transition-all',
+                isToday
+                  ? 'border-[#c9a96e] bg-[#c9a96e15]'
+                  : isRec
+                  ? 'border-[#c9a96e30] bg-[#c9a96e08]'
+                  : 'border-[#1e2d40]'
+              )}>
+                <p className={cn('text-[9px] font-medium', isToday ? 'text-[#c9a96e]' : isRec ? 'text-[#c9a96e80]' : 'text-[#8a7a65]')}>
+                  {day.slice(0, 3)}
+                </p>
+                {isRec && <span className="text-[#c9a96e] text-[10px]">✦</span>}
+              </div>
+            )
+          })}
+        </div>
+        <p className="text-[#8a7a65] text-xs text-center">✦ = Malam Khataman (Isnin & Khamis disyorkan)</p>
+      </div>
+
+      {/* Description */}
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
+        <p className="text-[#c9a96e] text-sm font-medium">Apakah Khataman TQN?</p>
+        <p className="text-[#8a7a65] text-sm leading-relaxed">
+          Khataman adalah majlis zikir berjemaah dalam Thariqah Qadiriyah Naqsyabandiyah. Roh-roh para murid berkumpul bersama guru-guru silsilah untuk membaca wird khas — Al-Fatihah, Istigfar, Selawat, dan Zikir bersama.
+        </p>
+        <div className="space-y-1.5">
+          {[
+            'Al-Fatihah (hadiah kepada Nabi & silsilah)',
+            'Istighfar (100×)',
+            'Selawat Nabi (100×)',
+            'Zikir Jahar berjemaah (165×+)',
+            'Doa Penutup Khataman',
+          ].map(item => (
+            <div key={item} className="flex items-start gap-2">
+              <span className="text-[#c9a96e] text-xs mt-0.5">✦</span>
+              <p className="text-[#8a7a65] text-xs">{item}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Schedule */}
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2">
+        <p className="text-[#8a7a65] text-xs uppercase tracking-wider">Jadual Disyorkan</p>
+        {[
+          { hari: 'Malam Isnin', masa: 'Selepas Maghrib / Isyak', badge: 'Disyorkan' },
+          { hari: 'Malam Khamis', masa: 'Selepas Maghrib / Isyak', badge: 'Disyorkan' },
+        ].map(s => (
+          <div key={s.hari} className="flex items-center justify-between py-2 border-b border-[#1e2d40] last:border-0">
+            <div>
+              <p className="text-[#e8dcc8] text-sm">{s.hari}</p>
+              <p className="text-[#8a7a65] text-xs">{s.masa}</p>
+            </div>
+            <span className="text-xs px-2 py-0.5 rounded-lg border text-[#c9a96e] bg-[#c9a96e15] border-[#c9a96e30]">{s.badge}</span>
+          </div>
+        ))}
+        <p className="text-[#8a7a65] text-xs pt-1">Minimum 2× seminggu. Boleh hadir setiap malam jika mampu.</p>
+      </div>
+
+      <div className="flex items-center justify-center gap-2 py-4 text-[#8a7a65]">
+        <span className="text-xs">📖 Log kehadiran & rakaman khataman</span>
+        <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#1e2d40] border border-[#2a3d55]">Akan Datang</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Manakiban Tab ─────────────────────────────────────────────────────────────
+
+function ManakibanTab() {
+  const NEXT_11 = (() => {
+    const now = new Date()
+    const next = new Date(now)
+    // Simple approximation: show as "sekali sebulan"
+    next.setDate(11)
+    if (next <= now) next.setMonth(next.getMonth() + 1)
+    return next.toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })
+  })()
+
+  const MANAKIB_FASAL = [
+    { num: '1', title: 'Nasab & Kelahiran', desc: 'Keturunan mulia & tanda-tanda kewalian dari kecil' },
+    { num: '2', title: 'Pendidikan & Guru', desc: 'Perjalanan menuntut ilmu & silsilah keilmuan' },
+    { num: '3', title: 'Karamah & Kelebihan', desc: 'Keistimewaan yang Allah kurniakan' },
+    { num: '4', title: 'Ajaran & Wasiat', desc: 'Warisan ilmu & nasihat untuk umat' },
+    { num: '5', title: 'Wafat & Makam', desc: 'Kepulangan ke rahmatullah & tempat berziarah' },
+  ]
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center space-y-1 py-2">
+        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">المَنَاقِب</p>
+        <h2 className="font-serif text-[#e8dcc8] text-lg">Manakiban</h2>
+        <p className="text-[#8a7a65] text-xs">Manakib Syeikh Abdul Qadir Al-Jailani r.a.</p>
+      </div>
+
+      {/* Who */}
+      <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-5 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#c9a96e15] border border-[#c9a96e30] flex items-center justify-center flex-shrink-0">
+            <span className="font-serif text-[#c9a96e] text-xl">ع</span>
+          </div>
+          <div>
+            <p className="text-[#e8dcc8] font-medium text-sm">Syeikh Abdul Qadir Al-Jailani r.a.</p>
+            <p className="text-[#8a7a65] text-xs">470H – 561H (1077M – 1166M)</p>
+            <p className="text-[#c9a96e] text-xs">Al-Ghawts Al-A'zam · Muhyiddin</p>
+          </div>
+        </div>
+        <p className="text-[#8a7a65] text-sm leading-relaxed">
+          "Sultannya para wali" — pengasas Thariqah Qadiriyah. Penyambung silsilah TQN kepada Nabi Muhammad ﷺ melalui jalur kerohanian.
+        </p>
+      </div>
+
+      {/* Fasal */}
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-1">
+        <p className="text-[#8a7a65] text-xs uppercase tracking-wider mb-3">Fasal Manakib</p>
+        {MANAKIB_FASAL.map(f => (
+          <div key={f.num} className="flex items-start gap-3 py-2 border-b border-[#1e2d40] last:border-0">
+            <span className="w-6 h-6 rounded-lg bg-[#c9a96e15] border border-[#c9a96e30] flex items-center justify-center text-[#c9a96e] text-xs font-bold flex-shrink-0">{f.num}</span>
+            <div>
+              <p className="text-[#e8dcc8] text-sm">{f.title}</p>
+              <p className="text-[#8a7a65] text-xs">{f.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Schedule */}
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2">
+        <p className="text-[#8a7a65] text-xs uppercase tracking-wider">Jadual</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[#e8dcc8] text-sm">Sekali sebulan</p>
+            <p className="text-[#8a7a65] text-xs">Biasanya pada 11 Rabiul Awwal atau awal bulan</p>
+          </div>
+          <span className="text-xs text-[#c9a96e] bg-[#c9a96e15] border border-[#c9a96e30] px-2 py-1 rounded-lg">~{NEXT_11}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center gap-2 py-4 text-[#8a7a65]">
+        <span className="text-xs">📖 Log kehadiran & bacaan Manakib</span>
+        <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#1e2d40] border border-[#2a3d55]">Akan Datang</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Inabah Tab ────────────────────────────────────────────────────────────────
+
+function InabaTab() {
+  const SCHEDULE = [
+    { time: '02:00 – 03:30', amalan: 'Tahajjud', sub: 'Solat malam & munajat', color: '#a78bfa' },
+    { time: '05:00 – 05:45', amalan: 'Subuh + Wirid', sub: 'Solat Subuh & wirid Subuh panjang', color: '#60a5fa' },
+    { time: '06:00 – 07:00', amalan: 'Dhuha', sub: 'Solat Dhuha (4 rakaat)', color: '#fbbf24' },
+    { time: '08:00 – 10:00', amalan: 'Mujahadah', sub: 'Tilawah Al-Quran & zikir pagi', color: '#c9a96e' },
+    { time: '12:30 – 13:30', amalan: 'Zuhur + Zikir', sub: 'Solat Zuhur & zikir harian', color: '#c9a96e' },
+    { time: '15:30 – 16:00', amalan: 'Asar', sub: 'Solat Asar & wirid ringkas', color: '#c9a96e' },
+    { time: '18:15 – 19:00', amalan: 'Maghrib + Wirid', sub: 'Solat Maghrib & wirid Maghrib', color: '#f97316' },
+    { time: '19:30 – 20:30', amalan: 'Isyak + Zikir Malam', sub: 'Solat Isyak & muhasabah malam', color: '#8b5cf6' },
+    { time: '20:30 – 22:00', amalan: 'Khataman (Isnin/Khamis)', sub: 'Zikir berjemaah & doa', color: '#c9a96e' },
+  ]
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center space-y-1 py-2">
+        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">الإِنَابَة</p>
+        <h2 className="font-serif text-[#e8dcc8] text-lg">Program Inabah</h2>
+        <p className="text-[#8a7a65] text-xs">Kembali kepada Allah melalui disiplin ibadah harian</p>
+      </div>
+
+      <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-4 space-y-2">
+        <p className="text-[#8a7a65] text-xs uppercase tracking-wider">Apakah Inabah?</p>
+        <p className="text-[#8a7a65] text-sm leading-relaxed">
+          Program pembersihan jiwa secara total — menggabungkan solat, zikir, mujahadah dan muhasabah dalam jadual harian yang disiplin. Inabah bermaksud "kembali sepenuhnya kepada Allah."
+        </p>
+        <p className="font-serif text-[#c9a96e] text-sm leading-loose text-center" dir="rtl">وَأَنِيبُوا إِلَىٰ رَبِّكُمْ</p>
+        <p className="text-[#8a7a65] text-xs text-center italic">"Dan kembalilah kamu kepada Tuhanmu" — Az-Zumar: 54</p>
+      </div>
+
+      {/* Daily Schedule */}
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-1">
+        <p className="text-[#8a7a65] text-xs uppercase tracking-wider mb-3">Jadual Harian Lengkap</p>
+        {SCHEDULE.map(s => (
+          <div key={s.time} className="flex items-start gap-3 py-2.5 border-b border-[#1e2d40] last:border-0">
+            <p className="text-[#8a7a65] text-[10px] font-mono w-24 flex-shrink-0 mt-0.5">{s.time}</p>
+            <div className="flex-1">
+              <p className="text-sm font-medium" style={{ color: s.color }}>{s.amalan}</p>
+              <p className="text-[#8a7a65] text-xs">{s.sub}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-center gap-2 py-4 text-[#8a7a65]">
+        <span className="text-xs">📅 Pengesanan amalan harian & rekod Inabah</span>
+        <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#1e2d40] border border-[#2a3d55]">Akan Datang</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Ziarah Tab ────────────────────────────────────────────────────────────────
+
+function ZiarahTab() {
+  const WALI_LIST = [
+    {
+      name: 'Syeikh Abdul Qadir Al-Jailani r.a.',
+      location: 'Baghdad, Iraq',
+      title: 'Al-Ghawts Al-A\'zam · Pengasas Thariqah Qadiriyah',
+      year: '470H – 561H',
+    },
+    {
+      name: 'Syeikh Ahmad Khatib Sambas r.a.',
+      location: 'Makkah Al-Mukarramah & Sambas, Kalimantan',
+      title: 'Pengasas Thariqah Qadiriyah Naqsyabandiyah',
+      year: '1217H – 1289H',
+    },
+    {
+      name: 'Syeikh Tholhah Cirebon r.a.',
+      location: 'Cirebon, Jawa Barat',
+      title: 'Penyebar TQN di Tanah Jawa',
+      year: 'Abad ke-19',
+    },
+    {
+      name: 'Abah Abuya Sepuh r.a.',
+      location: 'Suryalaya, Jawa Barat',
+      title: 'Mursyid TQN Suryalaya · Pendiri Pondok Pesantren',
+      year: '1836M – 1956M',
+    },
+    {
+      name: 'Abah Anom r.a. (KH. A. Shohibul Wafa Tajul Arifin)',
+      location: 'Suryalaya, Tasikmalaya, Jawa Barat',
+      title: 'Mursyid TQN Suryalaya · Penyebar ke seluruh dunia',
+      year: '1915M – 2011M',
+    },
+  ]
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center space-y-1 py-2">
+        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">الزِّيَارَة</p>
+        <h2 className="font-serif text-[#e8dcc8] text-lg">Ziarah Wali Allah</h2>
+        <p className="text-[#8a7a65] text-xs">Mengingati perjalanan mereka membawa manusia kepada Allah</p>
+      </div>
+
+      <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-4 space-y-2">
+        <p className="text-[#8a7a65] text-sm leading-relaxed">
+          Ziarah ke makam para wali bukan sekadar melawat — ia menghidupkan semangat, menyambung roh kepada silsilah, dan mengingatkan kita bahawa perjalanan rohani ini nyata dan berterusan.
+        </p>
+        <p className="font-serif text-[#c9a96e] text-sm leading-loose text-center" dir="rtl">وَكُنتُمْ أَمْوَاتًا فَأَحْيَاكُمْ</p>
+        <p className="text-[#8a7a65] text-xs text-center italic">"Kamu dahulunya mati, lalu Dia menghidupkan kamu" — Al-Baqarah: 28</p>
+      </div>
+
+      {/* Wali list */}
+      <div className="space-y-2">
+        <p className="text-[#8a7a65] text-xs uppercase tracking-wider px-1">Silsilah Mursyid TQN</p>
+        {WALI_LIST.map((w, i) => (
+          <div key={i} className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-1">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-[#e8dcc8] text-sm font-medium leading-snug">{w.name}</p>
+              <span className="text-[10px] text-[#8a7a65] flex-shrink-0 font-mono mt-0.5">{w.year}</span>
+            </div>
+            <p className="text-[#c9a96e] text-xs">{w.title}</p>
+            <p className="text-[#8a7a65] text-xs flex items-center gap-1">
+              <span>🕌</span> {w.location}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-center gap-2 py-4 text-[#8a7a65]">
+        <span className="text-xs">🗺️ Log ziarah & panduan perjalanan</span>
+        <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#1e2d40] border border-[#2a3d55]">Akan Datang</span>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main AmalanPage ───────────────────────────────────────────────────────────
 
 export default function AmalanPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  // 'talqin_jahar'/'gender' bukan lajur dalam 'profiles' — guna nilai lalai
-  // sehingga lajur ini disokong dalam pangkalan data.
-  const isTalqin = false
-  const tabName = 'Ikhwan ✦'
+  const isTalqin = user?.talqin_completed === true
 
+  const [activeTab, setActiveTab] = useState<AmalanTab>('zikir')
   const [phase, setPhase] = useState<SessionPhase>('dashboard')
   const [content, setContent] = useState<AmalanItem[]>([])
   const [contentLoaded, setContentLoaded] = useState(false)
@@ -898,53 +1216,89 @@ export default function AmalanPage() {
   // ── Render ─────────────────────────────────────────────────────────
   return (
     <div className="p-5 md:p-8 max-w-2xl mx-auto space-y-5 pb-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+
+      {/* Page header */}
+      <div className="flex items-start justify-between">
         <div>
           <p className="font-serif text-3xl text-[#c9a96e] leading-none">الأَمَل</p>
-          <h1 className="font-serif text-xl text-[#e8dcc8] mt-1">{tabName}</h1>
-          <p className="text-[#8a7a65] text-xs">Amalan Thariqah Qadiriyah Naqsyabandiyah</p>
+          <h1 className="font-serif text-xl text-[#e8dcc8] mt-1">Amalan TQN</h1>
+          <p className="text-[#8a7a65] text-xs">Thariqah Qadiriyah Naqsyabandiyah</p>
         </div>
-        {phase !== 'dashboard' && phase !== 'done' && <PhaseBar phase={phase} />}
-      </div>
-
-      {!contentLoaded && phase !== 'dashboard' && (
-        <div className="flex items-center gap-2 text-[#8a7a65] text-sm">
-          <div className="w-4 h-4 border-2 border-[#c9a96e] border-t-transparent rounded-full animate-spin" />
-          Memuatkan kandungan dari Supabase...
-        </div>
-      )}
-
-      {/* Debug panel */}
-      <div className={cn('border rounded-xl px-3 py-2 space-y-1.5',
-        dbStatus.startsWith('ok') ? 'border-emerald-600/30 bg-emerald-900/10' : 'border-yellow-600/30 bg-yellow-900/10')}>
-        <div className="flex items-center justify-between gap-2">
-          <p className={cn('text-[10px] font-mono flex-1',
-            dbStatus.startsWith('ok') ? 'text-emerald-500' : 'text-yellow-600')}>
-            DB: {dbStatus} · dipapar: {content.length}
-          </p>
-          <button onClick={() => { setContentLoaded(false); setRetryCount(n => n + 1) }}
-            className="text-[10px] text-yellow-600 border border-yellow-600/40 rounded px-2 py-0.5 hover:bg-yellow-900/20 flex-shrink-0">
-            Retry
-          </button>
-        </div>
-        {!dbStatus.startsWith('ok') && (
-          <p className="text-yellow-700 text-[10px]">
-            Pastikan jadual <code className="bg-yellow-900/30 px-1 rounded">amalan_content</code> wujud dalam Supabase dan ada policy SELECT.
-          </p>
+        {activeTab === 'zikir' && phase !== 'dashboard' && phase !== 'done' && (
+          <PhaseBar phase={phase} />
         )}
       </div>
 
-      {phase === 'dashboard' && <Dashboard onStart={() => setPhase(1)} user={user} />}
-      {phase === 1 && <Fasa1 items={bacaanPembuka} onDone={() => setPhase(2)} />}
-      {phase === 2 && <Fasa2 item={zikirJaharItem} onDone={handleJaharDone} />}
-      {phase === 3 && <Fasa3 items={doaItems} onDone={() => setPhase('4a')} />}
-      {phase === '4a' && <Fasa4A items={fatihahItems} onDone={() => setPhase('4b')} />}
-      {phase === '4b' && <Fasa4B items={bacaanKhafiItems} onDone={() => setPhase('4c')} />}
-      {phase === '4c' && <Fasa4C item={zikirKhafiItem} onDone={handleKhafiDone} />}
-      {phase === 'done' && (
-        <SelesaiScreen jaharCount={jaharCount} jaharTarget={jaharTarget} khafiMins={khafiMins} onClose={resetSession} />
-      )}
+      {/* Tab navigation */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+        {AMALAN_TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              'flex flex-col items-center px-3 py-2 rounded-xl border transition-all whitespace-nowrap flex-shrink-0 min-w-[72px]',
+              activeTab === tab.id
+                ? 'bg-[#c9a96e20] border-[#c9a96e40] text-[#c9a96e]'
+                : 'border-[#1e2d40] text-[#8a7a65] hover:border-[#2a3d55] hover:text-[#e8dcc8]'
+            )}
+          >
+            <span className="font-serif text-sm leading-tight" dir="rtl">{tab.arabic}</span>
+            <span className="text-[10px] mt-0.5">{tab.label}</span>
+            {tab.soon && activeTab !== tab.id && (
+              <span className="text-[8px] text-[#8a7a65] mt-0.5">soon</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Zikir tab — always mounted to preserve session state */}
+      <div className={activeTab === 'zikir' ? '' : 'hidden'}>
+        {!contentLoaded && phase !== 'dashboard' && (
+          <div className="flex items-center gap-2 text-[#8a7a65] text-sm mb-4">
+            <div className="w-4 h-4 border-2 border-[#c9a96e] border-t-transparent rounded-full animate-spin" />
+            Memuatkan kandungan dari Supabase...
+          </div>
+        )}
+
+        {/* Debug panel — hanya untuk admin */}
+        {(user?.role === 'master_admin' || user?.role === 'super_admin') && (
+          <div className={cn('border rounded-xl px-3 py-2 space-y-1.5 mb-4',
+            dbStatus.startsWith('ok') ? 'border-emerald-600/30 bg-emerald-900/10' : 'border-yellow-600/30 bg-yellow-900/10')}>
+            <div className="flex items-center justify-between gap-2">
+              <p className={cn('text-[10px] font-mono flex-1',
+                dbStatus.startsWith('ok') ? 'text-emerald-500' : 'text-yellow-600')}>
+                DB: {dbStatus} · dipapar: {content.length}
+              </p>
+              <button onClick={() => { setContentLoaded(false); setRetryCount(n => n + 1) }}
+                className="text-[10px] text-yellow-600 border border-yellow-600/40 rounded px-2 py-0.5 hover:bg-yellow-900/20 flex-shrink-0">
+                Retry
+              </button>
+            </div>
+            {!dbStatus.startsWith('ok') && (
+              <p className="text-yellow-700 text-[10px]">
+                Pastikan jadual <code className="bg-yellow-900/30 px-1 rounded">amalan_content</code> wujud dalam Supabase dan ada policy SELECT.
+              </p>
+            )}
+          </div>
+        )}
+
+        {phase === 'dashboard' && <Dashboard onStart={() => setPhase(1)} user={user} />}
+        {phase === 1 && <Fasa1 items={bacaanPembuka} onDone={() => setPhase(2)} />}
+        {phase === 2 && <Fasa2 item={zikirJaharItem} onDone={handleJaharDone} />}
+        {phase === 3 && <Fasa3 items={doaItems} onDone={() => setPhase('4a')} />}
+        {phase === '4a' && <Fasa4A items={fatihahItems} onDone={() => setPhase('4b')} />}
+        {phase === '4b' && <Fasa4B items={bacaanKhafiItems} onDone={() => setPhase('4c')} />}
+        {phase === '4c' && <Fasa4C item={zikirKhafiItem} onDone={handleKhafiDone} />}
+        {phase === 'done' && (
+          <SelesaiScreen jaharCount={jaharCount} jaharTarget={jaharTarget} khafiMins={khafiMins} onClose={resetSession} />
+        )}
+      </div>
+
+      {activeTab === 'khataman'  && <KhatamanTab />}
+      {activeTab === 'manakiban' && <ManakibanTab />}
+      {activeTab === 'inabah'    && <InabaTab />}
+      {activeTab === 'ziarah'    && <ZiarahTab />}
+
     </div>
   )
 }
