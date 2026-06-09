@@ -1081,17 +1081,11 @@ export default function AmalanPage() {
   const [jaharTarget, setJaharTarget] = useState(165)
   const [khafiMins, setKhafiMins] = useState(0)
 
-  const [dbStatus, setDbStatus] = useState<string>('loading')
-  const [retryCount, setRetryCount] = useState(0)
-
   useEffect(() => {
     let cancelled = false
 
     async function load() {
-      if (!cancelled) setDbStatus('loading')
-
       try {
-        // Gunakan fetch terus dengan AbortController (timeout 5s)
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
@@ -1111,30 +1105,14 @@ export default function AmalanPage() {
         )
         clearTimeout(timer)
 
-        if (!res.ok) {
-          const body = await res.text().catch(() => '')
-          const msg = `HTTP ${res.status}: ${body.slice(0, 100)}`
-          if (!cancelled) setDbStatus(msg)
-          return
-        }
+        if (!res.ok) return
 
         const data: AmalanItem[] = await res.json()
-
-        if (!cancelled) {
-          if (!data || data.length === 0) {
-            setDbStatus('empty — 0 rekod (jadual kosong atau tiada)')
-          } else {
-            setContent(data.filter(d => d.aktif !== false))
-            setDbStatus(`ok — ${data.length} rekod`)
-          }
+        if (!cancelled && data?.length > 0) {
+          setContent(data.filter(d => d.aktif !== false))
         }
-      } catch (e) {
-        if (!cancelled) {
-          const msg = e instanceof Error
-            ? (e.name === 'AbortError' ? 'timeout 5s — periksa jadual & RLS' : e.message)
-            : String(e)
-          setDbStatus(msg)
-        }
+      } catch {
+        // silently fall back to hardcoded content
       } finally {
         if (!cancelled) setContentLoaded(true)
       }
@@ -1142,7 +1120,7 @@ export default function AmalanPage() {
 
     load()
     return () => { cancelled = true }
-  }, [retryCount])
+  }, [])
 
   // Content slices
   const bacaanPembuka = content.filter(d => d.jenis === 'zikir_jahar' && d.urutan <= 4)
@@ -1260,27 +1238,6 @@ export default function AmalanPage() {
           </div>
         )}
 
-        {/* Debug panel — hanya untuk admin */}
-        {(user?.role === 'master_admin' || user?.role === 'super_admin') && (
-          <div className={cn('border rounded-xl px-3 py-2 space-y-1.5 mb-4',
-            dbStatus.startsWith('ok') ? 'border-emerald-600/30 bg-emerald-900/10' : 'border-yellow-600/30 bg-yellow-900/10')}>
-            <div className="flex items-center justify-between gap-2">
-              <p className={cn('text-[10px] font-mono flex-1',
-                dbStatus.startsWith('ok') ? 'text-emerald-500' : 'text-yellow-600')}>
-                DB: {dbStatus} · dipapar: {content.length}
-              </p>
-              <button onClick={() => { setContentLoaded(false); setRetryCount(n => n + 1) }}
-                className="text-[10px] text-yellow-600 border border-yellow-600/40 rounded px-2 py-0.5 hover:bg-yellow-900/20 flex-shrink-0">
-                Retry
-              </button>
-            </div>
-            {!dbStatus.startsWith('ok') && (
-              <p className="text-yellow-700 text-[10px]">
-                Pastikan jadual <code className="bg-yellow-900/30 px-1 rounded">amalan_content</code> wujud dalam Supabase dan ada policy SELECT.
-              </p>
-            )}
-          </div>
-        )}
 
         {phase === 'dashboard' && <Dashboard onStart={() => setPhase(1)} user={user} />}
         {phase === 1 && <Fasa1 items={bacaanPembuka} onDone={() => setPhase(2)} />}
