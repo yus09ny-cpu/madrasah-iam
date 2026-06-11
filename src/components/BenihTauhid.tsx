@@ -58,7 +58,7 @@ function FreePlant({ stage }: { stage: Stage }) {
   const showFruits = stage === 'muda' || stage === 'matang'
 
   return (
-    <svg viewBox="0 0 80 90" className={cn('w-[110px] h-[110px]', stage === 'matang' && 'animate-breathe')}>
+    <svg viewBox="0 0 80 90" className={cn('w-[150px] h-[150px]', stage === 'matang' && 'animate-breathe')}>
       <ellipse cx="40" cy="80" rx="26" ry="6" fill="#6b4c1e" opacity="0.4" />
       {stage === 'benih' ? (
         <ellipse cx="40" cy="74" rx="9" ry="6" fill="#8B6914" opacity="0.6" />
@@ -92,9 +92,9 @@ function TalkinPlant({ stage }: { stage: Stage }) {
   const showFruits = stage === 'muda' || stage === 'matang'
 
   return (
-    <div className="relative w-[110px] h-[110px]">
+    <div className="relative w-[150px] h-[150px]">
       {isMatang && <div className="absolute inset-0 rounded-full bg-[#c9a96e30] blur-xl animate-pulse" />}
-      <svg viewBox="0 0 80 90" className={cn('relative w-[110px] h-[110px]', isMatang && 'animate-breathe')}>
+      <svg viewBox="0 0 80 90" className={cn('relative w-[150px] h-[150px]', isMatang && 'animate-breathe')}>
         <ellipse cx="40" cy="80" rx="26" ry="6" fill="#6b4c1e" opacity="0.4" />
         {stage === 'benih' ? (
           <ellipse cx="40" cy="74" rx="9" ry="6" fill="#8B6914" opacity="0.6" />
@@ -126,18 +126,6 @@ function TalkinPlant({ stage }: { stage: Stage }) {
         )}
       </svg>
     </div>
-  )
-}
-
-function LockedPlant() {
-  return (
-    <svg viewBox="0 0 80 90" className="w-[110px] h-[110px]">
-      <ellipse cx="40" cy="80" rx="26" ry="6" fill="#6b4c1e" opacity="0.4" />
-      <ellipse cx="40" cy="72" rx="11" ry="8" fill="#8B6914" opacity="0.7" />
-      <text x="40" y="44" textAnchor="middle" fontSize="20" fill="#c9a96e" opacity="0.5">✦</text>
-      <text x="24" y="56" textAnchor="middle" fontSize="11" fill="#c9a96e" opacity="0.3">✦</text>
-      <text x="56" y="56" textAnchor="middle" fontSize="11" fill="#c9a96e" opacity="0.3">✦</text>
-    </svg>
   )
 }
 
@@ -184,8 +172,6 @@ const EMPTY_STATS: BenihStats = {
   khafiMinit: 0,
   totalDays: 0,
 }
-
-const WA_LINK = `https://wa.me/60182119135?text=${encodeURIComponent('Assalamualaikum, saya ingin mendapatkan talkin di Madrasah I AM. Terima kasih.')}`
 
 function checkRezekiDone(today: string): boolean {
   try {
@@ -310,64 +296,46 @@ export default function BenihTauhid() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="bg-[#0d1821]/80 border border-[#c9a96e20] rounded-2xl px-5 py-6 flex flex-col items-center gap-3">
 
-      {/* Streak */}
-      <div className="flex items-center justify-end gap-1.5 text-xs text-[#c9a96e]">
-        <span>🔥</span>
-        <span className="font-medium">{streak?.current ?? 0} hari berturut-turut</span>
+      {/* Label atas */}
+      <p className="text-[#8a7a65] text-[11px] uppercase tracking-wider">
+        {hasTalqin ? '✦ Benih Tauhid' : '🌱 Amalan Jiwa'}
+      </p>
+
+      {/* SVG Benih besar */}
+      {hasTalqin ? <TalkinPlant stage={talkinStage} /> : <FreePlant stage={freeStage} />}
+
+      {/* Mesej stage */}
+      <p className={cn('text-xs italic text-center', hasTalqin ? 'text-violet-400' : 'text-[#639922]')}>
+        {hasTalqin ? TALKIN_LABELS[talkinStage] : STAGE_LABELS[freeStage]}
+      </p>
+
+      <div className="w-full h-px bg-[#c9a96e10]" />
+
+      {/* Teks Quran */}
+      <div className="text-center px-2">
+        <p className="font-serif text-base text-[#c9a96e] leading-relaxed mb-1.5" dir="rtl">
+          وَاعْبُدْ رَبَّكَ حَتَّىٰ يَأْتِيَكَ الْيَقِينُ
+        </p>
+        <p className="text-[11px] text-[#6a5a46] italic">
+          "Sembahlah Tuhanmu sehingga datang keyakinan kepadamu" — Al-Hijr: 99
+        </p>
       </div>
 
-      {/* Dua Benih */}
-      <div className="flex gap-3">
-        {/* Amalan Jiwa */}
-        <div className="flex-1 min-h-[180px] bg-[#0d1821]/80 border border-[#c9a96e20] rounded-[14px] p-4 flex flex-col items-center justify-between gap-2">
-          <p className="text-[#8a7a65] text-[11px] text-center">Amalan Jiwa</p>
-          <FreePlant stage={freeStage} />
-          <p className="text-[#c9a96e] text-[11px] text-center italic">{STAGE_LABELS[freeStage]}</p>
-          <button
-            onClick={() => setStatusOpen((v) => !v)}
-            className="text-xs text-[#8a7a65] hover:text-[#c9a96e] transition-colors"
-          >
-            {statusOpen ? 'Tutup ▴' : 'Lihat Status ▾'}
-          </button>
-        </div>
+      <div className="w-full h-px bg-[#c9a96e10]" />
 
-        {/* Benih Tauhid */}
-        <div className="flex-1 min-h-[180px] bg-[#0d1821]/80 border border-[#c9a96e20] rounded-[14px] p-4 flex flex-col items-center justify-between gap-2">
-          <p className="text-[#8a7a65] text-[11px] text-center">Benih Tauhid</p>
-          {hasTalqin ? <TalkinPlant stage={talkinStage} /> : <LockedPlant />}
-          {hasTalqin ? (
-            <>
-              <p className="text-[11px] text-center italic text-violet-400">{TALKIN_LABELS[talkinStage]}</p>
-              <button
-                onClick={() => setStatusOpen((v) => !v)}
-                className="text-xs text-[#8a7a65] hover:text-[#c9a96e] transition-colors"
-              >
-                {statusOpen ? 'Tutup ▴' : 'Lihat Status ▾'}
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-[11px] text-center text-[#4a3a26]">
-                Hubungi Madrasah I AM untuk talkin ✦
-              </p>
-              <a
-                href={WA_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[#c9a96e30] text-[#c9a96e] hover:bg-[#c9a96e15] transition-colors"
-              >
-                📱 Hubungi
-              </a>
-            </>
-          )}
-        </div>
-      </div>
+      {/* Butang Status */}
+      <button
+        onClick={() => setStatusOpen((v) => !v)}
+        className="w-full max-w-[200px] rounded-full border border-[#c9a96e30] text-[11px] text-[#c9a96e] py-1.5 px-5 hover:bg-[#c9a96e15] transition-colors"
+      >
+        {statusOpen ? 'Tutup ▴' : 'Lihat Status ▾'}
+      </button>
 
-      {/* Status panel */}
+      {/* Panel Status */}
       {statusOpen && (
-        <div className="bg-[#0d1821]/80 border border-[#c9a96e20] rounded-[14px] p-4 space-y-3">
+        <div className="w-full bg-[#060d16] border border-[#c9a96e15] rounded-[14px] p-4 space-y-3">
           <AmalanRow
             icon="🕌"
             label="Solat"
@@ -416,7 +384,7 @@ export default function BenihTauhid() {
           )}
 
           {/* Renungan */}
-          <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-4 text-center mt-2">
+          <div className="bg-[#0d1821] border border-[#c9a96e15] rounded-xl p-4 text-center mt-2">
             <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">
               وَاللَّهُ أَنبَتَكُم مِّنَ الْأَرْضِ نَبَاتًا
             </p>
