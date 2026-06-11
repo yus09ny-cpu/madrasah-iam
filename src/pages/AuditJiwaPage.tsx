@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronLeft, RotateCcw, Loader2, CheckCircle2, BookOpen, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { useTodayAuditJiwa, useSaveAuditJiwa } from '@/hooks/useAuditJiwa'
+import AuditMotivasiCard from '@/components/AuditMotivasiCard'
 import { cn } from '@/lib/utils'
 import type { AppLanguage } from '@/types'
 
@@ -476,6 +478,9 @@ function OpeningScreen({
 
   return (
     <div className="space-y-5 pb-8">
+      {/* Motivasi — belum buat Audit Jiwa hari ini */}
+      <AuditMotivasiCard />
+
       {/* Hero */}
       <div className="text-center pt-2 space-y-1">
         <p className="font-serif text-5xl text-[#c9a96e] leading-none" dir="rtl">مُحاسَبَة</p>
@@ -1144,6 +1149,8 @@ function DoneScreen({ session, onReset }: { session: SavedSession; onReset: () =
 export default function AuditJiwaPage() {
   const { t } = useTranslation()
   const { user } = useAuthStore()
+  const { data: todayEntry } = useTodayAuditJiwa()
+  const { mutate: saveAuditToSupabase } = useSaveAuditJiwa()
 
   const isPro = user?.tier === 'pro' || user?.tier === 'family'
   const userTier = isPro ? 'pro' : 'free'
@@ -1173,6 +1180,25 @@ export default function AuditJiwaPage() {
       if (Object.keys(draft).length > 0) setResponses(draft)
     }
   }, [user?.id])
+
+  // Fallback: jika tiada di localStorage (cth. tukar device) tapi sudah selesai di Supabase
+  useEffect(() => {
+    if (!user?.id || savedSession || !todayEntry?.selesai) return
+    const session: SavedSession = {
+      scores: {
+        raga: todayEntry.pillar_raga,
+        hati: todayEntry.pillar_hati,
+        akal: todayEntry.pillar_akal,
+        ruh: todayEntry.pillar_ruh,
+      },
+      responses: {},
+      recommendation_text: todayEntry.cadangan_ai,
+      completed_at: todayEntry.created_at,
+    }
+    saveSession(user.id, session)
+    setSavedSession(session)
+    setPhase('done')
+  }, [user?.id, todayEntry, savedSession])
 
   // Loading timer
   useEffect(() => {
@@ -1247,6 +1273,17 @@ export default function AuditJiwaPage() {
         }
         saveSession(user.id, session)
         clearDraft(user.id)
+
+        const ps = pendingScores.current
+        saveAuditToSupabase({
+          pillar_raga: ps.raga,
+          pillar_hati: ps.hati,
+          pillar_akal: ps.akal,
+          pillar_ruh: ps.ruh,
+          jumlah_skor: Math.round(((ps.raga + ps.hati + ps.akal + ps.ruh) / 4) * 10),
+          cadangan_ai: text,
+          soalan_dijawab: Object.keys(responses).length,
+        })
       }
     } catch (err: unknown) {
       if ((err as Error)?.name === 'AbortError') return
@@ -1254,7 +1291,7 @@ export default function AuditJiwaPage() {
       setAiError(t('umum.ralat', 'Ada gangguan. Sila cuba semula.'))
       setAiLoading(false)
     }
-  }, [userTier, user?.language, user?.id, responses, t])
+  }, [userTier, user?.language, user?.id, responses, t, saveAuditToSupabase])
 
   function handleJanaPreskripsi() {
     if (!scores) return

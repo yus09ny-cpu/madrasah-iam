@@ -138,6 +138,37 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['api_usage_logs']['Insert']>
       }
+      audit_jiwa_entries: {
+        Row: {
+          id: string
+          user_id: string
+          tarikh: string
+          pillar_raga: number
+          pillar_hati: number
+          pillar_akal: number
+          pillar_ruh: number
+          jumlah_skor: number
+          cadangan_ai: string | null
+          soalan_dijawab: number
+          selesai: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tarikh?: string
+          pillar_raga?: number
+          pillar_hati?: number
+          pillar_akal?: number
+          pillar_ruh?: number
+          jumlah_skor?: number
+          cadangan_ai?: string | null
+          soalan_dijawab?: number
+          selesai?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['audit_jiwa_entries']['Insert']>
+      }
     }
   }
 }

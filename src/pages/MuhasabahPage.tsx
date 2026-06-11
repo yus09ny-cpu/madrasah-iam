@@ -7,6 +7,7 @@ import { useTodayMuhasabah, useSaveMuhasabah } from '@/hooks/useMuhasabah'
 import { selectAuditQuestions, type AuditQuestion } from '@/data/audit-jiwa-questions'
 import { sendIAMMessage } from '@/lib/iam-chat'
 import { cn } from '@/lib/utils'
+import AuditMotivasiCard from '@/components/AuditMotivasiCard'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -333,6 +334,9 @@ export default function MuhasabahPage() {
         </div>
         {isFetching && <RefreshCw size={16} className="text-[#8a7a65] animate-spin mt-2 flex-shrink-0" />}
       </div>
+
+      {/* Motivasi — belum selesai Audit Jiwa hari ini */}
+      {phase === 'answering' && <AuditMotivasiCard />}
 
       {/* I AM Loading */}
       {phase === 'ai-loading' && (

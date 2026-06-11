@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
-import { format } from 'date-fns'
+import { format, subDays } from 'date-fns'
 import type { MuhasabahEntry, MuhasabahAnswer } from '@/types'
 
 export function useTodayMuhasabah() {
@@ -71,18 +71,28 @@ export function useSaveMuhasabah() {
 
 export function useMuhasabahHistory(limit = 30) {
   const { user } = useAuthStore()
+  const isFree = (user?.tier ?? 'free') === 'free'
 
   return useQuery({
-    queryKey: ['muhasabah-history', user?.id, limit],
+    queryKey: ['muhasabah-history', user?.id, limit, isFree],
     queryFn: async () => {
       if (!user) return []
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('muhasabah_entries')
           .select('*')
           .eq('user_id', user.id)
           .order('date', { ascending: false })
           .limit(limit)
+
+        // Free — paparan dihadkan kepada 7 hari terkini. Data tidak dipadam,
+        // hanya tidak dipaparkan; akan kembali kelihatan jika upgrade ke Pro.
+        if (isFree) {
+          const cutoff = format(subDays(new Date(), 7), 'yyyy-MM-dd')
+          query = query.gte('date', cutoff)
+        }
+
+        const { data, error } = await query
         if (error) return []
         return (data ?? []) as MuhasabahEntry[]
       } catch {
