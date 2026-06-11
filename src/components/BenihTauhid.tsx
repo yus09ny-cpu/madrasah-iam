@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { format, subDays } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
 import { useStreak } from '@/hooks/useStreak'
 import { supabase } from '@/lib/supabase'
@@ -187,6 +188,7 @@ function checkRezekiDone(today: string): boolean {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function BenihTauhid() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const { data: streak } = useStreak()
   const [stats, setStats] = useState<BenihStats>(EMPTY_STATS)
@@ -194,6 +196,7 @@ export default function BenihTauhid() {
   const [statusOpen, setStatusOpen] = useState(false)
 
   const hasTalqin = user?.talqin_completed === true
+  const isPokokBaru = (streak?.current ?? 0) === 0 && !streak?.lastEntry
 
   useEffect(() => {
     if (!user) return
@@ -310,6 +313,18 @@ export default function BenihTauhid() {
       <p className={cn('text-xs italic text-center', hasTalqin ? 'text-violet-400' : 'text-[#639922]')}>
         {hasTalqin ? TALKIN_LABELS[talkinStage] : STAGE_LABELS[freeStage]}
       </p>
+
+      {/* Pokok baru — tanam hari ini */}
+      {!hasTalqin && isPokokBaru && (
+        <div className="text-center py-1">
+          <p className="text-[#c9a96e] text-[13px] font-medium mb-1">
+            ✦ {t('kebun.baru_label')}
+          </p>
+          <p className="text-[#6a5a46] text-[11px]">
+            {t('kebun.baru_desc')}
+          </p>
+        </div>
+      )}
 
       <div className="w-full h-px bg-[#c9a96e10]" />
 

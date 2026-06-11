@@ -153,17 +153,8 @@ export default function KebunRohani() {
           </button>
         </div>
       ) : state === 'baru' ? (
-        /* Pokok baru — tiada SVG pokok biru, ikon kecil sahaja */
-        <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-2">
-          <p className={cn('text-sm font-medium flex items-center gap-2', labelColor)}>
-            <span>✦</span>
-            {t(labelKey)}
-          </p>
-
-          <p className="text-[#8a7a65] text-xs leading-relaxed">
-            {t(descKey)}
-          </p>
-        </div>
+        /* Pokok baru — dipindahkan ke dalam rectangle BenihTauhid */
+        null
       ) : (
         /* Tree visual */
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5">
