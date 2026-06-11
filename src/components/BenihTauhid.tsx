@@ -58,7 +58,7 @@ function FreePlant({ stage }: { stage: Stage }) {
   const showFruits = stage === 'muda' || stage === 'matang'
 
   return (
-    <svg viewBox="0 0 80 90" className={cn('w-[150px] h-[150px]', stage === 'matang' && 'animate-breathe')}>
+    <svg viewBox="0 0 80 90" className={cn('w-[180px] h-[180px]', stage === 'matang' && 'animate-breathe')}>
       <ellipse cx="40" cy="80" rx="26" ry="6" fill="#6b4c1e" opacity="0.4" />
       {stage === 'benih' ? (
         <ellipse cx="40" cy="74" rx="9" ry="6" fill="#8B6914" opacity="0.6" />
@@ -92,9 +92,9 @@ function TalkinPlant({ stage }: { stage: Stage }) {
   const showFruits = stage === 'muda' || stage === 'matang'
 
   return (
-    <div className="relative w-[150px] h-[150px]">
+    <div className="relative w-[180px] h-[180px]">
       {isMatang && <div className="absolute inset-0 rounded-full bg-[#c9a96e30] blur-xl animate-pulse" />}
-      <svg viewBox="0 0 80 90" className={cn('relative w-[150px] h-[150px]', isMatang && 'animate-breathe')}>
+      <svg viewBox="0 0 80 90" className={cn('relative w-[180px] h-[180px]', isMatang && 'animate-breathe')}>
         <ellipse cx="40" cy="80" rx="26" ry="6" fill="#6b4c1e" opacity="0.4" />
         {stage === 'benih' ? (
           <ellipse cx="40" cy="74" rx="9" ry="6" fill="#8B6914" opacity="0.6" />
