@@ -1,14 +1,45 @@
-import { useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { format, subDays } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
 import { useStreak } from '@/hooks/useStreak'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
-// ─── Tree State ───────────────────────────────────────────────────────────────
+// ─── Growth scoring ───────────────────────────────────────────────────────────
 
-type TreeState = 'subur' | 'normal' | 'layu' | 'baru'
+type Stage = 'benih' | 'tunas' | 'anak' | 'muda' | 'matang'
 
-function getTreeState(lastEntry: string | null, current: number): TreeState {
+function getStage(score: number): Stage {
+  if (score <= 10) return 'benih'
+  if (score <= 30) return 'tunas'
+  if (score <= 60) return 'anak'
+  if (score <= 100) return 'muda'
+  return 'matang'
+}
+
+const STAGE_LABELS: Record<Stage, string> = {
+  benih: '🌱 Benih baru ditanam...',
+  tunas: '🌿 Tunas mula tumbuh...',
+  anak: '🌾 Akar mula kukuh...',
+  muda: '🌲 Mula berbuah...',
+  matang: '🌳 Pokok yang teguh ✦',
+}
+
+const TALKIN_LABELS: Record<Stage, string> = {
+  benih: '✦ Benih Tauhid baru ditalkin...',
+  tunas: '✦ Nur mula masuk ke hati...',
+  anak: '✦ Zikir mengukuhkan akar...',
+  muda: '✦ Iman mula berbuah...',
+  matang: '✦ Pokok Tauhid bersinar',
+}
+
+// ─── Tree / siraman state ──────────────────────────────────────────────────────
+
+type WaterState = 'subur' | 'normal' | 'layu' | 'baru'
+
+function getWaterState(lastEntry: string | null, current: number): WaterState {
   if (current === 0 && !lastEntry) return 'baru'
   if (!lastEntry) return 'layu'
   const today = new Date().toISOString().slice(0, 10)
@@ -22,66 +53,121 @@ function isBulanBaru() {
   return new Date().getDate() === 1
 }
 
-// ─── SVG Tree ─────────────────────────────────────────────────────────────────
+// ─── Visuals ──────────────────────────────────────────────────────────────────
 
-const TREE_COLORS: Record<TreeState, { canopy: string; glow: string; accent: string; label: string }> = {
-  subur:  { canopy: '#4ade80', glow: '#4ade8030', accent: '#22c55e', label: 'Subur — Alhamdulillah ✦' },
-  normal: { canopy: '#86efac', glow: '#86efac20', accent: '#4ade80', label: 'Masih hijau — teruskan' },
-  layu:   { canopy: '#fbbf24', glow: '#fbbf2415', accent: '#f59e0b', label: 'Perlukan siraman — hari ini' },
-  baru:   { canopy: '#60a5fa', glow: '#60a5fa20', accent: '#3b82f6', label: 'Pokok baru — tanam hari ini' },
+const STAGE_HEIGHT: Record<Stage, number> = {
+  benih: 0,
+  tunas: 14,
+  anak: 26,
+  muda: 40,
+  matang: 54,
 }
 
-function TreeSVG({ state }: { state: TreeState }) {
-  const { canopy, glow, accent } = TREE_COLORS[state]
-  const isLayu = state === 'layu'
+const STAGE_CANOPY: Record<Stage, { rx: number; ry: number }> = {
+  benih: { rx: 0, ry: 0 },
+  tunas: { rx: 8, ry: 6 },
+  anak: { rx: 13, ry: 9 },
+  muda: { rx: 17, ry: 12 },
+  matang: { rx: 22, ry: 16 },
+}
+
+function FreePlant({ stage }: { stage: Stage }) {
+  const h = STAGE_HEIGHT[stage]
+  const canopy = STAGE_CANOPY[stage]
+  const showInner = stage === 'anak' || stage === 'muda' || stage === 'matang'
+  const showFruits = stage === 'muda' || stage === 'matang'
 
   return (
-    <svg viewBox="0 0 160 180" className="w-full h-full" style={{ filter: `drop-shadow(0 0 12px ${glow})` }}>
-      {/* Root shadows */}
-      <ellipse cx="80" cy="165" rx="28" ry="6" fill="#0d1821" opacity="0.6" />
-
-      {/* Trunk */}
-      <rect x="72" y="120" width="16" height="46" rx="4" fill="#6b4c1e" />
-      <rect x="75" y="120" width="4" height="46" rx="2" fill="#8B6914" opacity="0.5" />
-
-      {/* Roots */}
-      <path d="M72 158 Q60 164 52 162" stroke="#6b4c1e" strokeWidth="3" fill="none" strokeLinecap="round" />
-      <path d="M88 160 Q98 166 106 163" stroke="#6b4c1e" strokeWidth="3" fill="none" strokeLinecap="round" />
-
-      {/* Glow background */}
-      <circle cx="80" cy="88" r="58" fill={glow} />
-
-      {/* Canopy — 3 overlapping circles */}
-      <circle cx="80" cy="75" r="42" fill={canopy} opacity={isLayu ? 0.5 : 0.75}
-        style={{ animation: isLayu ? 'none' : 'gentleSway 4s ease-in-out infinite' }} />
-      <circle cx="55" cy="95" r="30" fill={canopy} opacity={isLayu ? 0.4 : 0.65} />
-      <circle cx="105" cy="95" r="30" fill={canopy} opacity={isLayu ? 0.4 : 0.65} />
-
-      {/* Canopy highlight */}
-      <circle cx="68" cy="60" r="18" fill={accent} opacity={isLayu ? 0.2 : 0.4} />
-
-      {/* Subur: dewdrops */}
-      {state === 'subur' && <>
-        <circle cx="50" cy="82" r="3" fill="#bfdbfe" opacity="0.8" />
-        <circle cx="112" cy="78" r="2.5" fill="#bfdbfe" opacity="0.8" />
-        <circle cx="78" cy="45" r="2" fill="#bfdbfe" opacity="0.7" />
-        {/* Sun ray */}
-        <circle cx="130" cy="30" r="8" fill="#fde68a" opacity="0.5" />
-      </>}
-
-      {/* Layu: falling leaves */}
-      {isLayu && <>
-        <ellipse cx="45" cy="108" rx="6" ry="3" fill={canopy} opacity="0.6" transform="rotate(-20 45 108)" />
-        <ellipse cx="118" cy="112" rx="5" ry="2.5" fill={canopy} opacity="0.5" transform="rotate(15 118 112)" />
-        <ellipse cx="30" cy="130" rx="4" ry="2" fill={canopy} opacity="0.4" transform="rotate(-30 30 130)" />
-      </>}
-
-      {/* Baru: sprout */}
-      {state === 'baru' && <>
-        <circle cx="80" cy="75" r="20" fill={accent} opacity="0.3" />
-        <path d="M76 90 Q80 70 84 90" stroke={accent} strokeWidth="2" fill="none" />
-      </>}
+    <svg viewBox="0 0 80 90" className={cn('w-[160px] h-[160px]', stage === 'matang' && 'animate-breathe')}>
+      <ellipse cx="40" cy="80" rx="26" ry="6" fill="#6b4c1e" opacity="0.4" />
+      {stage === 'benih' ? (
+        <ellipse cx="40" cy="74" rx="9" ry="6" fill="#8B6914" opacity="0.6" />
+      ) : (
+        <rect x="37.5" y={78 - h} width="5" height={h} rx="2" fill="#8B6914" />
+      )}
+      {canopy.rx > 0 && (
+        <>
+          <ellipse cx="40" cy={78 - h - 6} rx={canopy.rx} ry={canopy.ry} fill="#639922" opacity="0.85" />
+          {showInner && (
+            <ellipse cx="40" cy={78 - h - 13} rx={canopy.rx * 0.7} ry={canopy.ry * 0.7} fill="#97C459" opacity="0.85" />
+          )}
+          {showFruits && (
+            <>
+              <circle cx={40 - canopy.rx * 0.4} cy={78 - h - 8} r="3" fill="#c9a96e" />
+              <circle cx={40 + canopy.rx * 0.4} cy={78 - h - 11} r="3" fill="#c9a96e" />
+              {stage === 'matang' && <circle cx="40" cy={78 - h - 18} r="3" fill="#c9a96e" />}
+            </>
+          )}
+        </>
+      )}
     </svg>
+  )
+}
+
+function TalkinPlant({ stage }: { stage: Stage }) {
+  const h = STAGE_HEIGHT[stage]
+  const canopy = STAGE_CANOPY[stage]
+  const isMatang = stage === 'matang'
+  const showInner = stage === 'anak' || stage === 'muda' || stage === 'matang'
+  const showFruits = stage === 'muda' || stage === 'matang'
+
+  return (
+    <div className="relative w-[160px] h-[160px]">
+      {isMatang && <div className="absolute inset-0 rounded-full bg-[#c9a96e30] blur-xl animate-pulse" />}
+      <svg viewBox="0 0 80 90" className={cn('relative w-[160px] h-[160px]', isMatang && 'animate-breathe')}>
+        <ellipse cx="40" cy="80" rx="26" ry="6" fill="#6b4c1e" opacity="0.4" />
+        {stage === 'benih' ? (
+          <ellipse cx="40" cy="74" rx="9" ry="6" fill="#8B6914" opacity="0.6" />
+        ) : (
+          <rect x="37.5" y={78 - h} width="5" height={h} rx="2" fill="#a0822e" />
+        )}
+        {canopy.rx > 0 && (
+          <>
+            <ellipse cx="40" cy={78 - h - 6} rx={canopy.rx} ry={canopy.ry} fill="#7c5cbf" opacity="0.8" />
+            {showInner && (
+              <ellipse cx="40" cy={78 - h - 13} rx={canopy.rx * 0.7} ry={canopy.ry * 0.7} fill="#a78bfa" opacity="0.85" />
+            )}
+            {showFruits && (
+              <>
+                <circle cx={40 - canopy.rx * 0.4} cy={78 - h - 8} r="3" fill="#fde68a" />
+                <circle cx={40 + canopy.rx * 0.4} cy={78 - h - 11} r="3" fill="#fde68a" />
+                {isMatang && <circle cx="40" cy={78 - h - 18} r="3" fill="#fde68a" />}
+              </>
+            )}
+          </>
+        )}
+        {isMatang && (
+          <>
+            <line x1="40" y1={78 - h - 6} x2="40" y2="6" stroke="#fde68a" strokeWidth="1" opacity="0.5" />
+            <text x="24" y="20" fontSize="9" fill="#fde68a" opacity="0.85">✦</text>
+            <text x="54" y="14" fontSize="7" fill="#fde68a" opacity="0.6">✦</text>
+            <text x="40" y="6" fontSize="7" fill="#fde68a" opacity="0.7">✦</text>
+          </>
+        )}
+      </svg>
+    </div>
+  )
+}
+
+// ─── Status panel row ─────────────────────────────────────────────────────────
+
+function AmalanRow({ icon, label, value, progress, done }: { icon: string; label: string; value: string; progress: number; done: boolean }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-base w-5 text-center flex-shrink-0">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[#e8dcc8] text-xs">{label}</p>
+          <p className={cn('text-xs font-medium flex-shrink-0', done ? 'text-emerald-400' : 'text-[#8a7a65]')}>{value}</p>
+        </div>
+        <div className="h-1 rounded-full bg-[#1e2d40] mt-1 overflow-hidden">
+          <div
+            className={cn('h-full rounded-full', done ? 'bg-emerald-400' : 'bg-[#c9a96e]')}
+            style={{ width: `${Math.min(Math.max(progress, 0), 1) * 100}%` }}
+          />
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -104,79 +190,290 @@ function BulanBaruMsg() {
   )
 }
 
+// ─── Stats loading ──────────────────────────────────────────────────────────────
+
+interface BenihStats {
+  solatCount: number
+  auditDone: boolean
+  zikirCount: number
+  rezekiDone: boolean
+  jaharCount: number
+  khafiMinit: number
+  totalDays: number
+}
+
+const EMPTY_STATS: BenihStats = {
+  solatCount: 0,
+  auditDone: false,
+  zikirCount: 0,
+  rezekiDone: false,
+  jaharCount: 0,
+  khafiMinit: 0,
+  totalDays: 0,
+}
+
+function checkRezekiDone(today: string): boolean {
+  try {
+    const raw = localStorage.getItem(`madrasah_rezeki_${today}`)
+    if (!raw) return false
+    const parsed = JSON.parse(raw) as { amalan?: Record<string, boolean> }
+    return Object.values(parsed.amalan ?? {}).some(Boolean)
+  } catch {
+    return false
+  }
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function KebunRohani() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { user } = useAuthStore()
   const { data: streak } = useStreak()
+  const [stats, setStats] = useState<BenihStats>(EMPTY_STATS)
+  const [loading, setLoading] = useState(true)
+  const [statusOpen, setStatusOpen] = useState(false)
 
-  const state = useMemo(() => {
-    return getTreeState(streak?.lastEntry ?? null, streak?.current ?? 0)
+  const hasTalqin = user?.talqin_completed === true
+
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+
+    async function load() {
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const since = format(subDays(new Date(), 30), 'yyyy-MM-dd')
+
+      const [
+        { data: solatRow },
+        { count: auditCount },
+        { count: zikirTodayCount },
+        { data: zikir30Rows },
+        { data: solat30Rows },
+        { data: muhasabah30Rows },
+      ] = await Promise.all([
+        supabase.from('solat_entries').select('prayers').eq('user_id', user!.id).eq('date', today).maybeSingle(),
+        supabase.from('muhasabah_entries').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).eq('date', today),
+        supabase.from('zikir_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).eq('date', today).eq('completed', true),
+        supabase.from('zikir_sessions').select('date').eq('user_id', user!.id).eq('completed', true).gte('date', since),
+        supabase.from('solat_entries').select('date').eq('user_id', user!.id).gte('date', since),
+        supabase.from('muhasabah_entries').select('date').eq('user_id', user!.id).gte('date', since),
+      ])
+
+      const activeDays = new Set<string>()
+      ;(zikir30Rows ?? []).forEach((r: { date: string }) => activeDays.add(r.date))
+      ;(solat30Rows ?? []).forEach((r: { date: string }) => activeDays.add(r.date))
+      ;(muhasabah30Rows ?? []).forEach((r: { date: string }) => activeDays.add(r.date))
+
+      const prayers = Array.isArray((solatRow as { prayers?: unknown } | null)?.prayers)
+        ? ((solatRow as unknown as { prayers: Array<{ completed: boolean }> }).prayers)
+        : []
+      const solatCount = prayers.filter((p) => p?.completed).length
+
+      let jaharCount = 0
+      let khafiMinit = 0
+
+      if (hasTalqin) {
+        // 'amalan_sessions' bukan jadual dalam types/database.ts — guna `as any`
+        // mengikut corak sedia ada (lihat AmalanPage.tsx).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const [{ data: amalanTodayRows }, { data: amalan30Rows }] = await Promise.all([
+          (supabase.from('amalan_sessions') as any)
+            .select('jahar_kiraan, khafi_minit')
+            .eq('user_id', user!.id)
+            .eq('session_date', today),
+          (supabase.from('amalan_sessions') as any)
+            .select('session_date')
+            .eq('user_id', user!.id)
+            .gte('session_date', since),
+        ])
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(amalanTodayRows ?? []).forEach((r: any) => {
+          jaharCount += r.jahar_kiraan ?? 0
+          khafiMinit += r.khafi_minit ?? 0
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(amalan30Rows ?? []).forEach((r: any) => {
+          if (r.session_date) activeDays.add(r.session_date)
+        })
+      }
+
+      if (!cancelled) {
+        setStats({
+          solatCount,
+          auditDone: (auditCount ?? 0) > 0,
+          zikirCount: zikirTodayCount ?? 0,
+          rezekiDone: checkRezekiDone(today),
+          jaharCount,
+          khafiMinit,
+          totalDays: activeDays.size,
+        })
+        setLoading(false)
+      }
+    }
+
+    load().catch(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [user, hasTalqin])
+
+  const freeScore = useMemo(() => {
+    const s = streak?.current ?? 0
+    return s * 3 + (stats.auditDone ? 10 : 0) + stats.zikirCount * 2 + stats.solatCount * 3 + stats.totalDays * 1
+  }, [streak?.current, stats])
+
+  const talkinScore = useMemo(() => {
+    if (!hasTalqin) return 0
+    return freeScore + stats.jaharCount * 2 + stats.khafiMinit * 3
+  }, [hasTalqin, freeScore, stats])
+
+  const freeStage = getStage(freeScore)
+  const talkinStage = getStage(talkinScore)
+
+  const waterState = useMemo(() => {
+    return getWaterState(streak?.lastEntry ?? null, streak?.current ?? 0)
   }, [streak?.lastEntry, streak?.current])
 
   const bulanBaru = isBulanBaru()
 
-  const labelKey = `kebun.${state}_label` as const
-  const descKey = `kebun.${state}_desc` as const
-  const labelColor = state === 'subur' ? 'text-emerald-400' :
-    state === 'baru' ? 'text-blue-400' : 'text-[#c9a96e]'
+  if (loading) {
+    return (
+      <div className="bg-[#0d1821]/80 border border-[#c9a96e20] rounded-2xl p-5 h-[180px] animate-pulse" />
+    )
+  }
 
   return (
     <div className="space-y-3">
-      {state === 'layu' ? (
-        /* Perlu siraman — reka bentuk kemas tanpa pokok besar */
-        <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
-          <p className="text-amber-400 text-sm font-medium flex items-center gap-2">
-            <span>💧</span>
-            {t('kebun.layu_label')}
-          </p>
+      <div className="bg-[#0d1821]/80 border border-[#c9a96e20] rounded-2xl px-5 py-6 flex flex-col items-center gap-3">
 
-          <p className="text-[#8a7a65] text-xs leading-relaxed">
-            {t('kebun.layu_desc')}
-          </p>
+        {/* Label atas */}
+        <p className="text-[#8a7a65] text-[11px] uppercase tracking-wider">
+          {hasTalqin ? '✦ Benih Tauhid' : '🌱 Amalan Jiwa'}
+        </p>
 
-          <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-3">
-            <p className="font-serif text-[#c9a96e] text-xs leading-loose" dir="rtl">
-              وَاعْبُدْ رَبَّكَ حَتَّىٰ يَأْتِيَكَ الْيَقِينُ
+        {/* SVG Benih besar */}
+        {hasTalqin ? <TalkinPlant stage={talkinStage} /> : <FreePlant stage={freeStage} />}
+
+        {/* Mesej stage / status siraman */}
+        {waterState === 'layu' ? (
+          <div className="text-center py-1 space-y-2 w-full">
+            <p className="text-amber-400 text-[13px] font-medium flex items-center justify-center gap-2">
+              <span>💧</span>
+              {t('kebun.layu_label')}
             </p>
-            <p className="text-[#8a7a65] text-[10px] mt-1">
-              {t('kebun.ayat_hijr')}
+            <p className="text-[#6a5a46] text-[11px] leading-relaxed">
+              {t('kebun.layu_desc')}
+            </p>
+            <button
+              onClick={() => navigate('/zikir')}
+              className="w-full max-w-[200px] mx-auto py-2.5 rounded-xl text-sm font-medium bg-[#c9a96e15] border border-[#c9a96e30] text-[#c9a96e] hover:bg-[#c9a96e20] transition-colors"
+            >
+              ▶ Mulakan Amalan
+            </button>
+          </div>
+        ) : waterState === 'baru' ? (
+          <div className="text-center py-1">
+            <p className="text-[#c9a96e] text-[13px] font-medium mb-1">
+              ✦ {t('kebun.baru_label')}
+            </p>
+            <p className="text-[#6a5a46] text-[11px]">
+              {t('kebun.baru_desc')}
             </p>
           </div>
+        ) : (
+          <p className={cn('text-xs italic text-center', hasTalqin ? 'text-violet-400' : 'text-[#639922]')}>
+            {hasTalqin ? TALKIN_LABELS[talkinStage] : STAGE_LABELS[freeStage]}
+          </p>
+        )}
 
-          <button
-            onClick={() => navigate('/zikir')}
-            className="w-full py-2.5 rounded-xl text-sm font-medium bg-[#c9a96e15] border border-[#c9a96e30] text-[#c9a96e] hover:bg-[#c9a96e20] transition-colors"
-          >
-            ▶ Mulakan Amalan
-          </button>
+        <div className="w-full h-px bg-[#c9a96e10]" />
+
+        {/* Teks Quran */}
+        <div className="text-center px-2">
+          <p className="font-serif text-base text-[#c9a96e] leading-relaxed mb-1.5" dir="rtl">
+            وَاعْبُدْ رَبَّكَ حَتَّىٰ يَأْتِيَكَ الْيَقِينُ
+          </p>
+          <p className="text-[11px] text-[#6a5a46] italic">
+            {t('kebun.ayat_hijr')}
+          </p>
         </div>
-      ) : state === 'baru' ? (
-        /* Pokok baru — dipindahkan ke dalam rectangle BenihTauhid */
-        null
-      ) : (
-        /* Tree visual */
-        <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5">
-          <div className="flex items-center gap-5">
-            {/* Tree */}
-            <div className="w-28 h-32 flex-shrink-0">
-              <TreeSVG state={state} />
-            </div>
 
-            {/* Text */}
-            <div className="flex-1 space-y-2">
-              <p className={cn('text-sm font-medium', labelColor)}>
-                {t(labelKey)}
+        <div className="w-full h-px bg-[#c9a96e10]" />
+
+        {/* Butang Status */}
+        <button
+          onClick={() => setStatusOpen((v) => !v)}
+          className="w-full max-w-[200px] rounded-full border border-[#c9a96e30] text-[11px] text-[#c9a96e] py-1.5 px-5 hover:bg-[#c9a96e15] transition-colors"
+        >
+          {statusOpen ? 'Tutup ▴' : 'Lihat Status ▾'}
+        </button>
+
+        {/* Panel Status */}
+        {statusOpen && (
+          <div className="w-full bg-[#060d16] border border-[#c9a96e15] rounded-[14px] p-4 space-y-3">
+            <AmalanRow
+              icon="🕌"
+              label="Solat"
+              value={`${stats.solatCount}/5`}
+              progress={stats.solatCount / 5}
+              done={stats.solatCount === 5}
+            />
+            <AmalanRow
+              icon="📖"
+              label="Audit Jiwa"
+              value={stats.auditDone ? '✓ Selesai' : 'Belum'}
+              progress={stats.auditDone ? 1 : 0}
+              done={stats.auditDone}
+            />
+            <AmalanRow
+              icon="✨"
+              label="Zikir Am"
+              value={stats.zikirCount > 0 ? `✓ ${stats.zikirCount}x` : 'Belum'}
+              progress={Math.min(stats.zikirCount / 3, 1)}
+              done={stats.zikirCount > 0}
+            />
+            <AmalanRow
+              icon="🤲"
+              label="Pintu Rezeki"
+              value={stats.rezekiDone ? '✓ Selesai' : 'Belum'}
+              progress={stats.rezekiDone ? 1 : 0}
+              done={stats.rezekiDone}
+            />
+            {hasTalqin && (
+              <>
+                <AmalanRow
+                  icon="🌙"
+                  label="Zikir Jahar"
+                  value={stats.jaharCount > 0 ? `✓ ${stats.jaharCount}x` : 'Belum'}
+                  progress={Math.min(stats.jaharCount / 165, 1)}
+                  done={stats.jaharCount > 0}
+                />
+                <AmalanRow
+                  icon="💫"
+                  label="Zikir Khafi"
+                  value={stats.khafiMinit > 0 ? `✓ ${stats.khafiMinit} minit` : 'Belum'}
+                  progress={Math.min(stats.khafiMinit / 10, 1)}
+                  done={stats.khafiMinit > 0}
+                />
+              </>
+            )}
+
+            {/* Renungan */}
+            <div className="bg-[#0d1821] border border-[#c9a96e15] rounded-xl p-4 text-center mt-2">
+              <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">
+                وَاللَّهُ أَنبَتَكُم مِّنَ الْأَرْضِ نَبَاتًا
               </p>
-
-              <p className="text-[#8a7a65] text-xs leading-relaxed">
-                {t(descKey)}
+              <p className="text-[#8a7a65] text-xs mt-1 italic">— Surah Nuh: 17</p>
+              <p className="font-serif text-[#c9a96e] text-sm leading-loose mt-3" dir="rtl">
+                إِلَٰهِي أَنْتَ مَقْصُودِي وَرِضَاكَ مَطْلُوبِي
+              </p>
+              <p className="text-[#8a7a65] text-xs mt-2 leading-relaxed">
+                Setiap amalan hari ini adalah siraman untuk benih tauhid dalam jiwa.
               </p>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Bulan Baru */}
       {bulanBaru && <BulanBaruMsg />}
