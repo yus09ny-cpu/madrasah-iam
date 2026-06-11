@@ -255,7 +255,7 @@ export default function IAMChatPage() {
 
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000)
-      const reply = await sendIAMMessage(context, tier, systemPrompt, controller.signal)
+      const reply = await sendIAMMessage(context, tier, systemPrompt, controller.signal, 'iam_chat')
       clearTimeout(timeoutId)
 
       // Show reply immediately in UI

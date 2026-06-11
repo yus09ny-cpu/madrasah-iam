@@ -372,7 +372,9 @@ CARA MENJAWAB:
       const aiPromise = sendIAMMessage(
         [{ role: 'user', content: `Audit ${sifat.name} selesai. Berikan refleksi rohani.` }],
         tier,
-        systemPrompt
+        systemPrompt,
+        undefined,
+        'pintu_rezeki_reflection'
       ).catch(() => DEFAULT)
 
       const reply = await Promise.race([aiPromise, timeoutPromise])
@@ -881,7 +883,7 @@ function PintuTab() {
       const history = [...messages, { ...userMsg, content: isFirst ? `[Situasi: ${situasiLabel}] ${content}` : content }]
         .filter(m => m.id !== 'ai-open').slice(-8)
         .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
-      const reply = await sendIAMMessage(history, tier, PINTU_REZEKI_SYSTEM_PROMPT)
+      const reply = await sendIAMMessage(history, tier, PINTU_REZEKI_SYSTEM_PROMPT, undefined, 'pintu_rezeki_chat')
       setMessages(prev => [...prev, { id: `ai-${Date.now()}`, role: 'assistant', content: reply }])
     } catch {
       setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: 'Maaf, berlaku ralat. Sila cuba sekali lagi.' }])

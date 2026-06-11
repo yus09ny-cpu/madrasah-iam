@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, RotateCcw, Users, BookOpen, Star, Wrench, Crown } from 'lucide-react'
+import { Shield, RotateCcw, Users, BookOpen, Star, Wrench, Crown, Gauge } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import type { UserTier } from '@/types'
@@ -8,6 +8,7 @@ import WakilTalkinDirectory from '@/components/admin/WakilTalkinDirectory'
 import UserTalkinAssignments from '@/components/admin/UserTalkinAssignments'
 import AmalanJiwaStatus from '@/components/admin/AmalanJiwaStatus'
 import TierActivationManagement from '@/components/admin/TierActivationManagement'
+import ApiUsageDashboard from '@/components/admin/ApiUsageDashboard'
 import UserManagement from '@/components/admin/UserManagement'
 
 const TIERS: { value: UserTier; label: string; color: string; active: string }[] = [
@@ -31,15 +32,16 @@ const TIERS: { value: UserTier; label: string; color: string; active: string }[]
   },
 ]
 
-type Tab = 'dev' | 'users' | 'wakil_talkin' | 'talkin' | 'amalan' | 'tier'
+type Tab = 'dev' | 'users' | 'wakil_talkin' | 'talkin' | 'amalan' | 'tier' | 'usage'
 
-const TABS: { id: Tab; label: string; icon: React.ElementType; masterOnly?: boolean; devOnly?: boolean }[] = [
+const TABS: { id: Tab; label: string; icon: React.ElementType; masterOnly?: boolean; devOnly?: boolean; superAdminOnly?: boolean }[] = [
   { id: 'dev', label: 'Dev Tools', icon: Wrench, devOnly: true },
   { id: 'users', label: 'Pengguna', icon: Crown },
   { id: 'wakil_talkin', label: 'Wakil Talkin', icon: Users },
   { id: 'talkin', label: 'Talkin', icon: BookOpen },
   { id: 'amalan', label: 'Amalan', icon: BookOpen },
   { id: 'tier', label: 'Tier Unlock', icon: Star },
+  { id: 'usage', label: 'Penggunaan API', icon: Gauge, superAdminOnly: true },
 ]
 
 const TAB_TITLES: Record<Tab, { title: string; sub: string }> = {
@@ -49,6 +51,7 @@ const TAB_TITLES: Record<Tab, { title: string; sub: string }> = {
   talkin: { title: 'Talkin Assignments', sub: 'Tugaskan pengguna & jejak sesi Talkin' },
   amalan: { title: 'Amalan Jiwa Status', sub: 'Urus latihan Amalan Jiwa selepas Talkin selesai' },
   tier: { title: 'Tier Activation', sub: 'Buka kunci Pro bagi pengguna yang lengkap perjalanan' },
+  usage: { title: 'Penggunaan API', sub: 'Kos & token Anthropic API mengikut pengguna dan ciri-ciri' },
 }
 
 function AccessDenied() {
@@ -91,6 +94,7 @@ export default function AdminPage() {
 
   const visibleTabs = TABS.filter(t => {
     if (t.devOnly) return isMasterAdmin
+    if (t.superAdminOnly) return isMasterAdmin || isSuperAdmin
     if (isWakilTalkin) return t.id === 'talkin'
     return true
   })
@@ -224,6 +228,7 @@ export default function AdminPage() {
       {activeTab === 'talkin' && <UserTalkinAssignments />}
       {activeTab === 'amalan' && <AmalanJiwaStatus />}
       {activeTab === 'tier' && <TierActivationManagement />}
+      {activeTab === 'usage' && <ApiUsageDashboard />}
 
       <button
         onClick={() => navigate(-1)}

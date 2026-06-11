@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useTodaySolat } from '@/hooks/useSolat'
 import { useTodayMuhasabah } from '@/hooks/useMuhasabah'
 import KebunRohani from '@/components/KebunRohani'
+import BenihTauhid from '@/components/BenihTauhid'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ms } from 'date-fns/locale'
@@ -115,6 +116,9 @@ export default function DashboardPage() {
           </span>
         </div>
       </div>
+
+      {/* Benih Tauhid — pertumbuhan amalan */}
+      <BenihTauhid />
 
       {/* Kebun Rohani — ganti streak/gamifikasi */}
       <KebunRohani />

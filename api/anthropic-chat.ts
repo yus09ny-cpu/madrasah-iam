@@ -1,6 +1,11 @@
 // Vercel Serverless Function — proxy pengeluaran untuk Anthropic Messages API
 // Vite proxy dalam vite.config.ts hanya wujud semasa `npm run dev`.
 // Dalam pengeluaran (Vercel), fungsi inilah yang menyelesaikan isu CORS & 405.
+//
+// Edge function ini tiada sesi Supabase/pengguna — `usage` (token count) dari
+// upstream diteruskan terus dalam body respons ke klien, di mana
+// src/lib/iam-chat.ts memanggil logApiUsage() (src/lib/api-logger.ts) untuk
+// rekod ke jadual `api_usage_logs`.
 
 export const config = { runtime: 'edge' }
 

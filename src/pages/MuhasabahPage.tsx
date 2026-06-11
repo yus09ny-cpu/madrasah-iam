@@ -271,7 +271,8 @@ export default function MuhasabahPage() {
       [{ role: 'user', content: `Audit Jiwa saya hari ini:\n\n${context}` }],
       tier,
       AUDIT_AI_PROMPT,
-      controller.signal
+      controller.signal,
+      'muhasabah'
     ).catch(() => DEFAULT_REFLECTION)
 
     const reply = await Promise.race([aiPromise, timeoutPromise])

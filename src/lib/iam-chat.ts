@@ -3,6 +3,7 @@
 // menyelesaikan isu CORS browser (jangan guna @anthropic-ai/sdk terus dari browser).
 
 import { FREE_SYSTEM_PROMPT, PRO_SYSTEM_PROMPT } from './systemPrompts'
+import { logApiUsage } from './api-logger'
 
 function resolveModel(userTier: string): string {
   return userTier === 'free' ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6'
@@ -21,7 +22,8 @@ export async function sendIAMMessage(
   messages: { role: 'user' | 'assistant'; content: string }[],
   userTier: string,
   systemPrompt?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  feature: string = 'iam_chat'
 ): Promise<string> {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
 
@@ -30,7 +32,8 @@ export async function sendIAMMessage(
     throw new Error('Tiada Anthropic API key yang sah dalam .env.local')
   }
 
-  console.log('[IAM] Hantar permintaan... model:', resolveModel(userTier), 'tier:', userTier)
+  const model = resolveModel(userTier)
+  console.log('[IAM] Hantar permintaan... model:', model, 'tier:', userTier)
 
   const res = await fetch('/api/anthropic-chat', {
     method: 'POST',
@@ -42,7 +45,7 @@ export async function sendIAMMessage(
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: resolveModel(userTier),
+      model,
       max_tokens: resolveMaxTokens(userTier),
       // System prompt boleh sehingga ~16K token (Pro) — tanda ia sebagai
       // cache_control supaya Anthropic guna prompt caching: permintaan
@@ -70,12 +73,14 @@ export async function sendIAMMessage(
   const data = await res.json()
   const text = data.content?.[0]?.text
 
+  const usage = data.usage ?? {}
+  void logApiUsage(feature, model, usage.input_tokens ?? 0, usage.output_tokens ?? 0)
+
   if (!text) {
     console.error('[IAM] Response kosong:', data)
     return 'Maaf, cuba sekali lagi.'
   }
 
-  const usage = data.usage ?? {}
   const cacheRead = usage.cache_read_input_tokens ?? 0
   const cacheWrite = usage.cache_creation_input_tokens ?? 0
   if (cacheRead > 0) {

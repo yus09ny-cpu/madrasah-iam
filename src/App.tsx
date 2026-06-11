@@ -13,6 +13,7 @@ import PintuRezekiPage from '@/pages/PintuRezekiPage'
 import NotificationSettingsPage from '@/pages/NotificationSettingsPage'
 import ProfileSettingsPage from '@/pages/ProfileSettingsPage'
 import AdminPage from '@/pages/AdminPage'
+import AdminUsagePage from '@/pages/AdminUsagePage'
 import AuditJiwaPage from '@/pages/AuditJiwaPage'
 import LoginPage from '@/pages/LoginPage'
 import OnboardingPage from '@/pages/OnboardingPage'
@@ -98,6 +99,7 @@ function AppRoutes() {
         <Route path="settings/notifications" element={<NotificationSettingsPage />} />
         <Route path="settings/profile" element={<ProfileSettingsPage />} />
         <Route path="admin" element={<AdminPage />} />
+        <Route path="admin/usage" element={<AdminUsagePage />} />
       </Route>
 
       {/* Catch-all */}

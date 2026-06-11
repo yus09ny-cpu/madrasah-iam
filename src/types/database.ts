@@ -115,6 +115,29 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['chat_messages']['Insert']>
       }
+      api_usage_logs: {
+        Row: {
+          id: string
+          user_id: string
+          user_type: string
+          feature: string
+          tokens_used: number
+          model: string
+          cost_usd: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          user_type: string
+          feature: string
+          tokens_used: number
+          model: string
+          cost_usd: number
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['api_usage_logs']['Insert']>
+      }
     }
   }
 }

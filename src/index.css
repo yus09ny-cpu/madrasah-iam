@@ -71,6 +71,16 @@ button, a {
   font-family: var(--font-serif);
 }
 
+/* Benih Tauhid — nafas perlahan untuk pokok matang */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+.animate-breathe {
+  display: inline-block;
+  animation: breathe 4s ease-in-out infinite;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
