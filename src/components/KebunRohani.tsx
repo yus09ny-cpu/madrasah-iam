@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useStreak } from '@/hooks/useStreak'
 import { cn } from '@/lib/utils'
 
@@ -107,6 +108,7 @@ function BulanBaruMsg() {
 
 export default function KebunRohani() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { data: streak } = useStreak()
 
   const state = useMemo(() => {
@@ -114,48 +116,64 @@ export default function KebunRohani() {
   }, [streak?.lastEntry, streak?.current])
 
   const bulanBaru = isBulanBaru()
-  const today = new Date().toISOString().slice(0, 10)
-  const isFresh = streak?.lastEntry === today
 
   const labelKey = `kebun.${state}_label` as const
   const descKey = `kebun.${state}_desc` as const
   const labelColor = state === 'subur' ? 'text-emerald-400' :
-    state === 'layu' ? 'text-amber-400' :
     state === 'baru' ? 'text-blue-400' : 'text-[#c9a96e]'
 
   return (
     <div className="space-y-3">
-      {/* Tree visual */}
-      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5">
-        <div className="flex items-center gap-5">
-          {/* Tree */}
-          <div className="w-28 h-32 flex-shrink-0">
-            <TreeSVG state={state} />
+      {state === 'layu' ? (
+        /* Perlu siraman — reka bentuk kemas tanpa pokok besar */
+        <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
+          <p className="text-amber-400 text-sm font-medium flex items-center gap-2">
+            <span>💧</span>
+            {t('kebun.layu_label')}
+          </p>
+
+          <p className="text-[#8a7a65] text-xs leading-relaxed">
+            {t('kebun.layu_desc')}
+          </p>
+
+          <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-3">
+            <p className="font-serif text-[#c9a96e] text-xs leading-loose" dir="rtl">
+              وَاعْبُدْ رَبَّكَ حَتَّىٰ يَأْتِيَكَ الْيَقِينُ
+            </p>
+            <p className="text-[#8a7a65] text-[10px] mt-1">
+              {t('kebun.ayat_hijr')}
+            </p>
           </div>
 
-          {/* Text */}
-          <div className="flex-1 space-y-2">
-            <p className={cn('text-sm font-medium', labelColor)}>
-              {t(labelKey)}
-            </p>
+          <button
+            onClick={() => navigate('/zikir')}
+            className="w-full py-2.5 rounded-xl text-sm font-medium bg-[#c9a96e15] border border-[#c9a96e30] text-[#c9a96e] hover:bg-[#c9a96e20] transition-colors"
+          >
+            ▶ Mulakan Amalan
+          </button>
+        </div>
+      ) : (
+        /* Tree visual */
+        <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5">
+          <div className="flex items-center gap-5">
+            {/* Tree */}
+            <div className="w-28 h-32 flex-shrink-0">
+              <TreeSVG state={state} />
+            </div>
 
-            <p className="text-[#8a7a65] text-xs leading-relaxed">
-              {t(descKey)}
-            </p>
+            {/* Text */}
+            <div className="flex-1 space-y-2">
+              <p className={cn('text-sm font-medium', labelColor)}>
+                {t(labelKey)}
+              </p>
 
-            {!isFresh && (
-              <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-3 mt-2">
-                <p className="font-serif text-[#c9a96e] text-xs leading-loose" dir="rtl">
-                  وَاعْبُدْ رَبَّكَ حَتَّىٰ يَأْتِيَكَ الْيَقِينُ
-                </p>
-                <p className="text-[#8a7a65] text-[10px] mt-1">
-                  {t('kebun.ayat_hijr')}
-                </p>
-              </div>
-            )}
+              <p className="text-[#8a7a65] text-xs leading-relaxed">
+                {t(descKey)}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Bulan Baru */}
       {bulanBaru && <BulanBaruMsg />}
