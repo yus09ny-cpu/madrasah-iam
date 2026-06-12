@@ -1288,7 +1288,7 @@ export default function AuditJiwaPage() {
     } catch (err: unknown) {
       if ((err as Error)?.name === 'AbortError') return
       console.error('[AuditJiwa] AI error:', err)
-      setAiError(t('umum.ralat', 'Ada gangguan. Sila cuba semula.'))
+      setAiError(t('auditJiwa.aiRehat', 'I AM sedang berehat sebentar. Sila cuba lagi dalam beberapa minit. 🌙'))
       setAiLoading(false)
     }
   }, [userTier, user?.language, user?.id, responses, t, saveAuditToSupabase])
