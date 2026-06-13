@@ -25,7 +25,7 @@ export default async function handler(req: Request): Promise<Response> {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': req.headers.get('anthropic-version') ?? '2023-06-01',
-      'anthropic-beta': 'prompt-caching-2024-07-16',
+      
     },
     body: await req.text(),
   })
