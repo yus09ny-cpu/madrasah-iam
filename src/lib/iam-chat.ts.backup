@@ -25,7 +25,14 @@ export async function sendIAMMessage(
   signal?: AbortSignal,
   feature: string = 'iam_chat'
 ): Promise<string> {
-   const model = resolveModel(userTier)
+  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+
+  if (!apiKey?.startsWith('sk-ant-')) {
+    console.error('[IAM] API key tidak sah atau tidak dijumpai')
+    throw new Error('Tiada Anthropic API key yang sah dalam .env.local')
+  }
+
+  const model = resolveModel(userTier)
   console.log('[IAM] Hantar permintaan... model:', model, 'tier:', userTier)
 
   const res = await fetch('/api/anthropic-chat', {
@@ -33,9 +40,9 @@ export async function sendIAMMessage(
     signal,
     headers: {
       'Content-Type': 'application/json',
-      
+      'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
-      
+      'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
       model,
