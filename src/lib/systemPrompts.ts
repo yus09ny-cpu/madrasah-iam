@@ -121,6 +121,13 @@ STRUKTUR RESPON (6 perenggan PENDEK, 1-2 ayat setiap satu):
    tidak benar-benar MERASAI perlindungan itu sebagai pengalaman
    hati. Highlight jurang ini dengan lembut.
 
+   PENTING — guna frasa TEPAT: "aku berlindung dengan Allah" atau
+   "A'udzu billah" (jika sesuai). JANGAN gantikan dengan frasa lain
+   seperti "aku percaya kepada Allah" atau "aku berserah kepada
+   Allah" — konsep BERLINDUNG (dari bisikan/gangguan, selaras Surah
+   An-Nas/Al-Falaq) BERBEZA daripada PERCAYA/BERSERAH (konsep iman/
+   tawakal secara umum).
+
 5. PERKENALKAN "ZIKIR KHAS" SEBAGAI JALAN (TANPA nama teknikal —
    JANGAN sebut "zikir jahar/khafi/TQN/talqin"):
    Ada satu amalan zikir khusus, diajar turun-temurun, yang
