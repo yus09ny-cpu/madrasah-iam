@@ -889,31 +889,78 @@ function ChoiceButtons({ options, onSelect }: { options: [string, string]; onSel
   )
 }
 
+// ─── Free Tier Restrictions ────────────────────────────────────────────────────
+
+const FREE_UNLOCKED_CATEGORIES = ['kewangan', 'perniagaan']
+const MAX_FREE_MESSAGES = 3
+
+const UPGRADE_MSG = `Assalamualaikum, saya dari app Madrasah I AM.
+
+Saya ingin maklumat lanjut tentang upgrade ke Pro untuk akses penuh Tab Pintu Rezeki.
+
+Terima kasih.`
+
+function UpgradeModal({ onClose }: { onClose: () => void }) {
+  const WA_LINK = `https://wa.me/60182119135?text=${encodeURIComponent(UPGRADE_MSG)}`
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5" onClick={onClose}>
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          <Lock size={16} className="text-[#c9a96e]" />
+          <p className="text-[#c9a96e] font-medium text-sm">Kategori Pro</p>
+        </div>
+        <p className="text-[#e8dcc8] text-sm leading-relaxed">
+          Kategori ini khusus untuk pengguna Pro. Upgrade untuk akses Pekerjaan, Keluarga, Hutang, dan Lain-lain.
+        </p>
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors">
+            Tutup
+          </button>
+          <a href={WA_LINK} target="_blank" rel="noopener noreferrer"
+            className="flex-1 py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm text-center font-medium hover:bg-[#c9a96e25] transition-colors">
+            Upgrade ke Pro
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Pintu Tab (AI Chat) ──────────────────────────────────────────────────────
 
 function PintuTab() {
   const { user } = useAuthStore()
   const tier = user?.tier ?? 'free'
+  const isPro = tier === 'pro' || tier === 'family'
   const [selectedSituasi, setSelectedSituasi] = useState<string | null>(null)
   const [phase, setPhase] = useState<'select' | 'chat'>('select')
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isTyping])
 
   function selectSituasi(id: string) {
+    if (!isPro && !FREE_UNLOCKED_CATEGORIES.includes(id)) {
+      setShowUpgradeModal(true)
+      return
+    }
     const s = SITUASI.find(s => s.id === id)!
     setSelectedSituasi(id)
     setMessages([{ id: 'ai-open', role: 'assistant', content: s.question }])
     setPhase('chat')
   }
 
+  const realMsgCount = messages.filter(m => m.id !== 'ai-open').length
+  const isMsgLimitReached = !isPro && FREE_UNLOCKED_CATEGORIES.includes(selectedSituasi ?? '') && realMsgCount >= MAX_FREE_MESSAGES
+
   const sendMessage = useCallback(async (text?: string) => {
     const content = (text ?? input).trim()
-    if (!content || isTyping) return
+    if (!content || isTyping || isMsgLimitReached) return
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
     const situasiLabel = SITUASI.find(s => s.id === selectedSituasi)?.label ?? ''
@@ -930,7 +977,7 @@ function PintuTab() {
     } catch {
       setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: 'Maaf, berlaku ralat. Sila cuba sekali lagi.' }])
     } finally { setIsTyping(false) }
-  }, [input, isTyping, messages, selectedSituasi, tier])
+  }, [input, isTyping, isMsgLimitReached, messages, selectedSituasi, tier])
 
   if (phase === 'select') {
     return (
@@ -948,15 +995,20 @@ function PintuTab() {
         <div>
           <p className="text-[#e8dcc8] text-sm font-medium text-center mb-4">Apa yang paling memberat fikiran anda tentang rezeki hari ini?</p>
           <div className="grid grid-cols-2 gap-3">
-            {SITUASI.map(s => (
-              <button key={s.id} onClick={() => selectSituasi(s.id)}
-                className="flex flex-col items-center gap-2 p-4 bg-[#0d1821] border border-[#1e2d40] rounded-2xl hover:border-[#c9a96e40] hover:bg-[#c9a96e08] transition-all">
-                <span className="text-2xl">{s.emoji}</span>
-                <span className="text-[#8a7a65] text-sm">{s.label}</span>
-              </button>
-            ))}
+            {SITUASI.map(s => {
+              const locked = !isPro && !FREE_UNLOCKED_CATEGORIES.includes(s.id)
+              return (
+                <button key={s.id} onClick={() => selectSituasi(s.id)}
+                  className="relative flex flex-col items-center gap-2 p-4 bg-[#0d1821] border border-[#1e2d40] rounded-2xl hover:border-[#c9a96e40] hover:bg-[#c9a96e08] transition-all">
+                  {locked && <Lock size={12} className="absolute top-2.5 right-2.5 text-[#8a7a65]" />}
+                  <span className="text-2xl">{s.emoji}</span>
+                  <span className="text-[#8a7a65] text-sm">{s.label}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
+        {showUpgradeModal && <UpgradeModal onClose={() => setShowUpgradeModal(false)} />}
       </div>
     )
   }
@@ -1022,20 +1074,36 @@ function PintuTab() {
         <div ref={bottomRef} />
       </div>
       <div className="px-5 py-4 border-t border-[#1e2d40] flex-shrink-0">
-        <div className="flex gap-3 items-end">
-          <textarea ref={textareaRef} value={input}
-            onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px` }}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-            placeholder="Ceritakan situasi anda..." rows={1}
-            className="flex-1 bg-[#0d1821] border border-[#1e2d40] focus:border-[#c9a96e50] rounded-2xl px-4 py-3 text-sm text-[#e8dcc8] placeholder:text-[#8a7a65] outline-none resize-none transition-colors"
-            style={{ maxHeight: '120px' }} />
-          <button onClick={() => sendMessage()} disabled={!input.trim() || isTyping}
-            className="w-11 h-11 rounded-2xl flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-            style={{ backgroundColor: input.trim() && !isTyping ? '#c9a96e' : '#1e2d40' }}>
-            {isTyping ? <Loader2 size={16} className="animate-spin" style={{ color: '#8a7a65' }} />
-              : <Send size={16} style={{ color: input.trim() ? '#060d16' : '#8a7a65' }} />}
-          </button>
-        </div>
+        {isMsgLimitReached ? (
+          <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Lock size={14} className="text-[#c9a96e]" />
+              <p className="text-[#c9a96e] font-medium text-sm">Had 3 mesej percuma selesai</p>
+            </div>
+            <p className="text-[#8a7a65] text-xs leading-relaxed">
+              Anda telah mencapai had 3 mesej percuma untuk Pintu Rezeki. Upgrade ke Pro untuk teruskan perbualan dan akses semua kategori.
+            </p>
+            <a href={`https://wa.me/60182119135?text=${encodeURIComponent(UPGRADE_MSG)}`} target="_blank" rel="noopener noreferrer"
+              className="block w-full py-2.5 text-center rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors">
+              Upgrade ke Pro
+            </a>
+          </div>
+        ) : (
+          <div className="flex gap-3 items-end">
+            <textarea ref={textareaRef} value={input}
+              onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px` }}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+              placeholder="Ceritakan situasi anda..." rows={1}
+              className="flex-1 bg-[#0d1821] border border-[#1e2d40] focus:border-[#c9a96e50] rounded-2xl px-4 py-3 text-sm text-[#e8dcc8] placeholder:text-[#8a7a65] outline-none resize-none transition-colors"
+              style={{ maxHeight: '120px' }} />
+            <button onClick={() => sendMessage()} disabled={!input.trim() || isTyping}
+              className="w-11 h-11 rounded-2xl flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              style={{ backgroundColor: input.trim() && !isTyping ? '#c9a96e' : '#1e2d40' }}>
+              {isTyping ? <Loader2 size={16} className="animate-spin" style={{ color: '#8a7a65' }} />
+                : <Send size={16} style={{ color: input.trim() ? '#060d16' : '#8a7a65' }} />}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
