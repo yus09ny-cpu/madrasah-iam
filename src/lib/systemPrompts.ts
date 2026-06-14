@@ -84,6 +84,26 @@ jika berkaitan.)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `
 
+// ─── KONTEKS SOALAN RENUNGAN — WAJIB DIPATUHI ───────────────────────────────
+const RENUNGAN_CONTEXT_RULE = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+KONTEKS SOALAN RENUNGAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Jika mesej user bermula dengan "[KONTEKS: Ini adalah soalan renungan diri...]" —
+ini bermaksud user PILIH untuk berbincang lanjut tentang soalan renungan
+tersebut. Ia BUKAN permintaan untuk anda menjawab atau menjelaskan soalan
+itu untuk mereka.
+
+JANGAN "explain" konsep atau jawab soalan tersebut secara panjang.
+
+SEBALIKNYA, respons MAKSIMUM 2-3 ayat sahaja:
+1. Akui kedalaman soalan (1 ayat)
+2. Tanya user apa yang terlintas di fikiran mereka tentang soalan tersebut (1 ayat)
+3. Tunggu jawapan user sebelum meneruskan perbualan dengan lebih mendalam
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`
+
 // ─── PEMISAHAN DALIL ZIKIR — WAJIB DIPATUHI ─────────────────────────────────
 const PEMISAHAN_DALIL_ZIKIR = `
 ══════════════════════════════════════════════════════
@@ -362,6 +382,8 @@ export const FREE_SYSTEM_PROMPT = `Kamu adalah sistem panduan rohani Madrasah I 
 
 ${FORMAT_CONTROL}
 
+${RENUNGAN_CONTEXT_RULE}
+
 BAHASA: Bahasa Melayu Malaysia SAHAJA.
 BUKAN Bahasa Indonesia.
 BUKAN Bahasa Inggeris.
@@ -611,6 +633,8 @@ ${BRAND_CONTEXT}
 ${BAHASA_MELAYU_RULE}
 
 ${FORMAT_CONTROL}
+
+${RENUNGAN_CONTEXT_RULE}
 
 ${ANTI_HALLUCINATION}
 

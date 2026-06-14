@@ -150,6 +150,74 @@ function CTACard() {
   )
 }
 
+// ─── RenunganModal Component ───────────────────────────────────────────────────
+
+function RenunganModal({
+  soalan,
+  onTulis,
+  onBincang,
+  onClose,
+}: {
+  soalan: string
+  onTulis: (teks: string) => void
+  onBincang: () => void
+  onClose: () => void
+}) {
+  const [mode, setMode] = useState<'pilih' | 'tulis'>('pilih')
+  const [teks, setTeks] = useState('')
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5" onClick={onClose}>
+      <div
+        className="bg-[#0d1821] border border-[#c9a96e30] rounded-2xl p-5 max-w-md w-full space-y-4"
+        onClick={e => e.stopPropagation()}
+      >
+        <p className="text-[#c9a96e] text-xs font-serif text-center">✦ Untuk Anda Renungkan</p>
+        <p className="text-[#e8dcc8] text-base leading-relaxed text-center font-serif">{soalan}</p>
+
+        {mode === 'pilih' ? (
+          <div className="space-y-2">
+            <p className="text-[#8a7a65] text-xs text-center leading-relaxed">
+              Ambil masa sebentar untuk fikirkan soalan ini. Tiada jawapan betul atau salah.
+            </p>
+            <button onClick={() => setMode('tulis')}
+              className="w-full py-3 bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] rounded-xl text-sm font-medium hover:bg-[#c9a96e25] transition-colors">
+              ✍️ Tulis Renungan Saya
+            </button>
+            <button onClick={onBincang}
+              className="w-full py-3 bg-transparent border border-[#1e2d40] text-[#e8dcc8] rounded-xl text-sm font-medium hover:border-[#c9a96e30] transition-colors">
+              💬 Bincang dengan I AM
+            </button>
+            <button onClick={onClose}
+              className="w-full py-2 text-[#8a7a65] text-xs hover:text-[#c9a96e] transition-colors">
+              Tutup
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <textarea
+              value={teks}
+              onChange={e => setTeks(e.target.value)}
+              placeholder="Tulis apa yang terlintas di fikiran anda..."
+              rows={5}
+              autoFocus
+              className="w-full bg-[#060d16] border border-[#1e2d40] focus:border-[#c9a96e50] rounded-xl px-4 py-3 text-sm text-[#e8dcc8] placeholder:text-[#8a7a65] outline-none resize-none transition-colors"
+            />
+            <button onClick={() => onTulis(teks)} disabled={!teks.trim()}
+              className="w-full py-3 bg-[#c9a96e] text-[#060d16] rounded-xl text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              Simpan Renungan
+            </button>
+            <button onClick={() => setMode('pilih')}
+              className="w-full py-2 text-[#8a7a65] text-xs hover:text-[#c9a96e] transition-colors">
+              Kembali
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function IAMChatPage() {
@@ -166,6 +234,8 @@ export default function IAMChatPage() {
   const [usedToday, setUsedToday] = useState(0)
   const [openingIdx] = useState(() => Math.floor(Math.random() * OPENING_MSGS.length))
   const [starterQuestions] = useState(() => pickRandomQuestions(5))
+  const [selectedSoalan, setSelectedSoalan] = useState<string | null>(null)
+  const [renunganSaved, setRenunganSaved] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -208,7 +278,7 @@ export default function IAMChatPage() {
     return () => viewport?.removeEventListener('resize', handleViewportResize)
   }, [])
 
-  const sendMessage = useCallback(async (text?: string) => {
+  const sendMessage = useCallback(async (text?: string, contextOverride?: string) => {
     const content = (text ?? input).trim()
     if (!content || isTyping || !user || isLimitReached) return
 
@@ -253,6 +323,12 @@ export default function IAMChatPage() {
         .slice(-8)
         .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
+      // Soalan renungan — hantar konteks khusus kepada AI tanpa mendedahkan
+      // teks itu dalam gelembung mesej pengguna.
+      if (contextOverride) {
+        context[context.length - 1] = { role: 'user', content: contextOverride }
+      }
+
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000)
       const reply = await sendIAMMessage(context, tier, systemPrompt, controller.signal, 'iam_chat')
@@ -290,6 +366,28 @@ export default function IAMChatPage() {
       setIsTyping(false)
     }
   }, [input, isTyping, user, isLimitReached, messages, systemPrompt])
+
+  const handleTulisRenungan = useCallback(async (teks: string) => {
+    if (!selectedSoalan || !user) return
+    setSelectedSoalan(null)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('renungan_entries') as any)
+        .insert({ user_id: user.id, soalan: selectedSoalan, jawapan: teks })
+      setRenunganSaved(true)
+      setTimeout(() => setRenunganSaved(false), 3000)
+    } catch {
+      /* ignore — renungan tetap dalam fikiran user walaupun gagal simpan */
+    }
+  }, [selectedSoalan, user])
+
+  const handleBincangRenungan = useCallback(() => {
+    if (!selectedSoalan) return
+    const soalan = selectedSoalan
+    setSelectedSoalan(null)
+    const context = `[KONTEKS: Ini adalah soalan renungan diri — user PILIH untuk bincang lanjut, bukan minta saya jawab soalan ini untuk mereka]\n\nSoalan renungan: ${soalan}\n\n(User akan tulis fikiran mereka selepas ini)`
+    sendMessage(soalan, context)
+  }, [selectedSoalan, sendMessage])
 
   return (
     <div className="flex flex-col max-w-2xl mx-auto" style={{ height: '100%', maxHeight: '100dvh' }}>
@@ -340,9 +438,9 @@ export default function IAMChatPage() {
             {/* Starter questions */}
             <div className="space-y-2">
               <p className="text-[#c9a96e] text-xs text-center font-serif">✦ Soalan untuk anda fikirkan:</p>
-              <p className="text-[#8a7a65] text-[11px] text-center">Klik untuk berbual dengan I AM</p>
+              <p className="text-[#8a7a65] text-[11px] text-center">Klik untuk renung soalan ini</p>
               {starterQuestions.map((q, i) => (
-                <button key={i} onClick={() => sendMessage(q)}
+                <button key={i} onClick={() => setSelectedSoalan(q)}
                   className="w-full text-left px-4 py-3.5 bg-transparent border border-[#c9a96e4d] rounded-xl text-sm text-[#c9a96e] hover:bg-[#c9a96e1a] hover:border-[#c9a96e] transition-all leading-relaxed">
                   {q}
                 </button>
@@ -458,6 +556,23 @@ export default function IAMChatPage() {
           </div>
         )}
       </div>
+
+      {/* Toast — renungan disimpan */}
+      {renunganSaved && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-[#0d1821] border border-[#c9a96e40] rounded-xl px-4 py-2.5 text-[#c9a96e] text-xs shadow-lg">
+          ✓ Renungan anda telah disimpan
+        </div>
+      )}
+
+      {/* Modal soalan renungan */}
+      {selectedSoalan && (
+        <RenunganModal
+          soalan={selectedSoalan}
+          onTulis={handleTulisRenungan}
+          onBincang={handleBincangRenungan}
+          onClose={() => setSelectedSoalan(null)}
+        />
+      )}
     </div>
   )
 }

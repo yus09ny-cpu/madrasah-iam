@@ -115,6 +115,23 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['chat_messages']['Insert']>
       }
+      renungan_entries: {
+        Row: {
+          id: string
+          user_id: string
+          soalan: string
+          jawapan: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          soalan: string
+          jawapan: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['renungan_entries']['Insert']>
+      }
       api_usage_logs: {
         Row: {
           id: string
