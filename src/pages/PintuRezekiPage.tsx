@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Send, Loader2, Check, Lock, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
 import { sendIAMMessage } from '@/lib/iam-chat'
-import { PINTU_REZEKI_SYSTEM_PROMPT } from '@/lib/systemPrompts'
+import { PINTU_REZEKI_SYSTEM_PROMPT, FORMAT_CONTROL } from '@/lib/systemPrompts'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
 
@@ -349,6 +350,8 @@ function AuditFlow({ sifat, isPro, existing, onComplete, onClose }: AuditFlowPro
 
     const systemPrompt = `Kamu adalah panduan rohani untuk Sistem Audit Sifat Allah dalam Madrasah I AM.
 
+${FORMAT_CONTROL}
+
 Fasa: ${phaseLabel}
 Sifat diaudit: ${sifat.arabic} — ${sifat.name} (${sifat.fullName})
 Cermin: "${sifat.cermin}"
@@ -362,7 +365,7 @@ CARA MENJAWAB:
 2. Hubungkan pengalaman mereka dengan sifat ${sifat.name} sebagai pinjaman Allah
 3. Sertakan dalil: ${sifat.ayat} (${sifat.ref})
 4. Bantu mereka melihat pengalaman ini sebagai cermin mengenal Allah
-5. 3-4 perenggan sahaja — mendalam tapi ringkas
+5. Ikut had panjang dalam ARAHAN FORMAT di atas — JANGAN tulis 3-4 perenggan
 6. Jangan sebut "AI" — kamu adalah "I AM"
 7. Bahasa Melayu yang lembut`
 
@@ -537,8 +540,8 @@ CARA MENJAWAB:
           <p className="text-sm font-medium" style={{ color: sifat.color }}>Refleksi dari I AM</p>
         </div>
 
-        <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl px-4 py-4">
-          <p className="text-[#e8dcc8] text-sm leading-relaxed whitespace-pre-line">{aiResponse}</p>
+        <div className="markdown-content bg-[#0d1821] border border-[#1e2d40] rounded-2xl px-4 py-4 text-[#e8dcc8] text-sm leading-relaxed">
+          <ReactMarkdown>{aiResponse}</ReactMarkdown>
         </div>
 
         {!isPro ? (
@@ -939,9 +942,9 @@ function PintuTab() {
                 <span className="text-sm">🗝️</span>
               </div>
             )}
-            <div className={cn('max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line',
+            <div className={cn('markdown-content max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
               msg.role === 'user' ? 'bg-[#c9a96e20] border border-[#c9a96e30] text-[#e8dcc8] rounded-br-sm' : 'bg-[#0d1821] border border-[#1e2d40] text-[#e8dcc8] rounded-bl-sm')}>
-              {msg.content}
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
           </div>
         ))}

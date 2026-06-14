@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronLeft, RotateCcw, Loader2, CheckCircle2, BookOpen, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
@@ -952,7 +953,9 @@ function RecommendationScreen({ text }: { text: string }) {
           <p className="text-[#c9a96e] text-sm font-medium">Madrasah I AM — Sekolah Jiwa</p>
         </div>
         <div className="h-px bg-[#1e2d40]" />
-        <p className="text-[#e8dcc8] text-sm leading-relaxed whitespace-pre-line">{text}</p>
+        <div className="markdown-content text-[#e8dcc8] text-sm leading-relaxed">
+          <ReactMarkdown>{text}</ReactMarkdown>
+        </div>
       </div>
 
       {/* Primary CTA — Wakil Talkin */}
@@ -1118,10 +1121,8 @@ function DoneScreen({ session, onReset }: { session: SavedSession; onReset: () =
             <ChevronDown size={16} className={cn('transition-transform', showRec && 'rotate-180')} />
           </button>
           {showRec && (
-            <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-5">
-              <p className="text-[#e8dcc8] text-sm leading-relaxed whitespace-pre-line">
-                {session.recommendation_text}
-              </p>
+            <div className="markdown-content bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-5 text-[#e8dcc8] text-sm leading-relaxed">
+              <ReactMarkdown>{session.recommendation_text}</ReactMarkdown>
             </div>
           )}
         </div>

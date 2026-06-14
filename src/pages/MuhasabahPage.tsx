@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { CheckCircle2, RefreshCw, RotateCcw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -152,7 +153,9 @@ function ResultScreen({
           </div>
           <p className="text-[#c9a96e] text-sm font-medium">{t('audit_jiwa.refleksi_iam')}</p>
         </div>
-        <p className="text-[#e8dcc8] text-sm leading-relaxed whitespace-pre-line">{aiResponse}</p>
+        <div className="markdown-content text-[#e8dcc8] text-sm leading-relaxed">
+          <ReactMarkdown>{aiResponse}</ReactMarkdown>
+        </div>
       </div>
 
       {/* Penutup */}
