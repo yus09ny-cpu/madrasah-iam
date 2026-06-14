@@ -61,6 +61,18 @@ function hasCTA(content: string): boolean {
   )
 }
 
+// ─── Zikir CTA Detection ──────────────────────────────────────────────────────
+
+const ZIKIR_LINK_MARKER = '[LINK:/zikir]'
+
+function hasZikirCTA(content: string): boolean {
+  return content.includes(ZIKIR_LINK_MARKER)
+}
+
+function stripZikirCTA(content: string): string {
+  return content.split(ZIKIR_LINK_MARKER).join('')
+}
+
 // ─── CTACard Component ────────────────────────────────────────────────────────
 
 const TALQIN_MSG = `Assalamualaikum, saya dari app Madrasah I AM.
@@ -148,6 +160,25 @@ function CTACard() {
         فَاسْأَلُوا أَهْلَ الذِّكْرِ إِن كُنتُمْ لَا تَعْلَمُونَ — An-Nahl: 43
       </p>
     </div>
+  )
+}
+
+// ─── ZikirCTACard Component ────────────────────────────────────────────────────
+
+function ZikirCTACard() {
+  const navigate = useNavigate()
+
+  return (
+    <button
+      onClick={() => navigate('/zikir')}
+      className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-[#c9a96e30] bg-[#c9a96e08] hover:bg-[#c9a96e15] transition-all group mt-2"
+    >
+      <div className="flex items-center gap-2.5">
+        <span className="text-lg">📿</span>
+        <span className="text-[#e8dcc8] text-sm font-medium">Buka Tab Zikir Am</span>
+      </div>
+      <ExternalLink size={13} className="text-[#8a7a65] group-hover:text-[#c9a96e] transition-colors" />
+    </button>
   )
 }
 
@@ -465,13 +496,19 @@ export default function IAMChatPage() {
                 ? 'bg-[#c9a96e20] border border-[#c9a96e30] text-[#e8dcc8] rounded-br-sm'
                 : 'bg-[#0d1821] border border-[#1e2d40] text-[#e8dcc8] rounded-bl-sm'
             )}>
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
+              <ReactMarkdown>{msg.role === 'assistant' ? stripZikirCTA(msg.content) : msg.content}</ReactMarkdown>
             </div>
             </div>
             {/* CTACard — muncul di bawah mesej assistant yang mengandungi CTA */}
             {msg.role === 'assistant' && hasCTA(msg.content) && (
               <div className="pl-9">
                 <CTACard />
+              </div>
+            )}
+            {/* ZikirCTACard — muncul di bawah mesej assistant yang arah ke Tab Zikir */}
+            {msg.role === 'assistant' && hasZikirCTA(msg.content) && (
+              <div className="pl-9">
+                <ZikirCTACard />
               </div>
             )}
           </div>

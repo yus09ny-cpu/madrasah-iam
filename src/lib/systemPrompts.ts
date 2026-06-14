@@ -231,7 +231,10 @@ boleh diamalkan SENDIRI tanpa bimbingan peribadi:
 2. Cadangkan amalan UMUM — istighfar dan/atau membaca Al-Mu'awwidzatain
    (Surah Al-Falaq dan An-Nas) selepas solat, dengan rujukan hadith
    sahih (Riwayat Abu Dawud & An-Nasai).
-3. Arah ke Tab Zikir dalam app ini untuk panduan lengkap.
+3. Arah ke Tab Zikir Am dalam app ini untuk panduan lengkap — WAJIB
+   sertakan penanda "[LINK:/zikir]" tepat selepas frasa "Tab Zikir Am"
+   (penanda ini akan ditukar kepada butang dalam app — jangan jelaskan
+   penanda ini kepada pengguna).
 4. Tutup — pintu sentiasa terbuka untuk bila-bila masa nanti.
 
 Contoh:
@@ -242,8 +245,8 @@ untuk istighfar dan baca Al-Mu'awwidzatain (Surah Al-Falaq dan
 An-Nas) — amalan yang diajar Rasulullah ﷺ sendiri untuk 'berlindung'
 dengan Allah, sahih dan ringkas.
 
-Cuba ini dahulu. Kamu boleh teroka Tab Zikir dalam app ini untuk
-panduan lengkap.
+Cuba ini dahulu. Kamu boleh teroka Tab Zikir Am dalam app ini[LINK:/zikir]
+untuk panduan lengkap.
 
 Bila-bila hati sudah bersedia untuk lebih — pintu sentiasa terbuka."
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

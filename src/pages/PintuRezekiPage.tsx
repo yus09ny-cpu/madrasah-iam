@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Send, Loader2, Check, Lock, ArrowLeft } from 'lucide-react'
+import { Send, Loader2, Check, Lock, ArrowLeft, ExternalLink } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
 import { sendIAMMessage } from '@/lib/iam-chat'
@@ -825,6 +826,35 @@ function AuditTab({ isPro }: { isPro: boolean }) {
   )
 }
 
+// ─── Zikir CTA Detection ──────────────────────────────────────────────────────
+
+const ZIKIR_LINK_MARKER = '[LINK:/zikir]'
+
+function hasZikirCTA(content: string): boolean {
+  return content.includes(ZIKIR_LINK_MARKER)
+}
+
+function stripZikirCTA(content: string): string {
+  return content.split(ZIKIR_LINK_MARKER).join('')
+}
+
+function ZikirCTACard() {
+  const navigate = useNavigate()
+
+  return (
+    <button
+      onClick={() => navigate('/zikir')}
+      className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-[#c9a96e30] bg-[#c9a96e08] hover:bg-[#c9a96e15] transition-all group mt-2"
+    >
+      <div className="flex items-center gap-2.5">
+        <span className="text-lg">📿</span>
+        <span className="text-[#e8dcc8] text-sm font-medium">Buka Tab Zikir Am</span>
+      </div>
+      <ExternalLink size={13} className="text-[#8a7a65] group-hover:text-[#c9a96e] transition-colors" />
+    </button>
+  )
+}
+
 // ─── Pintu Tab (AI Chat) ──────────────────────────────────────────────────────
 
 function PintuTab() {
@@ -911,16 +941,24 @@ function PintuTab() {
           </div>
         )}
         {messages.map(msg => (
-          <div key={msg.id} className={cn(msg.role === 'user' ? 'flex justify-end' : 'flex gap-2.5 items-start')}>
-            {msg.role === 'assistant' && (
-              <div className="w-7 h-7 rounded-lg bg-[#c9a96e15] border border-[#c9a96e30] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-sm">🗝️</span>
+          <div key={msg.id} className={cn(msg.role === 'user' ? 'flex justify-end' : 'flex flex-col gap-1')}>
+            <div className={cn(msg.role === 'user' ? 'flex justify-end' : 'flex gap-2.5 items-start')}>
+              {msg.role === 'assistant' && (
+                <div className="w-7 h-7 rounded-lg bg-[#c9a96e15] border border-[#c9a96e30] flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-sm">🗝️</span>
+                </div>
+              )}
+              <div className={cn('markdown-content max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
+                msg.role === 'user' ? 'bg-[#c9a96e20] border border-[#c9a96e30] text-[#e8dcc8] rounded-br-sm' : 'bg-[#0d1821] border border-[#1e2d40] text-[#e8dcc8] rounded-bl-sm')}>
+                <ReactMarkdown>{msg.role === 'assistant' ? stripZikirCTA(msg.content) : msg.content}</ReactMarkdown>
+              </div>
+            </div>
+            {/* ZikirCTACard — muncul di bawah mesej assistant yang arah ke Tab Zikir */}
+            {msg.role === 'assistant' && hasZikirCTA(msg.content) && (
+              <div className="pl-9">
+                <ZikirCTACard />
               </div>
             )}
-            <div className={cn('markdown-content max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
-              msg.role === 'user' ? 'bg-[#c9a96e20] border border-[#c9a96e30] text-[#e8dcc8] rounded-br-sm' : 'bg-[#0d1821] border border-[#1e2d40] text-[#e8dcc8] rounded-bl-sm')}>
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
-            </div>
           </div>
         ))}
         {isTyping && (
