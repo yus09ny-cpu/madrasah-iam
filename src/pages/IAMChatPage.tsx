@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Send, Loader2, Lock, ExternalLink } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -459,12 +460,12 @@ export default function IAMChatPage() {
               </div>
             )}
             <div className={cn(
-              'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
+              'markdown-content max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
               msg.role === 'user'
                 ? 'bg-[#c9a96e20] border border-[#c9a96e30] text-[#e8dcc8] rounded-br-sm'
                 : 'bg-[#0d1821] border border-[#1e2d40] text-[#e8dcc8] rounded-bl-sm'
             )}>
-              {msg.content}
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
             </div>
             {/* CTACard — muncul di bawah mesej assistant yang mengandungi CTA */}

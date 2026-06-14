@@ -81,6 +81,33 @@ button, a {
   animation: breathe 4s ease-in-out infinite;
 }
 
+/* Markdown dalam mesej chat I AM */
+.markdown-content p {
+  margin: 0;
+}
+.markdown-content p + p {
+  margin-top: 0.6em;
+}
+.markdown-content strong {
+  font-weight: 600;
+  color: var(--color-gold);
+}
+.markdown-content em {
+  font-style: italic;
+}
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0.4em 0;
+  padding-left: 1.25em;
+}
+.markdown-content li + li {
+  margin-top: 0.2em;
+}
+.markdown-content a {
+  color: var(--color-gold);
+  text-decoration: underline;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
