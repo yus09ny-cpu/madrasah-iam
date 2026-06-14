@@ -10,8 +10,8 @@ function resolveModel(userTier: string): string {
 }
 
 function resolveMaxTokens(userTier: string): number {
-  if (userTier === 'free') return 500
-  return 700
+  if (userTier === 'free') return 550
+  return 750
 }
 
 function resolveSystemPrompt(userTier: string): string {
