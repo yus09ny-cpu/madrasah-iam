@@ -61,16 +61,31 @@ function hasCTA(content: string): boolean {
   )
 }
 
-// ─── Zikir CTA Detection ──────────────────────────────────────────────────────
+// ─── Link CTA Detection ─────────────────────────────────────────────────────
 
-const ZIKIR_LINK_MARKER = '[LINK:/zikir]'
+const LINK_CTA_MAP: Record<string, { route: string; label: string }> = {
+  '/zikir': { route: '/zikir', label: 'Buka Tab Zikir Am' },
+  '/zikir-am': { route: '/zikir', label: 'Buka Tab Zikir Am' },
+  '/zikir-khas': { route: '/zikir?tab=khas', label: 'Buka Tab Zikir Khas' },
+}
+const LINK_MARKER_REGEX = /\[LINK:(\/[\w-]+)\]/
 
-function hasZikirCTA(content: string): boolean {
-  return content.includes(ZIKIR_LINK_MARKER)
+function getLinkCTA(content: string): { route: string; label: string } | null {
+  const match = content.match(LINK_MARKER_REGEX)
+  return match ? LINK_CTA_MAP[match[1]] ?? null : null
 }
 
-function stripZikirCTA(content: string): string {
-  return content.split(ZIKIR_LINK_MARKER).join('')
+// ─── Choice Buttons Detection ───────────────────────────────────────────────
+
+const CHOICE_MARKER_REGEX = /\[CHOICE:(.+?)\|(.+?)\]/
+
+function getChoiceOptions(content: string): [string, string] | null {
+  const match = content.match(CHOICE_MARKER_REGEX)
+  return match ? [match[1].trim(), match[2].trim()] : null
+}
+
+function stripMarkers(content: string): string {
+  return content.replace(LINK_MARKER_REGEX, '').replace(CHOICE_MARKER_REGEX, '')
 }
 
 // ─── CTACard Component ────────────────────────────────────────────────────────
@@ -163,22 +178,43 @@ function CTACard() {
   )
 }
 
-// ─── ZikirCTACard Component ────────────────────────────────────────────────────
+// ─── LinkCTACard Component ─────────────────────────────────────────────────────
 
-function ZikirCTACard() {
+function LinkCTACard({ route, label }: { route: string; label: string }) {
   const navigate = useNavigate()
 
   return (
     <button
-      onClick={() => navigate('/zikir')}
+      onClick={() => navigate(route)}
       className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-[#c9a96e30] bg-[#c9a96e08] hover:bg-[#c9a96e15] transition-all group mt-2"
     >
       <div className="flex items-center gap-2.5">
         <span className="text-lg">📿</span>
-        <span className="text-[#e8dcc8] text-sm font-medium">Buka Tab Zikir Am</span>
+        <span className="text-[#e8dcc8] text-sm font-medium">{label}</span>
       </div>
       <ExternalLink size={13} className="text-[#8a7a65] group-hover:text-[#c9a96e] transition-colors" />
     </button>
+  )
+}
+
+// ─── ChoiceButtons Component ───────────────────────────────────────────────────
+
+function ChoiceButtons({ options, onSelect }: { options: [string, string]; onSelect: (label: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2 mt-2">
+      <button
+        onClick={() => onSelect(options[0])}
+        className="px-4 py-2 rounded-xl border border-[#c9a96e30] bg-[#c9a96e15] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-all"
+      >
+        ✦ {options[0]}
+      </button>
+      <button
+        onClick={() => onSelect(options[1])}
+        className="px-4 py-2 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm font-medium hover:border-[#c9a96e30] hover:text-[#e8dcc8] transition-all"
+      >
+        {options[1]}
+      </button>
+    </div>
   )
 }
 
@@ -482,7 +518,10 @@ export default function IAMChatPage() {
         )}
 
         {/* Message bubbles */}
-        {messages.map(msg => (
+        {messages.map((msg, idx) => {
+          const linkCTA = msg.role === 'assistant' ? getLinkCTA(msg.content) : null
+          const choiceOptions = msg.role === 'assistant' && idx === messages.length - 1 && !isTyping ? getChoiceOptions(msg.content) : null
+          return (
           <div key={msg.id} className={cn(msg.role === 'user' ? 'flex items-end gap-2 justify-end' : 'space-y-1')}>
             <div className={cn('flex items-end gap-2', msg.role === 'user' ? '' : 'justify-start')}>
             {msg.role === 'assistant' && (
@@ -496,7 +535,7 @@ export default function IAMChatPage() {
                 ? 'bg-[#c9a96e20] border border-[#c9a96e30] text-[#e8dcc8] rounded-br-sm'
                 : 'bg-[#0d1821] border border-[#1e2d40] text-[#e8dcc8] rounded-bl-sm'
             )}>
-              <ReactMarkdown>{msg.role === 'assistant' ? stripZikirCTA(msg.content) : msg.content}</ReactMarkdown>
+              <ReactMarkdown>{msg.role === 'assistant' ? stripMarkers(msg.content) : msg.content}</ReactMarkdown>
             </div>
             </div>
             {/* CTACard — muncul di bawah mesej assistant yang mengandungi CTA */}
@@ -505,14 +544,21 @@ export default function IAMChatPage() {
                 <CTACard />
               </div>
             )}
-            {/* ZikirCTACard — muncul di bawah mesej assistant yang arah ke Tab Zikir */}
-            {msg.role === 'assistant' && hasZikirCTA(msg.content) && (
+            {/* LinkCTACard — muncul di bawah mesej assistant yang arah ke tab lain */}
+            {linkCTA && (
               <div className="pl-9">
-                <ZikirCTACard />
+                <LinkCTACard route={linkCTA.route} label={linkCTA.label} />
+              </div>
+            )}
+            {/* ChoiceButtons — muncul selepas ajakan Langkah 6 (turning point) */}
+            {choiceOptions && (
+              <div className="pl-9">
+                <ChoiceButtons options={choiceOptions} onSelect={(label) => sendMessage(label)} />
               </div>
             )}
           </div>
-        ))}
+          )
+        })}
 
         {/* Typing indicator */}
         {isTyping && (
