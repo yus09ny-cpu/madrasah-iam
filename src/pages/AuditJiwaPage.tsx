@@ -297,11 +297,6 @@ async function sendAuditRecommendation(
   tier: string,
   signal?: AbortSignal
 ): Promise<string> {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-  if (!apiKey?.startsWith('sk-ant-')) {
-    throw new Error('Tiada Anthropic API key yang sah dalam .env.local')
-  }
-
   const model = tier === 'free' ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6'
   const maxTokens = tier === 'free' ? 1500 : 3000
 
@@ -310,9 +305,7 @@ async function sendAuditRecommendation(
     signal,
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
       model,
