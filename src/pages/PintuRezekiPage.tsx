@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Send, Loader2, Check, Lock, ArrowLeft } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
 import { sendIAMMessage } from '@/lib/iam-chat'
@@ -828,31 +827,8 @@ function AuditTab({ isPro }: { isPro: boolean }) {
 
 // ─── Pintu Tab (AI Chat) ──────────────────────────────────────────────────────
 
-function KunciCards({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
-  return (
-    <div className="space-y-3 pt-2 pb-2">
-      <p className="text-[#c9a96e] text-xs font-medium text-center tracking-wider">✦ 3 KUNCI PINTU REZEKI</p>
-      {[
-        { label: 'Kunci 1 — Zikir', arabic: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ', trans: '"Hati yang tenang menarik rezeki yang tenang"', ref: "Ar-Ra'd: 28" },
-        { label: 'Kunci 2 — Istighfar', arabic: 'اسْتَغْفِرُوا رَبَّكُمْ إِنَّهُ كَانَ غَفَّارًا يُرْسِلِ السَّمَاءَ عَلَيْكُم مِّدْرَارًا', trans: '"Mohon ampunlah — Dia akan turunkan rezeki"', ref: 'Nuh: 10-11' },
-        { label: 'Kunci 3 — Sedekah', arabic: 'مَّن ذَا الَّذِي يُقْرِضُ اللَّهَ قَرْضًا حَسَنًا فَيُضَاعِفَهُ لَهُ أَضْعَافًا كَثِيرَةً', trans: '"Siapa yang memberi pinjaman kepada Allah — Dia gandakan berlipat kali ganda"', ref: 'Al-Baqarah: 245' },
-      ].map(k => (
-        <div key={k.label} className="bg-[#060d16] border border-[#c9a96e20] rounded-xl p-3.5 space-y-1.5">
-          <p className="text-[#c9a96e] text-xs font-medium">{k.label}</p>
-          <p className="font-serif text-[#c9a96e] text-sm leading-loose text-right" dir="rtl">{k.arabic}</p>
-          <p className="text-[#8a7a65] text-xs italic">{k.trans} — {k.ref}</p>
-        </div>
-      ))}
-      <button onClick={() => navigate('/zikir')} className="w-full py-3 bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] rounded-xl text-sm font-medium hover:bg-[#c9a96e25] transition-colors">
-        📿 Mulakan Zikir Am
-      </button>
-    </div>
-  )
-}
-
 function PintuTab() {
   const { user } = useAuthStore()
-  const navigate = useNavigate()
   const tier = user?.tier ?? 'free'
   const [selectedSituasi, setSelectedSituasi] = useState<string | null>(null)
   const [phase, setPhase] = useState<'select' | 'chat'>('select')
@@ -861,7 +837,6 @@ function PintuTab() {
   const [isTyping, setIsTyping] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const aiHasResponded = messages.some(m => m.role === 'assistant' && m.id !== 'ai-open')
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isTyping])
 
@@ -962,7 +937,6 @@ function PintuTab() {
             </div>
           </div>
         )}
-        {aiHasResponded && !isTyping && <KunciCards navigate={navigate} />}
         <div ref={bottomRef} />
       </div>
       <div className="px-5 py-4 border-t border-[#1e2d40] flex-shrink-0">
