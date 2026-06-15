@@ -1,7 +1,8 @@
 // Vercel Edge Function — callback dari ToyyibPay selepas pembayaran.
 // ToyyibPay POST application/x-www-form-urlencoded: billcode, order_id,
-// status_id (1=berjaya, 2=pending, 3=gagal), transaction_id, dll.
-// billExternalReferenceNo dihantar semasa createBill sebagai "{user_id}__{package}".
+// status_id (1=berjaya, 2=pending, 3=gagal), amount, transaction_id, dll.
+// billExternalReferenceNo dihantar semasa createBill sebagai user_id.
+// Pakej (pro/pro_plus) ditentukan dari `amount` yang dibayar.
 
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../src/types/database'
@@ -15,21 +16,22 @@ export default async function handler(req: Request): Promise<Response> {
 
   const form = await req.formData()
   const statusId = form.get('status_id')?.toString()
-  const orderId = form.get('order_id')?.toString() ?? ''
+  const userId = form.get('order_id')?.toString() ?? ''
   const billcode = form.get('billcode')?.toString()
   const transactionId = form.get('transaction_id')?.toString()
+  const amount = parseFloat(form.get('amount')?.toString() ?? '0')
 
   if (statusId !== '1') {
     console.log(`[payment-callback] Bil ${billcode} tidak berjaya (status_id=${statusId})`)
     return new Response('OK', { status: 200 })
   }
 
-  const [userId, pkg] = orderId.split('__')
   if (!userId) {
     return new Response('order_id tidak sah', { status: 400 })
   }
 
-  const subscriptionTier = pkg === 'pro_plus' ? 'pro_plus' : 'pro'
+  // Pro = RM19.90, Pro Plus = RM29.90 — bezakan ikut amount yang dibayar
+  const subscriptionTier = amount >= 25 ? 'pro_plus' : 'pro'
   const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL

@@ -944,7 +944,7 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
           <button onClick={() => handleUpgrade('pro')} disabled={loadingPkg !== null}
             className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm text-center font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
             {loadingPkg === 'pro' && <Loader2 size={14} className="animate-spin" />}
-            Upgrade ke Pro — RM14.90/bulan
+            Upgrade ke Pro — RM19.90/bulan
           </button>
           <button onClick={() => handleUpgrade('pro_plus')} disabled={loadingPkg !== null}
             className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm text-center font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">

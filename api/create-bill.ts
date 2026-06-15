@@ -7,7 +7,7 @@ const TOYYIBPAY_BASE = 'https://toyyibpay.com'
 
 // Harga dalam SEN (RM x 100). Sesuaikan ikut pakej sebenar.
 const PACKAGES: Record<string, { amount: number; name: string; desc: string }> = {
-  pro: { amount: 1490, name: 'Madrasah I AM — Pro', desc: 'Akses Pro Madrasah I AM (30 hari)' },
+  pro: { amount: 1990, name: 'Madrasah I AM — Pro', desc: 'Akses Pro Madrasah I AM (30 hari)' },
   pro_plus: { amount: 2990, name: 'Madrasah I AM — Pro Plus', desc: 'Akses Pro Plus Madrasah I AM (30 hari)' },
 }
 
@@ -59,7 +59,7 @@ export default async function handler(req: Request): Promise<Response> {
     billAmount: String(pkgConfig.amount),
     billReturnUrl: `${origin}/payment-success`,
     billCallbackUrl: `${origin}/api/payment-callback`,
-    billExternalReferenceNo: `${user_id}__${pkg}`,
+    billExternalReferenceNo: user_id,
     billTo: nama,
     billEmail: email,
     billPhone: phone ?? '60100000000',
