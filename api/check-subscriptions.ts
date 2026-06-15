@@ -83,10 +83,18 @@ export default async function handler(req: Request): Promise<Response> {
   const todayStr = now.toISOString().slice(0, 10)
   const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
 
+  // 'email' bukan lajur dalam jadual 'profiles' — ia datang dari auth.users,
+  // jadi ambil melalui Admin API ikut id bila perlu.
+  async function getEmail(userId: string): Promise<string | null> {
+    const { data, error } = await supabase.auth.admin.getUserById(userId)
+    if (error || !data?.user?.email) return null
+    return data.user.email
+  }
+
   // 1. Reminder — subscription tamat dalam 3 hari, belum dihantar reminder hari ini.
   const { data: reminderUsers, error: reminderError } = await supabase
     .from('profiles')
-    .select('id, email, name, subscription_expiry, last_reminder_sent')
+    .select('id, name, subscription_expiry, last_reminder_sent')
     .in('subscription_tier', ['pro', 'pro_plus'])
     .gt('subscription_expiry', now.toISOString())
     .lte('subscription_expiry', in3Days.toISOString())
@@ -97,15 +105,18 @@ export default async function handler(req: Request): Promise<Response> {
   } else {
     for (const u of reminderUsers ?? []) {
       if (u.last_reminder_sent && u.last_reminder_sent.slice(0, 10) === todayStr) continue
-      if (!u.email || !u.subscription_expiry) continue
+      if (!u.subscription_expiry) continue
 
       if (resendKey) {
-        await sendEmail(
-          resendKey,
-          u.email,
-          'Subscription Pro anda akan tamat',
-          reminderEmailHtml(u.name ?? 'sahabat', formatTarikh(u.subscription_expiry))
-        )
+        const email = await getEmail(u.id)
+        if (email) {
+          await sendEmail(
+            resendKey,
+            email,
+            'Subscription Pro anda akan tamat',
+            reminderEmailHtml(u.name ?? 'sahabat', formatTarikh(u.subscription_expiry))
+          )
+        }
       }
 
       await supabase.from('profiles').update({ last_reminder_sent: now.toISOString() }).eq('id', u.id)
@@ -116,7 +127,7 @@ export default async function handler(req: Request): Promise<Response> {
   // 2. Downgrade — subscription sudah tamat.
   const { data: expiredUsers, error: expiredError } = await supabase
     .from('profiles')
-    .select('id, email, name, subscription_expiry')
+    .select('id, name, subscription_expiry')
     .in('subscription_tier', ['pro', 'pro_plus'])
     .lt('subscription_expiry', now.toISOString())
 
@@ -130,8 +141,11 @@ export default async function handler(req: Request): Promise<Response> {
         .update({ tier: 'free', subscription_tier: 'free' })
         .eq('id', u.id)
 
-      if (resendKey && u.email) {
-        await sendEmail(resendKey, u.email, 'Subscription Pro anda telah tamat', downgradeEmailHtml(u.name ?? 'sahabat'))
+      if (resendKey) {
+        const email = await getEmail(u.id)
+        if (email) {
+          await sendEmail(resendKey, email, 'Subscription Pro anda telah tamat', downgradeEmailHtml(u.name ?? 'sahabat'))
+        }
       }
 
       downgraded++
