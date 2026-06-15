@@ -125,10 +125,13 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   // 2. Downgrade — subscription sudah tamat.
+  // Akaun dengan subscription_expiry = NULL (Pro/Admin kekal, tiada tarikh tamat)
+  // TIDAK BOLEH downgrade — `.not('subscription_expiry', 'is', null)` pastikan ini.
   const { data: expiredUsers, error: expiredError } = await supabase
     .from('profiles')
     .select('id, name, subscription_expiry')
     .in('subscription_tier', ['pro', 'pro_plus'])
+    .not('subscription_expiry', 'is', null)
     .lt('subscription_expiry', now.toISOString())
 
   let downgraded = 0
@@ -136,6 +139,8 @@ export default async function handler(req: Request): Promise<Response> {
     console.error('[check-subscriptions] expired query error:', expiredError.message)
   } else {
     for (const u of expiredUsers ?? []) {
+      if (!u.subscription_expiry) continue
+
       await supabase
         .from('profiles')
         .update({ tier: 'free', subscription_tier: 'free' })

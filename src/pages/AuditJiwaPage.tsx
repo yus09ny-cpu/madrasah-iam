@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronLeft, RotateCcw, Loader2, CheckCircle2, BookOpen, ChevronDown } from 'lucide-react'
@@ -189,6 +190,21 @@ const QUESTIONS: Question[] = [
   },
 ]
 
+// ─── Free vs Pro question set ─────────────────────────────────────────────────
+// Free: 3 soalan representatif setiap pillar (12 soalan total) — snapshot 4 dimensi.
+// Pro: semua 30 soalan — audit penuh.
+
+const FREE_QUESTION_IDS = new Set<string>([
+  'raga_1', 'raga_4', 'raga_5',
+  'hati_1', 'hati_3', 'hati_5',
+  'akal_1', 'akal_3', 'akal_7',
+  'ruh_1', 'ruh_2', 'ruh_4',
+])
+
+function getActiveQuestions(isPro: boolean): Question[] {
+  return isPro ? QUESTIONS : QUESTIONS.filter(q => FREE_QUESTION_IDS.has(q.id))
+}
+
 // ─── Religious background display labels ─────────────────────────────────────
 
 const BG_LABELS: Record<string, Record<AppLanguage, string>> = {
@@ -202,9 +218,9 @@ const BG_LABELS: Record<string, Record<AppLanguage, string>> = {
 
 // ─── Score helpers ────────────────────────────────────────────────────────────
 
-function calculateScores(responses: Responses): PillarScores {
+function calculateScores(responses: Responses, isPro: boolean): PillarScores {
   const calcPillar = (pillar: PillarKey) => {
-    const qs = QUESTIONS.filter(q => q.pillar === pillar)
+    const qs = getActiveQuestions(isPro).filter(q => q.pillar === pillar)
     const answered = qs.filter(q => responses[q.id] != null)
     if (answered.length === 0) return 0
     const sum = answered.reduce((acc, q) => acc + responses[q.id], 0)
@@ -436,6 +452,7 @@ function ScoreBar({ pillar, score }: { pillar: PillarKey; score: number }) {
 
 function OpeningScreen({
   user,
+  isPro,
   onStart,
   onLearnMore,
 }: {
@@ -447,6 +464,7 @@ function OpeningScreen({
     state?: string | null
     religious_background?: string | null
   }
+  isPro: boolean
   onStart: () => void
   onLearnMore: () => void
 }) {
@@ -548,7 +566,9 @@ function OpeningScreen({
           })}
         </div>
         <p className="text-[#8a7a65] text-xs text-center">
-          {t('ajv2.masa_diperlukan', '~15–20 minit · 30 soalan · Preskripsi peribadi')}
+          {isPro
+            ? t('ajv2.masa_diperlukan_pro', '~15–20 minit · 30 soalan · Preskripsi peribadi mendalam')
+            : t('ajv2.masa_diperlukan_free', '~5–8 minit · 12 soalan · Snapshot 4 dimensi')}
         </p>
       </div>
 
@@ -689,10 +709,11 @@ function AssessmentScreen({
   const lang = (localStorage.getItem('madrasah_language') ?? 'bm') as AppLanguage
   const pillar = PILLARS[pillarIndex]
   const cfg = PILLAR_CONFIG[pillar]
-  const pillarQs = QUESTIONS.filter(q => q.pillar === pillar)
+  const activeQuestions = getActiveQuestions(isPro)
+  const pillarQs = activeQuestions.filter(q => q.pillar === pillar)
   const allAnswered = pillarQs.every(q => responses[q.id] != null)
-  const totalAnswered = QUESTIONS.filter(q => responses[q.id] != null).length
-  const totalPct = Math.round((totalAnswered / QUESTIONS.length) * 100)
+  const totalAnswered = activeQuestions.filter(q => responses[q.id] != null).length
+  const totalPct = Math.round((totalAnswered / activeQuestions.length) * 100)
 
   return (
     <div className="space-y-5 pb-8">
@@ -701,7 +722,7 @@ function AssessmentScreen({
         <div className="flex justify-between items-center">
           <span className="text-xs text-[#8a7a65]">{t('ajv2.penilaian', 'Penilaian')}</span>
           <span className="text-xs font-medium text-[#c9a96e] tabular-nums">
-            {totalAnswered}/{QUESTIONS.length}
+            {totalAnswered}/{activeQuestions.length}
           </span>
         </div>
         <div className="h-1.5 bg-[#1e2d40] rounded-full overflow-hidden">
@@ -716,7 +737,7 @@ function AssessmentScreen({
       <div className="flex gap-1.5">
         {PILLARS.map((p, i) => {
           const pCfg = PILLAR_CONFIG[p]
-          const pDone = QUESTIONS.filter(q => q.pillar === p).every(q => responses[q.id] != null)
+          const pDone = activeQuestions.filter(q => q.pillar === p).every(q => responses[q.id] != null)
           const isCurrent = i === pillarIndex
           return (
             <div
@@ -920,7 +941,7 @@ function ResultsScreen({
 
 // ─── Phase: Recommendation ────────────────────────────────────────────────────
 
-function RecommendationScreen({ text }: { text: string }) {
+function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro: boolean; onUpgrade: () => void }) {
   const { t } = useTranslation()
   const [showWho, setShowWho] = useState(false)
 
@@ -930,7 +951,11 @@ function RecommendationScreen({ text }: { text: string }) {
       <div>
         <p className="font-serif text-4xl text-[#c9a96e] leading-none" dir="rtl">تَشْخِيص</p>
         <h2 className="font-serif text-xl text-[#e8dcc8] mt-1">{t('ajv2.diagnosis_title', 'Diagnosis Jiwa Anda')}</h2>
-        <p className="text-[#8a7a65] text-sm">{t('ajv2.diagnosis_sub', 'Berdasarkan audit 30 soalan anda')}</p>
+        <p className="text-[#8a7a65] text-sm">
+          {isPro
+            ? t('ajv2.diagnosis_sub_pro', 'Berdasarkan audit penuh 30 soalan anda')
+            : t('ajv2.diagnosis_sub_free', 'Berdasarkan snapshot 12 soalan anda')}
+        </p>
       </div>
 
       {/* AI Diagnosis content */}
@@ -946,6 +971,25 @@ function RecommendationScreen({ text }: { text: string }) {
           <ReactMarkdown>{text}</ReactMarkdown>
         </div>
       </div>
+
+      {/* Free: upsell to full 30-question Pro audit */}
+      {!isPro && (
+        <div className="bg-[#0d1821] border border-[#c9a96e30] rounded-2xl p-5 space-y-3">
+          <p className="text-xs font-medium text-[#c9a96e] uppercase tracking-wider">
+            {t('ajv2.upsell_title', 'Audit Lebih Mendalam?')}
+          </p>
+          <p className="text-[#8a7a65] text-sm leading-relaxed">
+            {t('ajv2.upsell_desc', 'Ini snapshot ringkas 4 dimensi anda. Untuk audit penuh — 30 soalan, analisis mendalam setiap dimensi — naik taraf ke Pro.')}
+          </p>
+          <button
+            onClick={onUpgrade}
+            className="w-full py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #c9a96e, #a07840)', color: '#060d16' }}
+          >
+            {t('ajv2.upsell_cta', 'Naik Taraf ke Pro')}
+          </button>
+        </div>
+      )}
 
       {/* Primary CTA — Wakil Talkin */}
       <div className="bg-gradient-to-br from-[#c9a96e18] to-[#a0784010] border border-[#c9a96e40] rounded-2xl p-5 space-y-4">
@@ -1131,6 +1175,7 @@ function DoneScreen({ session, onReset }: { session: SavedSession; onReset: () =
 
 export default function AuditJiwaPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { user } = useAuthStore()
   const { data: todayEntry } = useTodayAuditJiwa()
   const { mutate: saveAuditToSupabase } = useSaveAuditJiwa()
@@ -1206,7 +1251,7 @@ export default function AuditJiwaPage() {
       setPillarIndex(p => p + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
-      const s = calculateScores(responses)
+      const s = calculateScores(responses, isPro)
       setScores(s)
       pendingScores.current = s
       setPhase('results')
@@ -1237,6 +1282,7 @@ export default function AuditJiwaPage() {
       '',
       `Pillar paling lemah: ${weakest.toUpperCase()} (${s[weakest].toFixed(1)}/10)`,
       `user_tier: ${userTier}`,
+      `Audit: ${isPro ? 'penuh (30 soalan)' : 'snapshot ringkas (12 soalan)'}`,
       `Bahasa respons: ${lang}`,
       '',
       'Sila jana preskripsi rohani yang peribadi untuk saya.',
@@ -1337,6 +1383,7 @@ export default function AuditJiwaPage() {
       {phase === 'opening' && user && (
         <OpeningScreen
           user={user}
+          isPro={isPro}
           onStart={() => { setPhase('assessment'); window.scrollTo({ top: 0 }) }}
           onLearnMore={() => { setPhase('foundation'); window.scrollTo({ top: 0 }) }}
         />
@@ -1411,7 +1458,7 @@ export default function AuditJiwaPage() {
               )}
             </div>
           ) : recommendation ? (
-            <RecommendationScreen text={recommendation} />
+            <RecommendationScreen text={recommendation} isPro={isPro} onUpgrade={() => navigate('/rezeki')} />
           ) : (
             /* API error or empty state — show error + retry */
             <div className="flex flex-col items-center py-16 gap-4">
