@@ -28,9 +28,25 @@ export async function signIn(email: string, password: string) {
 
 export async function signUp(email: string, password: string, name: string) {
   const { error } = await withTimeout(
-    supabase.auth.signUp({ email, password, options: { data: { name } } }),
+    supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo: `${window.location.origin}/login`,
+      },
+    }),
     10000,
     'signUp',
+  )
+  if (error) throw error
+}
+
+export async function resendConfirmation(email: string) {
+  const { error } = await withTimeout(
+    supabase.auth.resend({ type: 'signup', email }),
+    10000,
+    'resendConfirmation',
   )
   if (error) throw error
 }
@@ -210,5 +226,5 @@ export function useAuth() {
     }
   }
 
-  return { user, isAuthenticated, loading, signIn, signUp, signInWithGoogle, signOut }
+  return { user, isAuthenticated, loading, signIn, signUp, signInWithGoogle, signOut, resendConfirmation }
 }

@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react'
-import { signIn, signUp, signInWithGoogle } from '@/hooks/useAuth'
+import { signIn, signUp, signInWithGoogle, resendConfirmation } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 
@@ -33,6 +33,8 @@ export default function LoginPage() {
   const [success, setSuccess] = useState('')
   const [intention, setIntention] = useState('')
   const [welcomeMode, setWelcomeMode] = useState(false)
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState('')
+  const [resending, setResending] = useState(false)
 
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) })
   const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) })
@@ -41,11 +43,32 @@ export default function LoginPage() {
 
   async function handleLogin(data: LoginForm) {
     setError('')
+    setSuccess('')
+    setUnconfirmedEmail('')
     try {
       await signIn(data.email, data.password)
       navigate('/dashboard')
     } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Ada gangguan, cuba semula.'
+      if (message.includes('Email not confirmed')) {
+        setUnconfirmedEmail(data.email)
+      } else {
+        setError(message)
+      }
+    }
+  }
+
+  async function handleResend() {
+    setError('')
+    setSuccess('')
+    setResending(true)
+    try {
+      await resendConfirmation(unconfirmedEmail)
+      setSuccess('Emel pengesahan telah dihantar semula.')
+    } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Ada gangguan, cuba semula.')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -64,6 +87,7 @@ export default function LoginPage() {
     setMode(newMode)
     setError('')
     setSuccess('')
+    setUnconfirmedEmail('')
     loginForm.reset()
     registerForm.reset()
   }
@@ -152,6 +176,25 @@ export default function LoginPage() {
           {error && (
             <div className="mb-5 px-4 py-3 bg-red-900/20 border border-red-900/40 rounded-xl text-red-400 text-sm">
               {error}
+            </div>
+          )}
+          {unconfirmedEmail && (
+            <div className="mb-5 px-4 py-3 bg-[#c9a96e15] border border-[#c9a96e40] rounded-xl text-sm space-y-2">
+              <p className="text-[#c9a96e] font-medium">Akaun belum disahkan</p>
+              <p className="text-[#e8dcc8] leading-relaxed">
+                Kami telah menghantar emel pengesahan ke <span className="font-medium">{unconfirmedEmail}</span>.
+                Sila semak peti masuk (dan folder spam/junk) anda, kemudian klik pautan dalam emel
+                tersebut untuk log masuk.
+              </p>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className="text-xs font-medium text-[#c9a96e] hover:underline disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                {resending && <Loader2 size={12} className="animate-spin" />}
+                Tak terima emel? Hantar semula
+              </button>
             </div>
           )}
           {success && (
