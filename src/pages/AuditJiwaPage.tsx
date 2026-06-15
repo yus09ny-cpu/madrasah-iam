@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronRight, ChevronLeft, RotateCcw, Loader2, CheckCircle2, BookOpen, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useTodayAuditJiwa, useSaveAuditJiwa } from '@/hooks/useAuditJiwa'
+import { callAnthropic } from '@/lib/anthropic-fetch'
 import AuditMotivasiCard from '@/components/AuditMotivasiCard'
 import { cn } from '@/lib/utils'
 import type { AppLanguage } from '@/types'
@@ -301,30 +302,18 @@ async function sendAuditRecommendation(
   const model = tier === 'free' ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6'
   const maxTokens = tier === 'free' ? 1500 : 3000
 
-  const res = await fetch('/api/anthropic-chat', {
-    method: 'POST',
-    signal,
-    headers: {
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
+  const data = await callAnthropic(
+    {
       model,
       max_tokens: maxTokens,
       system: [
         { type: 'text', text: AUDIT_JIWA_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
       ],
       messages: [{ role: 'user', content: userMessage }],
-    }),
-  })
+    },
+    signal,
+  )
 
-  if (!res.ok) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const err: any = await res.json().catch(() => ({}))
-    throw new Error(err.error?.message ?? `HTTP ${res.status}`)
-  }
-
-  const data = await res.json()
   const text = data.content?.[0]?.text
   if (!text) throw new Error('Empty response from AI')
 

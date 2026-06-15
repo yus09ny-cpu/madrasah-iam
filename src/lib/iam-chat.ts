@@ -4,6 +4,7 @@
 
 import { FREE_SYSTEM_PROMPT, PRO_SYSTEM_PROMPT } from './systemPrompts'
 import { logApiUsage } from './api-logger'
+import { callAnthropic } from './anthropic-fetch'
 
 function resolveModel(userTier: string): string {
   return userTier === 'free' ? 'claude-haiku-4-5-20251001' : 'claude-sonnet-4-6'
@@ -28,42 +29,32 @@ export async function sendIAMMessage(
    const model = resolveModel(userTier)
   console.log('[IAM] Hantar permintaan... model:', model, 'tier:', userTier)
 
-  const res = await fetch('/api/anthropic-chat', {
-    method: 'POST',
-    signal,
-    headers: {
-      'Content-Type': 'application/json',
-      
-      'anthropic-version': '2023-06-01',
-      
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: resolveMaxTokens(userTier),
-      // System prompt boleh sehingga ~16K token (Pro) — tanda ia sebagai
-      // cache_control supaya Anthropic guna prompt caching: permintaan
-      // berulang dalam tempoh cache (~5 minit) dikenakan kos token-baca-cache
-      // yang jauh lebih murah berbanding token input penuh.
-      system: [
-        {
-          type: 'text',
-          text: systemPrompt ?? resolveSystemPrompt(userTier),
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages,
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const msg = (err as any).error?.message ?? `HTTP ${res.status}`
-    console.error('[IAM] API error:', res.status, msg)
+  let data: Awaited<ReturnType<typeof callAnthropic>>
+  try {
+    data = await callAnthropic(
+      {
+        model,
+        max_tokens: resolveMaxTokens(userTier),
+        // System prompt boleh sehingga ~16K token (Pro) — tanda ia sebagai
+        // cache_control supaya Anthropic guna prompt caching: permintaan
+        // berulang dalam tempoh cache (~5 minit) dikenakan kos token-baca-cache
+        // yang jauh lebih murah berbanding token input penuh.
+        system: [
+          {
+            type: 'text',
+            text: systemPrompt ?? resolveSystemPrompt(userTier),
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        messages,
+      },
+      signal,
+    )
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[IAM] API error:', msg)
     throw new Error(`Anthropic: ${msg}`)
   }
-
-  const data = await res.json()
   const text = data.content?.[0]?.text
 
   const usage = data.usage ?? {}
