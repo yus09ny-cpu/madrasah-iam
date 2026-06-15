@@ -12,7 +12,7 @@ import { format, subDays } from 'date-fns'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SubTab = 'pintu' | 'audit' | 'amalan' | 'rekod'
-type ChatMsg = { id: string; role: 'user' | 'assistant'; content: string }
+type ChatMsg = { id: string; role: 'user' | 'assistant'; content: string; isChoice?: boolean }
 type AuditPhase = 'sedar' | 'jaga' | 'kembalikan'
 type AuditScreen = 'opening' | 'question' | 'ai-loading' | 'ai-response' | 'infak' | 'complete'
 
@@ -955,17 +955,17 @@ function PintuTab() {
     setPhase('chat')
   }
 
-  const realMsgCount = messages.filter(m => m.role === 'user').length
+  const realMsgCount = messages.filter(m => m.role === 'user' && !m.isChoice).length
   const isMsgLimitReached = !isPro && FREE_UNLOCKED_CATEGORIES.includes(selectedSituasi ?? '') && realMsgCount >= MAX_FREE_MESSAGES
 
-  const sendMessage = useCallback(async (text?: string) => {
+  const sendMessage = useCallback(async (text?: string, isChoice?: boolean) => {
     const content = (text ?? input).trim()
     if (!content || isTyping || isMsgLimitReached) return
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
     const situasiLabel = SITUASI.find(s => s.id === selectedSituasi)?.label ?? ''
     const isFirst = messages.filter(m => m.role === 'user').length === 0
-    const userMsg: ChatMsg = { id: `u-${Date.now()}`, role: 'user', content }
+    const userMsg: ChatMsg = { id: `u-${Date.now()}`, role: 'user', content, isChoice }
     setMessages(prev => [...prev, userMsg])
     setIsTyping(true)
     try {
@@ -1051,7 +1051,7 @@ function PintuTab() {
             {/* ChoiceButtons — muncul selepas ajakan Langkah 6 (turning point) */}
             {choiceOptions && (
               <div className="pl-9">
-                <ChoiceButtons options={choiceOptions} onSelect={(label) => sendMessage(label)} />
+                <ChoiceButtons options={choiceOptions} onSelect={(label) => sendMessage(label, true)} />
               </div>
             )}
           </div>
