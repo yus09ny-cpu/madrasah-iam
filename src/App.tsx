@@ -17,6 +17,7 @@ import AdminUsagePage from '@/pages/AdminUsagePage'
 import AuditJiwaPage from '@/pages/AuditJiwaPage'
 import LoginPage from '@/pages/LoginPage'
 import OnboardingPage from '@/pages/OnboardingPage'
+import PaymentSuccessPage from '@/pages/PaymentSuccessPage'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthStore } from '@/store/authStore'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
@@ -96,6 +97,7 @@ function AppRoutes() {
         <Route path="hablum" element={<HablumPage />} />
         <Route path="amalan" element={<AmalanPage />} />
         <Route path="rezeki" element={<PintuRezekiPage />} />
+        <Route path="payment-success" element={<PaymentSuccessPage />} />
         <Route path="settings/notifications" element={<NotificationSettingsPage />} />
         <Route path="settings/profile" element={<ProfileSettingsPage />} />
         <Route path="admin" element={<AdminPage />} />

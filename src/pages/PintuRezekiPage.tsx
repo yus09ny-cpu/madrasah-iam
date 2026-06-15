@@ -901,7 +901,34 @@ Saya ingin maklumat lanjut tentang upgrade ke Pro untuk akses penuh Tab Pintu Re
 Terima kasih.`
 
 function UpgradeModal({ onClose }: { onClose: () => void }) {
-  const WA_LINK = `https://wa.me/60182119135?text=${encodeURIComponent(UPGRADE_MSG)}`
+  const { user } = useAuthStore()
+  const [loadingPkg, setLoadingPkg] = useState<'pro' | 'pro_plus' | null>(null)
+  const [error, setError] = useState('')
+
+  async function handleUpgrade(pkg: 'pro' | 'pro_plus') {
+    if (!user) return
+    setError('')
+    setLoadingPkg(pkg)
+    try {
+      const res = await fetch('/api/create-bill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          email: user.email,
+          nama: user.name ?? user.email,
+          package: pkg,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data?.error?.message ?? 'Gagal mencipta bil')
+      window.location.href = data.url
+    } catch {
+      setError('Gagal memulakan pembayaran. Sila cuba lagi.')
+      setLoadingPkg(null)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5" onClick={onClose}>
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
@@ -912,15 +939,22 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
         <p className="text-[#e8dcc8] text-sm leading-relaxed">
           Kategori ini khusus untuk pengguna Pro. Upgrade untuk akses Pekerjaan, Keluarga, Hutang, dan Lain-lain.
         </p>
-        <div className="flex gap-2">
-          <button onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors">
+        {error && <p className="text-red-400 text-xs">{error}</p>}
+        <div className="space-y-2">
+          <button onClick={() => handleUpgrade('pro')} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm text-center font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            {loadingPkg === 'pro' && <Loader2 size={14} className="animate-spin" />}
+            Upgrade ke Pro — RM14.90/bulan
+          </button>
+          <button onClick={() => handleUpgrade('pro_plus')} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm text-center font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            {loadingPkg === 'pro_plus' && <Loader2 size={14} className="animate-spin" />}
+            Upgrade ke Pro Plus — RM29.90/bulan
+          </button>
+          <button onClick={onClose} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors disabled:opacity-60">
             Tutup
           </button>
-          <a href={WA_LINK} target="_blank" rel="noopener noreferrer"
-            className="flex-1 py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm text-center font-medium hover:bg-[#c9a96e25] transition-colors">
-            Upgrade ke Pro
-          </a>
         </div>
       </div>
     </div>

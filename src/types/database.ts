@@ -16,6 +16,8 @@ export interface Database {
           religious_background: string | null
           language: 'bm' | 'en' | null
           tier: 'free' | 'pro' | 'family'
+          subscription_tier: 'pro' | 'pro_plus' | null
+          subscription_expiry: string | null
           onboarded: boolean
           created_at: string
           updated_at: string
@@ -31,6 +33,8 @@ export interface Database {
           religious_background?: string | null
           language?: 'bm' | 'en' | null
           tier?: 'free' | 'pro' | 'family'
+          subscription_tier?: 'pro' | 'pro_plus' | null
+          subscription_expiry?: string | null
           onboarded?: boolean
           created_at?: string
           updated_at?: string
