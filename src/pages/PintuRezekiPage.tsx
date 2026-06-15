@@ -955,7 +955,7 @@ function PintuTab() {
     setPhase('chat')
   }
 
-  const realMsgCount = messages.filter(m => m.id !== 'ai-open').length
+  const realMsgCount = messages.filter(m => m.role === 'user').length
   const isMsgLimitReached = !isPro && FREE_UNLOCKED_CATEGORIES.includes(selectedSituasi ?? '') && realMsgCount >= MAX_FREE_MESSAGES
 
   const sendMessage = useCallback(async (text?: string) => {
