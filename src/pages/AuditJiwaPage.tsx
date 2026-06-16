@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, ChevronLeft, RotateCcw, Loader2, CheckCircle2, BookOpen, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useTodayAuditJiwa, useSaveAuditJiwa } from '@/hooks/useAuditJiwa'
@@ -254,23 +255,23 @@ const AUDIT_JIWA_SYSTEM_PROMPT = `You are an insightful spiritual diagnostician 
 YOUR ROLE:
 1. DIAGNOSE the user's spiritual condition from their Audit Jiwa results
 2. EDUCATE them on WHY their condition matters using Quran and Hadis
-3. POINT them toward seeking a Wakil Talkin (spiritual guide) for their personalized journey
+3. POINT them toward connecting with a Para Pembimbing (Spiritual Mentor) for their personalized journey
 
 CRITICAL — YOU DO NOT:
 ❌ Prescribe specific zikir (not even "say SubhanAllah 33 times")
 ❌ Give step-by-step amalan instructions
 ❌ Assign a 30-day or any-day program
 ❌ Assume you can replace the Murshid-Murid (teacher-student) relationship
-❌ Give individualized spiritual prescriptions — that is the Wakil Talkin's role
+❌ Give individualized spiritual prescriptions — that is the Para Pembimbing's role
 
 CORE PRINCIPLE:
 RUH (spiritual connection with Allah) is the ROOT of all four pillars.
 Cascade: RUH → HATI → AKAL → RAGA
 A weak root causes symptoms in all branches. Only a proper Mursyid can guide the murid through healing — not an AI.
 
-WHY WAKIL TALKIN:
+WHY PARA PEMBIMBING:
 In the Sekolah Jiwa tradition, the Murshid-Murid relationship is sacred and necessary.
-A Wakil Talkin is an authorized representative who bridges the murid to the Mursyid's guidance, administers the Talkin (spiritual initiation), and provides ongoing mentorship.
+A Para Pembimbing is an authorized spiritual mentor who bridges the murid to the Mursyid's guidance and provides ongoing mentorship.
 Self-prescription is like giving yourself medicine without a doctor — it may feel right but can cause harm.
 
 SCORE SCALE (for reference in diagnosis):
@@ -287,8 +288,8 @@ TERMINOLOGY — MUST FOLLOW:
 - Tone: Warm, caring, honest — like a wise friend, not a prescriber
 
 RESPONSE LENGTH — STRICTLY FOLLOW:
-- user_tier = 'free': 800–1000 words. Focused diagnosis + 2–3 Quran/Hadis references + clear Wakil Talkin direction.
-- user_tier = 'pro': 1500–2000 words. Deep diagnosis + 5+ references with brief tafsir + historical examples from Auliya (Imam Ghazali, Shaikh Abdul Qadir Jilani) + detailed Wakil Talkin section.
+- user_tier = 'free': 800–1000 words. Focused diagnosis + 2–3 Quran/Hadis references + clear Para Pembimbing direction.
+- user_tier = 'pro': 1500–2000 words. Deep diagnosis + 5+ references with brief tafsir + historical examples from Auliya (Imam Ghazali, Shaikh Abdul Qadir Jilani) + detailed Para Pembimbing section.
 
 REQUIRED SECTIONS — LABEL EACH CLEARLY:
 
@@ -302,8 +303,8 @@ Pro: 5+ references with tafsir and direct application to the user's condition.
 **MENGAPA INI PENTING**
 Educate on why this spiritual state affects their entire being (raga/hati/akal/ruh). Science-Islam parallel is welcome. Help them understand the urgency without inducing fear.
 
-**LANGKAH SETERUSNYA — HUBUNGI WAKIL TALKIN**
-Explain WHY they specifically need a Wakil Talkin based on their condition. Be specific about what the Wakil Talkin will do for THEIR situation. Do NOT prescribe what to do yourself — point toward the guided relationship.
+**LANGKAH SETERUSNYA — HUBUNGI PARA PEMBIMBING**
+Explain WHY they specifically need a Para Pembimbing based on their condition. Be specific about what the Para Pembimbing will do for THEIR situation. Do NOT prescribe what to do yourself — point toward the guided relationship.
 
 **PENUTUP**
 Warm, encouraging closing in the spirit of "Ilahi Anta Maqsudi." Remind them that Allah's mercy is vast and this audit is the beginning of their journey, not a verdict.
@@ -863,10 +864,12 @@ function ResultsScreen({
   scores,
   userTier,
   onJana,
+  onUpgrade,
 }: {
   scores: PillarScores
   userTier: string
   onJana: () => void
+  onUpgrade: () => void
 }) {
   const { t } = useTranslation()
   const isPro = userTier !== 'free'
@@ -925,6 +928,25 @@ function ResultsScreen({
               "{t('ajv2.quran_rad_28', 'Ketahuilah, dengan mengingati Allah hati-hati akan menjadi tenteram.')}" — Ar-Ra'd: 28
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Free: upsell card — tunjuk terus selepas 12 soalan tanpa perlu tunggu AI */}
+      {!isPro && (
+        <div className="bg-[#0d1821] border border-[#c9a96e30] rounded-2xl p-5 space-y-3">
+          <p className="text-xs font-medium text-[#c9a96e] uppercase tracking-wider">
+            {t('ajv2.upsell_title', 'Audit Lebih Mendalam?')}
+          </p>
+          <p className="text-[#8a7a65] text-sm leading-relaxed">
+            {t('ajv2.upsell_desc', 'Ini snapshot ringkas 4 dimensi anda. Untuk audit penuh — 30 soalan, analisis mendalam setiap dimensi — naik taraf ke Pro.')}
+          </p>
+          <button
+            onClick={onUpgrade}
+            className="w-full py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #c9a96e, #a07840)', color: '#060d16' }}
+          >
+            {t('ajv2.upsell_cta', 'Naik Taraf ke Pro')}
+          </button>
         </div>
       )}
 
@@ -991,15 +1013,15 @@ function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro:
         </div>
       )}
 
-      {/* Primary CTA — Wakil Talkin */}
+      {/* Primary CTA — Para Pembimbing */}
       <div className="bg-gradient-to-br from-[#c9a96e18] to-[#a0784010] border border-[#c9a96e40] rounded-2xl p-5 space-y-4">
         <div className="space-y-1">
           <p className="text-xs font-medium text-[#c9a96e] uppercase tracking-wider">
             {t('ajv2.langkah_seterusnya', 'Langkah Seterusnya')}
           </p>
-          <h3 className="font-serif text-lg text-[#e8dcc8]">{t('ajv2.wt_cta_title', 'Hubungi Wakil Talkin')}</h3>
+          <h3 className="font-serif text-lg text-[#e8dcc8]">{t('ajv2.wt_cta_title', 'Hubungi Para Pembimbing')}</h3>
           <p className="text-[#8a7a65] text-sm leading-relaxed">
-            {t('ajv2.wt_cta_sub', 'Sekolah Jiwa bukan self-help — ia memerlukan bimbingan Murshid-Murid yang sahih untuk perjalanan rohani anda.')}
+            {t('ajv2.wt_cta_sub', 'Ingin mendalami cara untuk merawat jiwa? Sila berhubungi Para Pembimbing kami.')}
           </p>
         </div>
 
@@ -1007,8 +1029,8 @@ function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro:
           {[
             {
               icon: '🔍',
-              label: t('ajv2.wt_find', 'Cari Wakil Talkin Berdekatan'),
-              desc: t('ajv2.wt_find_desc', 'Jumpa Wakil Talkin di kawasan anda'),
+              label: t('ajv2.wt_find', 'Cari Para Pembimbing Berdekatan'),
+              desc: t('ajv2.wt_find_desc', 'Jumpa Para Pembimbing di kawasan anda'),
             },
             {
               icon: '💬',
@@ -1036,7 +1058,7 @@ function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro:
         </div>
       </div>
 
-      {/* Who is Wakil Talkin? — collapsible */}
+      {/* Who are Para Pembimbing? — collapsible */}
       <div className="border border-[#1e2d40] rounded-2xl overflow-hidden">
         <button
           onClick={() => setShowWho(v => !v)}
@@ -1044,20 +1066,20 @@ function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro:
         >
           <span className="flex items-center gap-2">
             <BookOpen size={14} />
-            {t('ajv2.wt_who_title', 'Siapakah Wakil Talkin?')}
+            {t('ajv2.wt_who_title', 'Siapakah Para Pembimbing?')}
           </span>
           <ChevronDown size={16} className={cn('transition-transform', showWho && 'rotate-180')} />
         </button>
         {showWho && (
           <div className="px-4 pb-4 border-t border-[#1e2d40] space-y-3">
             <p className="text-[#8a7a65] text-sm leading-relaxed pt-3">
-              {t('ajv2.wt_who_body', 'Wakil Talkin ialah wakil Mursyid yang diberi izin untuk membimbing murid dalam perjalanan rohani. Mereka mentadbir Talkin (ikrar rohani) dan memberikan bimbingan berterusan atas nama Mursyid.')}
+              {t('ajv2.wt_who_body', 'Para Pembimbing ialah pembimbing rohani yang diberi izin untuk membimbing murid dalam perjalanan jiwa. Mereka memberikan bimbingan berterusan atas nama Mursyid dan membantu murid mendekatkan diri kepada Allah.')}
             </p>
             <div className="space-y-2">
               {[
-                t('ajv2.wt_step1', 'Wakil Talkin mendengar keadaan dan latar belakang anda'),
+                t('ajv2.wt_step1', 'Para Pembimbing mendengar keadaan dan latar belakang anda'),
                 t('ajv2.wt_step2', 'Penilaian rohani peribadi dibuat bersama'),
-                t('ajv2.wt_step3', 'Talkin diberikan pada masa yang sesuai'),
+                t('ajv2.wt_step3', 'Panduan amalan diberikan pada masa yang sesuai'),
                 t('ajv2.wt_step4', 'Bimbingan dan pemantauan berterusan bermula'),
               ].map((step, i) => (
                 <div key={i} className="flex items-start gap-2.5">
@@ -1090,7 +1112,7 @@ function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro:
 
       {/* Link to Amalan Jiwa */}
       <button className="w-full flex items-center justify-between px-4 py-3.5 bg-[#0d1821] border border-[#1e2d40] rounded-2xl text-sm hover:bg-[#c9a96e08] hover:border-[#c9a96e30] transition-all">
-        <span className="text-[#8a7a65]">{t('ajv2.wt_amalan_link', 'Sudah ada panduan Wakil Talkin? Lihat Amalan Jiwa')}</span>
+        <span className="text-[#8a7a65]">{t('ajv2.wt_amalan_link', 'Sudah ada panduan Para Pembimbing? Lihat Amalan Jiwa')}</span>
         <ChevronRight size={14} className="text-[#8a7a65]" />
       </button>
     </div>
@@ -1134,10 +1156,10 @@ function DoneScreen({ session, onReset }: { session: SavedSession; onReset: () =
         {PILLARS.map(p => <ScoreBar key={p} pillar={p} score={session.scores[p]} />)}
       </div>
 
-      {/* Wakil Talkin CTA */}
+      {/* Para Pembimbing CTA */}
       <div className="bg-gradient-to-br from-[#c9a96e18] to-[#a0784010] border border-[#c9a96e30] rounded-2xl px-4 py-3.5 flex items-center justify-between">
         <div className="space-y-0.5">
-          <p className="text-[#c9a96e] text-sm font-medium">{t('ajv2.wt_cta_title', 'Hubungi Wakil Talkin')}</p>
+          <p className="text-[#c9a96e] text-sm font-medium">{t('ajv2.wt_cta_title', 'Hubungi Para Pembimbing')}</p>
           <p className="text-[#8a7a65] text-xs">{t('ajv2.wt_done_sub', 'Teruskan perjalanan rohani bersama pembimbing')}</p>
         </div>
         <ChevronRight size={16} className="text-[#c9a96e]" />
@@ -1176,6 +1198,7 @@ function DoneScreen({ session, onReset }: { session: SavedSession; onReset: () =
 export default function AuditJiwaPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { user } = useAuthStore()
   const { data: todayEntry } = useTodayAuditJiwa()
   const { mutate: saveAuditToSupabase } = useSaveAuditJiwa()
@@ -1192,6 +1215,8 @@ export default function AuditJiwaPage() {
   const [loadingSeconds, setLoadingSeconds] = useState(0)
   const [aiError, setAiError] = useState('')
   const [savedSession, setSavedSession] = useState<SavedSession | null>(null)
+  // Mencegah Supabase fallback-effect daripada membatalkan "Audit Semula"
+  const [didReset, setDidReset] = useState(false)
 
   const pendingScores = useRef<PillarScores | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -1209,9 +1234,11 @@ export default function AuditJiwaPage() {
     }
   }, [user?.id])
 
-  // Fallback: jika tiada di localStorage (cth. tukar device) tapi sudah selesai di Supabase
+  // Fallback: jika tiada di localStorage (cth. tukar device) tapi sudah selesai di Supabase.
+  // Jangan jalankan jika user baru klik "Audit Semula" (didReset=true) supaya
+  // cache Supabase yang masih ada tidak membatalkan reset.
   useEffect(() => {
-    if (!user?.id || savedSession || !todayEntry?.selesai) return
+    if (!user?.id || savedSession || !todayEntry?.selesai || didReset) return
     const session: SavedSession = {
       scores: {
         raga: todayEntry.pillar_raga,
@@ -1226,7 +1253,7 @@ export default function AuditJiwaPage() {
     saveSession(user.id, session)
     setSavedSession(session)
     setPhase('done')
-  }, [user?.id, todayEntry, savedSession])
+  }, [user?.id, todayEntry, savedSession, didReset])
 
   // Loading timer
   useEffect(() => {
@@ -1339,10 +1366,14 @@ export default function AuditJiwaPage() {
   }
 
   function handleReset() {
+    setDidReset(true)
     if (user?.id) {
       try {
         localStorage.removeItem(getTodayKey(user.id))
         clearDraft(user.id)
+        // Null-kan cache Supabase dengan segera supaya Fallback-effect tak mencetus 'done'
+        const today = new Date().toISOString().split('T')[0]
+        queryClient.setQueryData(['audit-jiwa', user.id, today], null)
       } catch { /* ignore */ }
     }
     setPhase('opening')
@@ -1412,7 +1443,7 @@ export default function AuditJiwaPage() {
 
       {/* Phase: Results */}
       {phase === 'results' && scores && (
-        <ResultsScreen scores={scores} userTier={userTier} onJana={handleJanaPreskripsi} />
+        <ResultsScreen scores={scores} userTier={userTier} onJana={handleJanaPreskripsi} onUpgrade={() => navigate('/rezeki')} />
       )}
 
       {/* Phase: Recommendation */}
