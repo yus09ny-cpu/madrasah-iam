@@ -499,9 +499,9 @@ export default function DimensiSolat({ isPro, user }: DimensiSolatProps) {
   const isTarekatUnlocked = user?.solat_tarekat_unlocked === true || isPro
 
   const PANEL_TABS = [
-    { id: 'syariat' as const, label: 'Syariat', arabic: 'الشَّرِيعَة', color: '#c9a96e', available: true },
-    { id: 'tarekat' as const, label: 'Tarekat', arabic: 'الطَّرِيقَة', color: '#60a5fa', available: isPro },
-    { id: 'hakikat' as const, label: 'Hakikat', arabic: 'الْحَقِيقَة', color: '#a78bfa', available: false },
+    { id: 'syariat' as const, label: 'Islam', arabic: 'الإسلام', color: '#c9a96e', available: true },
+    { id: 'tarekat' as const, label: 'Iman', arabic: 'الإيمان', color: '#60a5fa', available: isPro },
+    { id: 'hakikat' as const, label: 'Ihsan', arabic: 'الإحسان', color: '#a78bfa', available: false },
   ]
 
   return (
