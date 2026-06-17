@@ -197,10 +197,11 @@ export function useAuth() {
           }
         }
 
+        const persistedUser = useAuthStore.getState().user
         setUser(
           newProfile
             ? ({ ...(newProfile as object), email } as User)
-            : {
+            : persistedUser ?? {
                 id: userId,
                 email,
                 name: metaName ?? null,
@@ -212,15 +213,17 @@ export function useAuth() {
       }
     } catch (err) {
       console.error('syncProfile error:', err)
-      // profiles table not yet created — set minimal user, skip onboarding
-      setUser({
-        id: userId,
-        email,
-        name: metaName ?? null,
-        tier: 'free',
-        onboarded: true,
-        created_at: new Date().toISOString(),
-      })
+      // Jangan timpa user yang sedia ada (role/tier terpelihara) — cuma fallback jika tiada langsung
+      if (!useAuthStore.getState().user) {
+        setUser({
+          id: userId,
+          email,
+          name: metaName ?? null,
+          tier: 'free',
+          onboarded: true,
+          created_at: new Date().toISOString(),
+        })
+      }
     } finally {
       setLoading(false)
     }
