@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, ChevronLeft, RotateCcw, Loader2, CheckCircle2, BookOpen, ChevronDown } from 'lucide-react'
+import { ChevronRight, ChevronLeft, RotateCcw, Loader2, CheckCircle2, BookOpen, ChevronDown, Lock } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useTodayAuditJiwa, useSaveAuditJiwa } from '@/hooks/useAuditJiwa'
 import { callAnthropic } from '@/lib/anthropic-fetch'
@@ -945,7 +944,7 @@ function ResultsScreen({
             className="w-full py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #c9a96e, #a07840)', color: '#060d16' }}
           >
-            {t('ajv2.upsell_cta', 'Naik Taraf ke Pro')}
+            {t('ajv2.upsell_cta', 'Audit Lebih Mendalam (30 Soalan) — Naik Taraf ke Pro')}
           </button>
         </div>
       )}
@@ -961,9 +960,15 @@ function ResultsScreen({
   )
 }
 
+// ─── Para Pembimbing Contact Links ───────────────────────────────────────────
+
+const WA_CARI = `https://wa.me/60182119135?text=${encodeURIComponent('Assalamualaikum, saya dari app Madrasah I AM.\n\nSaya ingin mencari Para Pembimbing berdekatan kawasan saya.\n\nMohon bimbingan. Terima kasih.')}`
+const WA_TANYA = `https://wa.me/60182119135?text=${encodeURIComponent('Assalamualaikum, saya dari app Madrasah I AM.\n\nSaya telah selesai Audit Jiwa dan ingin bertanya tentang perjalanan rohani saya.\n\nMohon bimbingan. Terima kasih.')}`
+const TG_MAJLIS = 'https://t.me/+7Bisf3e1cd4xYTA9'
+
 // ─── Phase: Recommendation ────────────────────────────────────────────────────
 
-function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro: boolean; onUpgrade: () => void }) {
+function RecommendationScreen({ text, isPro, onUpgrade, onReset }: { text: string; isPro: boolean; onUpgrade: () => void; onReset: () => void }) {
   const { t } = useTranslation()
   const [showWho, setShowWho] = useState(false)
 
@@ -1008,7 +1013,7 @@ function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro:
             className="w-full py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #c9a96e, #a07840)', color: '#060d16' }}
           >
-            {t('ajv2.upsell_cta', 'Naik Taraf ke Pro')}
+            {t('ajv2.upsell_cta', 'Audit Lebih Mendalam (30 Soalan) — Naik Taraf ke Pro')}
           </button>
         </div>
       )}
@@ -1031,20 +1036,26 @@ function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro:
               icon: '🔍',
               label: t('ajv2.wt_find', 'Cari Para Pembimbing Berdekatan'),
               desc: t('ajv2.wt_find_desc', 'Jumpa Para Pembimbing di kawasan anda'),
+              href: WA_CARI,
             },
             {
               icon: '💬',
               label: t('ajv2.wt_message', 'Hantar Pertanyaan'),
               desc: t('ajv2.wt_message_desc', 'Tanya soalan dan dapatkan respons'),
+              href: WA_TANYA,
             },
             {
               icon: '🕌',
               label: t('ajv2.wt_event', 'Sertai Majlis Zikir Live'),
               desc: t('ajv2.wt_event_desc', 'Hadir secara dalam talian atau fizikal'),
+              href: TG_MAJLIS,
             },
           ].map(opt => (
-            <button
+            <a
               key={opt.label}
+              href={opt.href}
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-full flex items-center gap-3 p-3.5 bg-[#060d1680] border border-[#c9a96e25] rounded-xl hover:bg-[#c9a96e08] hover:border-[#c9a96e50] transition-all text-left"
             >
               <span className="text-xl flex-shrink-0">{opt.icon}</span>
@@ -1053,7 +1064,7 @@ function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro:
                 <p className="text-[#8a7a65] text-xs">{opt.desc}</p>
               </div>
               <ChevronRight size={14} className="text-[#8a7a65] flex-shrink-0" />
-            </button>
+            </a>
           ))}
         </div>
       </div>
@@ -1115,6 +1126,14 @@ function RecommendationScreen({ text, isPro, onUpgrade }: { text: string; isPro:
         <span className="text-[#8a7a65]">{t('ajv2.wt_amalan_link', 'Sudah ada panduan Para Pembimbing? Lihat Amalan Jiwa')}</span>
         <ChevronRight size={14} className="text-[#8a7a65]" />
       </button>
+
+      {/* Reset — buat audit baru */}
+      <button
+        onClick={onReset}
+        className="w-full py-3 rounded-2xl text-sm text-[#8a7a65] border border-[#1e2d40] hover:text-[#e8dcc8] hover:border-[#c9a96e30] transition-all"
+      >
+        {t('ajv2.audit_semula', '↺ Audit Semula')}
+      </button>
     </div>
   )
 }
@@ -1157,13 +1176,18 @@ function DoneScreen({ session, onReset }: { session: SavedSession; onReset: () =
       </div>
 
       {/* Para Pembimbing CTA */}
-      <div className="bg-gradient-to-br from-[#c9a96e18] to-[#a0784010] border border-[#c9a96e30] rounded-2xl px-4 py-3.5 flex items-center justify-between">
+      <a
+        href={WA_TANYA}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="bg-gradient-to-br from-[#c9a96e18] to-[#a0784010] border border-[#c9a96e30] rounded-2xl px-4 py-3.5 flex items-center justify-between hover:border-[#c9a96e50] transition-all"
+      >
         <div className="space-y-0.5">
           <p className="text-[#c9a96e] text-sm font-medium">{t('ajv2.wt_cta_title', 'Hubungi Para Pembimbing')}</p>
           <p className="text-[#8a7a65] text-xs">{t('ajv2.wt_done_sub', 'Teruskan perjalanan rohani bersama pembimbing')}</p>
         </div>
         <ChevronRight size={16} className="text-[#c9a96e]" />
-      </div>
+      </a>
 
       {/* View AI diagnosis */}
       {session.recommendation_text && (
@@ -1195,9 +1219,64 @@ function DoneScreen({ session, onReset }: { session: SavedSession; onReset: () =
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+function AuditUpgradeModal({ onClose }: { onClose: () => void }) {
+  const { user } = useAuthStore()
+  const [loadingPkg, setLoadingPkg] = useState<'pro' | 'pro_plus' | null>(null)
+  const [error, setError] = useState('')
+
+  async function handleUpgrade(pkg: 'pro' | 'pro_plus') {
+    if (!user) return
+    setError('')
+    setLoadingPkg(pkg)
+    try {
+      const res = await fetch('/api/create-bill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, email: user.email, nama: user.name ?? user.email, package: pkg }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data?.error?.message ?? 'Gagal mencipta bil')
+      window.location.href = data.url
+    } catch {
+      setError('Gagal memulakan pembayaran. Sila cuba lagi.')
+      setLoadingPkg(null)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5" onClick={onClose}>
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          <Lock size={16} className="text-[#c9a96e]" />
+          <p className="text-[#c9a96e] font-medium text-sm">Audit Jiwa Pro</p>
+        </div>
+        <p className="text-[#e8dcc8] text-sm leading-relaxed">
+          Dapatkan audit penuh 30 soalan, analisis mendalam setiap dimensi, dan preskripsi rohani yang lebih terperinci.
+        </p>
+        {error && <p className="text-red-400 text-xs">{error}</p>}
+        <div className="space-y-2">
+          <button onClick={() => handleUpgrade('pro')} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            {loadingPkg === 'pro' && <Loader2 size={14} className="animate-spin" />}
+            Upgrade ke Pro — RM19.90/bulan
+          </button>
+          <button onClick={() => handleUpgrade('pro_plus')} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            {loadingPkg === 'pro_plus' && <Loader2 size={14} className="animate-spin" />}
+            Upgrade ke Pro Plus — RM29.90/bulan
+          </button>
+          <button onClick={onClose} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors disabled:opacity-60">
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AuditJiwaPage() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
   const { data: todayEntry } = useTodayAuditJiwa()
@@ -1217,6 +1296,7 @@ export default function AuditJiwaPage() {
   const [savedSession, setSavedSession] = useState<SavedSession | null>(null)
   // Mencegah Supabase fallback-effect daripada membatalkan "Audit Semula"
   const [didReset, setDidReset] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   const pendingScores = useRef<PillarScores | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -1443,7 +1523,7 @@ export default function AuditJiwaPage() {
 
       {/* Phase: Results */}
       {phase === 'results' && scores && (
-        <ResultsScreen scores={scores} userTier={userTier} onJana={handleJanaPreskripsi} onUpgrade={() => navigate('/rezeki')} />
+        <ResultsScreen scores={scores} userTier={userTier} onJana={handleJanaPreskripsi} onUpgrade={() => setShowUpgradeModal(true)} />
       )}
 
       {/* Phase: Recommendation */}
@@ -1489,7 +1569,7 @@ export default function AuditJiwaPage() {
               )}
             </div>
           ) : recommendation ? (
-            <RecommendationScreen text={recommendation} isPro={isPro} onUpgrade={() => navigate('/rezeki')} />
+            <RecommendationScreen text={recommendation} isPro={isPro} onUpgrade={() => setShowUpgradeModal(true)} onReset={handleReset} />
           ) : (
             /* API error or empty state — show error + retry */
             <div className="flex flex-col items-center py-16 gap-4">
@@ -1521,6 +1601,8 @@ export default function AuditJiwaPage() {
       {phase === 'done' && savedSession && (
         <DoneScreen session={savedSession} onReset={handleReset} />
       )}
+
+      {showUpgradeModal && <AuditUpgradeModal onClose={() => setShowUpgradeModal(false)} />}
     </div>
   )
 }
