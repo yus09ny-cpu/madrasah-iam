@@ -18,7 +18,7 @@ type ProProfile = { id: string; name: string | null; tier: string; created_at: s
 const PRO_FEATURES = [
   'Akses majlis Zikir live harian (5x waktu solat)',
   'Amalan Jiwa lanjutan',
-  'Sesi 1-on-1 dengan Wakil Talkin',
+  'Sesi 1-on-1 dengan Para Pembimbing',
   'Penjejakan perkembangan terperinci',
   'Panduan peribadi dari Mursyid',
 ]

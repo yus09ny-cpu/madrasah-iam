@@ -240,7 +240,7 @@ export default function UserTalkinAssignments() {
 
       <button onClick={openAssign}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-[#c9a96e40] text-[#c9a96e] text-sm hover:bg-[#c9a96e08] transition-colors">
-        <Plus size={14} /> Tugaskan Pengguna ke Wakil Talkin
+        <Plus size={14} /> Tugaskan Pengguna ke Para Pembimbing
       </button>
 
       {/* Assign Modal */}
@@ -264,11 +264,11 @@ export default function UserTalkinAssignments() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[#8a7a65] text-xs">Pilih Wakil Talkin *</label>
+                <label className="text-[#8a7a65] text-xs">Pilih Para Pembimbing *</label>
                 <select value={assignForm.wakil_talkin_id}
                   onChange={e => setAssignForm(f => ({ ...f, wakil_talkin_id: e.target.value }))}
                   className="w-full px-3 py-2.5 bg-[#060d16] border border-[#1e2d40] rounded-xl text-[#e8dcc8] text-sm focus:outline-none">
-                  <option value="">-- Pilih Wakil Talkin --</option>
+                  <option value="">-- Pilih Para Pembimbing --</option>
                   {wakilList.map(w => (
                     <option key={w.id} value={w.id}>
                       {w.name} — {w.current_students}/{w.max_students} ({w.availability_status})
@@ -276,11 +276,11 @@ export default function UserTalkinAssignments() {
                   ))}
                 </select>
                 {wakilList.length === 0 && (
-                  <p className="text-[#8a7a65] text-xs">Tiada Wakil Talkin disahkan. Tambah dan sahkan dahulu.</p>
+                  <p className="text-[#8a7a65] text-xs">Tiada Para Pembimbing disahkan. Tambah dan sahkan dahulu.</p>
                 )}
               </div>
               <div className="space-y-1.5">
-                <label className="text-[#8a7a65] text-xs">Nota untuk Wakil Talkin</label>
+                <label className="text-[#8a7a65] text-xs">Nota untuk Para Pembimbing</label>
                 <textarea value={assignForm.admin_notes}
                   onChange={e => setAssignForm(f => ({ ...f, admin_notes: e.target.value }))}
                   rows={3} placeholder="Konteks tentang pengguna ini..."
@@ -337,7 +337,7 @@ export default function UserTalkinAssignments() {
                   className="w-full px-3 py-2.5 bg-[#060d16] border border-[#1e2d40] rounded-xl text-[#e8dcc8] text-sm focus:outline-none" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[#8a7a65] text-xs">Nota Wakil Talkin</label>
+                <label className="text-[#8a7a65] text-xs">Nota Para Pembimbing</label>
                 <textarea value={updateForm.talkin_notes}
                   onChange={e => setUpdateForm(f => ({ ...f, talkin_notes: e.target.value }))}
                   rows={3} placeholder="Perkembangan sesi, pemerhatian..."

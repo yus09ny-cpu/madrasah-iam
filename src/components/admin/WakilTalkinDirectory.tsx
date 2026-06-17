@@ -220,7 +220,7 @@ export default function WakilTalkinDirectory() {
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-xs text-[#8a7a65] px-1">{filtered.length} Wakil Talkin</p>
+          <p className="text-xs text-[#8a7a65] px-1">{filtered.length} Para Pembimbing</p>
           {filtered.length === 0 && (
             <p className="text-center py-6 text-[#8a7a65] text-sm">Tiada rekod ditemui.</p>
           )}
@@ -287,7 +287,7 @@ export default function WakilTalkinDirectory() {
         onClick={openAdd}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-[#c9a96e40] text-[#c9a96e] text-sm hover:bg-[#c9a96e08] transition-colors"
       >
-        <Plus size={14} /> Tambah Wakil Talkin Baru
+        <Plus size={14} /> Tambah Para Pembimbing Baru
       </button>
 
       {/* Add / Edit Modal */}
@@ -296,7 +296,7 @@ export default function WakilTalkinDirectory() {
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-[#0d1821] border-b border-[#1e2d40] px-5 py-4 flex items-center justify-between">
               <h3 className="text-[#e8dcc8] font-medium text-sm">
-                {editTarget ? 'Edit Wakil Talkin' : 'Tambah Wakil Talkin Baru'}
+                {editTarget ? 'Edit Para Pembimbing' : 'Tambah Para Pembimbing Baru'}
               </h3>
               <button onClick={() => setShowModal(false)} className="text-[#8a7a65] hover:text-[#e8dcc8] text-lg leading-none">✕</button>
             </div>

@@ -224,7 +224,7 @@ export default function AmalanJiwaStatus() {
                 )}
               </div>
               <div className="space-y-1.5">
-                <label className="text-[#8a7a65] text-xs">Amalan yang Ditetapkan (dari Wakil Talkin)</label>
+                <label className="text-[#8a7a65] text-xs">Amalan yang Ditetapkan (dari Para Pembimbing)</label>
                 <textarea
                   value={startNotes}
                   onChange={e => setStartNotes(e.target.value)}

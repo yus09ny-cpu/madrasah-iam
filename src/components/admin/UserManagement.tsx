@@ -17,7 +17,7 @@ type ProfileRow = {
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   master_admin: { label: 'Master Admin', color: 'text-yellow-400 bg-yellow-900/20 border-yellow-600/40' },
   super_admin: { label: 'Super Admin', color: 'text-[#c9a96e] bg-[#c9a96e15] border-[#c9a96e30]' },
-  wakil_talkin: { label: 'Wakil Talkin', color: 'text-blue-400 bg-blue-900/20 border-blue-600/40' },
+  wakil_talkin: { label: 'Para Pembimbing', color: 'text-blue-400 bg-blue-900/20 border-blue-600/40' },
   user: { label: 'Pengguna', color: 'text-[#8a7a65] bg-[#1e2d40] border-[#2a3d55]' },
 }
 
@@ -185,7 +185,7 @@ export default function UserManagement() {
         </div>
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-xl p-3 text-center">
           <p className="text-blue-400 text-base font-semibold">{profiles.filter(p => p.role === 'wakil_talkin').length}</p>
-          <p className="text-[#8a7a65] text-xs mt-0.5">Wakil Talkin</p>
+          <p className="text-[#8a7a65] text-xs mt-0.5">Para Pembimbing</p>
         </div>
         <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-xl p-3 text-center">
           <p className="text-[#c9a96e] text-base font-semibold">{talqinActiveCount}</p>
@@ -406,7 +406,7 @@ export default function UserManagement() {
                     <div className="text-left">
                       <p>{TIER_LABELS[tier]?.label}</p>
                       <p className="text-xs opacity-60 mt-0.5">
-                        {tier === 'free' ? 'Akses asas' : tier === 'pro' ? 'Akses penuh + Wakil Talkin' : 'Akses keluarga'}
+                        {tier === 'free' ? 'Akses asas' : tier === 'pro' ? 'Akses penuh + Para Pembimbing' : 'Akses keluarga'}
                       </p>
                     </div>
                     {selectedTier === tier && <span className="text-xs text-[#c9a96e]">✓</span>}

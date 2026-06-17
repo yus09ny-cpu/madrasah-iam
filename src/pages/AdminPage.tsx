@@ -37,7 +37,7 @@ type Tab = 'dev' | 'users' | 'wakil_talkin' | 'talkin' | 'amalan' | 'tier' | 'us
 const TABS: { id: Tab; label: string; icon: React.ElementType; masterOnly?: boolean; devOnly?: boolean; superAdminOnly?: boolean }[] = [
   { id: 'dev', label: 'Dev Tools', icon: Wrench, devOnly: true },
   { id: 'users', label: 'Pengguna', icon: Crown },
-  { id: 'wakil_talkin', label: 'Wakil Talkin', icon: Users },
+  { id: 'wakil_talkin', label: 'Para Pembimbing', icon: Users },
   { id: 'talkin', label: 'Talkin', icon: BookOpen },
   { id: 'amalan', label: 'Amalan', icon: BookOpen },
   { id: 'tier', label: 'Tier Unlock', icon: Star },
@@ -47,7 +47,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType; masterOnly?: bool
 const TAB_TITLES: Record<Tab, { title: string; sub: string }> = {
   dev: { title: 'Dev Tools', sub: 'Kawalan dalaman — hanya untuk pembangunan' },
   users: { title: 'Pengurusan Pengguna', sub: 'Set peranan & tier untuk semua pengguna' },
-  wakil_talkin: { title: 'Wakil Talkin Directory', sub: 'Urus senarai Wakil Talkin & status pengesahan' },
+  wakil_talkin: { title: 'Para Pembimbing Directory', sub: 'Urus senarai Para Pembimbing & status pengesahan' },
   talkin: { title: 'Talkin Assignments', sub: 'Tugaskan pengguna & jejak sesi Talkin' },
   amalan: { title: 'Amalan Jiwa Status', sub: 'Urus latihan Amalan Jiwa selepas Talkin selesai' },
   tier: { title: 'Tier Activation', sub: 'Buka kunci Pro bagi pengguna yang lengkap perjalanan' },
@@ -103,7 +103,7 @@ export default function AdminPage() {
   const originalTier = localStorage.getItem('madrasah-dev-original-tier') ?? currentTier
   const { title, sub } = TAB_TITLES[activeTab] ?? TAB_TITLES['users']
 
-  const roleLabel = isMasterAdmin ? 'Master Admin' : isSuperAdmin ? 'Super Admin' : 'Wakil Talkin'
+  const roleLabel = isMasterAdmin ? 'Master Admin' : isSuperAdmin ? 'Super Admin' : 'Para Pembimbing'
   const roleBadgeColor = isMasterAdmin
     ? 'text-yellow-400 bg-yellow-900/20 border-yellow-600/40'
     : isSuperAdmin
