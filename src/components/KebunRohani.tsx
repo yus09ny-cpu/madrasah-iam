@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { format, subDays } from 'date-fns'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useStreak } from '@/hooks/useStreak'
 import { supabase } from '@/lib/supabase'
@@ -227,7 +226,6 @@ function checkRezekiDone(today: string): boolean {
 
 export default function KebunRohani() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const { user } = useAuthStore()
   const { data: streak } = useStreak()
   const [stats, setStats] = useState<BenihStats>(EMPTY_STATS)
@@ -356,7 +354,7 @@ export default function KebunRohani() {
 
         {/* Mesej stage / status siraman */}
         {waterState === 'layu' ? (
-          <div className="text-center py-1 space-y-2 w-full">
+          <div className="text-center py-1 space-y-1 w-full">
             <p className="text-amber-400 text-[13px] font-medium flex items-center justify-center gap-2">
               <span>💧</span>
               {t('kebun.layu_label')}
@@ -364,12 +362,6 @@ export default function KebunRohani() {
             <p className="text-[#6a5a46] text-[11px] leading-relaxed">
               {t('kebun.layu_desc')}
             </p>
-            <button
-              onClick={() => navigate('/zikir')}
-              className="w-full max-w-[200px] mx-auto py-2.5 rounded-xl text-sm font-medium bg-[#c9a96e15] border border-[#c9a96e30] text-[#c9a96e] hover:bg-[#c9a96e20] transition-colors"
-            >
-              ▶ Mulakan Amalan
-            </button>
           </div>
         ) : waterState === 'baru' ? (
           <div className="text-center py-1">
