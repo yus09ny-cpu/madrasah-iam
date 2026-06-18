@@ -71,8 +71,9 @@ export function useAuditJiwaHistory(limit = 30) {
 
 export function useAuditJiwaCount() {
   const { user } = useAuthStore()
+  const today = format(new Date(), 'yyyy-MM-dd')
   return useQuery({
-    queryKey: ['audit-jiwa-count', user?.id],
+    queryKey: ['audit-jiwa-count', user?.id, today],
     queryFn: async () => {
       if (!user) return 0
       try {
@@ -80,6 +81,7 @@ export function useAuditJiwaCount() {
           .from('audit_jiwa_entries')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
+          .eq('tarikh', today)
           .eq('selesai', true)
         if (error) return 0
         return count ?? 0
@@ -87,6 +89,7 @@ export function useAuditJiwaCount() {
     },
     enabled: !!user,
     retry: false,
+    staleTime: 0,
   })
 }
 
@@ -138,6 +141,7 @@ export function useSaveAuditJiwa() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['audit-jiwa', user?.id] })
+      queryClient.invalidateQueries({ queryKey: ['audit-jiwa-count', user?.id] })
     },
   })
 }

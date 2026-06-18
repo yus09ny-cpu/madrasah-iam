@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
@@ -1507,10 +1508,10 @@ export default function AuditJiwaPage() {
           </div>
           <div className="bg-[#0d1821] border border-[#c9a96e30] rounded-2xl p-5 space-y-3 text-center">
             <p className="text-[#c9a96e] text-sm font-medium">
-              {t('ajv2.had_percuma_tajuk', 'Had Audit Percuma Dicapai')}
+              {t('ajv2.had_percuma_tajuk', 'Had Audit Harian Dicapai')}
             </p>
             <p className="text-[#8a7a65] text-sm leading-relaxed">
-              {t('ajv2.had_percuma_desc', `Anda telah membuat ${FREE_AUDIT_LIMIT} audit percuma. Untuk terus memantau perjalanan jiwa anda dari semasa ke semasa, naik taraf ke Pro.`)}
+              {t('ajv2.had_percuma_desc', `Anda telah mencapai had ${FREE_AUDIT_LIMIT} audit percuma hari ini. Esok anda boleh audit semula — atau naik taraf ke Pro untuk audit lebih mendalam (30 soalan) tanpa had.`)}
             </p>
             <div className="bg-[#060d16] rounded-xl p-3">
               <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">
@@ -1525,9 +1526,15 @@ export default function AuditJiwaPage() {
             >
               {t('ajv2.upsell_cta', 'Audit Lebih Mendalam (30 Soalan) — Naik Taraf ke Pro')}
             </button>
+            <Link
+              to="/dashboard"
+              className="block w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] hover:border-[#c9a96e30] transition-all"
+            >
+              ← {t('umum.kembali', 'Kembali ke Utama')}
+            </Link>
           </div>
           <p className="text-center text-[#8a7a65] text-xs">
-            {t('ajv2.had_percuma_nota', `${auditCount} daripada ${FREE_AUDIT_LIMIT} audit percuma telah digunakan`)}
+            {t('ajv2.had_percuma_nota', `${auditCount} daripada ${FREE_AUDIT_LIMIT} audit percuma digunakan hari ini`)}
           </p>
         </div>
       )}
