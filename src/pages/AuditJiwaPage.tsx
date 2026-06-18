@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, ChevronLeft, RotateCcw, Loader2, CheckCircle2, BookOpen, ChevronDown, Lock } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
-import { useTodayAuditJiwa, useSaveAuditJiwa } from '@/hooks/useAuditJiwa'
+import { useTodayAuditJiwa, useSaveAuditJiwa, type AuditJiwaEntry } from '@/hooks/useAuditJiwa'
+import { supabase } from '@/lib/supabase'
 import { callAnthropic } from '@/lib/anthropic-fetch'
 import AuditMotivasiCard from '@/components/AuditMotivasiCard'
 import { cn } from '@/lib/utils'
@@ -1475,6 +1475,37 @@ export default function AuditJiwaPage() {
     }
   }
 
+  async function handleViewLastAudit() {
+    if (!user?.id) return
+    // Fast path: in-session ref (no Supabase call needed)
+    if (lastSessionRef.current) {
+      setSavedSession(lastSessionRef.current)
+      setPhase('done')
+      return
+    }
+    // Fallback: fetch from Supabase (covers page refresh scenario)
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const { data } = await supabase
+        .from('audit_jiwa_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('tarikh', today)
+        .eq('selesai', true)
+        .maybeSingle() as { data: AuditJiwaEntry | null, error: unknown }
+      if (data) {
+        const session: SavedSession = {
+          scores: { raga: data.pillar_raga, hati: data.pillar_hati, akal: data.pillar_akal, ruh: data.pillar_ruh },
+          responses: {},
+          recommendation_text: data.cadangan_ai,
+          completed_at: data.created_at,
+        }
+        setSavedSession(session)
+        setPhase('done')
+      }
+    } catch { /* ignore */ }
+  }
+
   function handleReset() {
     setDidReset(true)
     if (!isPro && user?.id) {
@@ -1557,24 +1588,12 @@ export default function AuditJiwaPage() {
             >
               {t('ajv2.upsell_cta', 'Audit Lebih Mendalam (30 Soalan) — Naik Taraf ke Pro')}
             </button>
-            {lastSessionRef.current ? (
-              <button
-                onClick={() => {
-                  setSavedSession(lastSessionRef.current)
-                  setPhase('done')
-                }}
-                className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] hover:border-[#c9a96e30] transition-all"
-              >
-                ← {t('ajv2.lihat_audit_terakhir', 'Lihat Semula Audit Terakhir')}
-              </button>
-            ) : (
-              <Link
-                to="/dashboard"
-                className="block w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] hover:border-[#c9a96e30] transition-all text-center"
-              >
-                ← {t('umum.kembali', 'Kembali ke Utama')}
-              </Link>
-            )}
+            <button
+              onClick={handleViewLastAudit}
+              className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] hover:border-[#c9a96e30] transition-all"
+            >
+              ← {t('ajv2.lihat_audit_terakhir', 'Lihat Semula Audit Terakhir')}
+            </button>
           </div>
           <p className="text-center text-[#8a7a65] text-xs">
             {t('ajv2.had_percuma_nota', `${dailyAuditCount} daripada ${FREE_AUDIT_LIMIT} audit percuma digunakan hari ini`)}
