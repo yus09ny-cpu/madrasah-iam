@@ -45,6 +45,7 @@ function persistCounts(counts: Record<string, number>) {
 
 function DailyChart({ counts }: { counts: Record<string, number> }) {
   const { t } = useTranslation()
+  const { showRumi } = useRumiMode()
   const done = ZIKIR_LIST.filter(z => (counts[z.id] ?? 0) >= z.target).length
 
   return (
