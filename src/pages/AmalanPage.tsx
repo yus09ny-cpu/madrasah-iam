@@ -969,7 +969,7 @@ export default function AmalanPage() {
         <div>
           <p className="font-serif text-3xl text-[#c9a96e] leading-none">الأَمَل</p>
           <h1 className="font-serif text-xl text-[#e8dcc8] mt-1">Amalan TQN</h1>
-          <p className="text-[#8a7a65] text-xs">Thariqah Qadiriyah Naqsyabandiyah</p>
+          <p className="text-[#8a7a65] text-xs">Tazkiyatun Nafs — Penyucian Jiwa</p>
         </div>
         {activeTab === 'zikir' && (phase === 1 || phase === 2 || phase === 3) && (
           <PhaseBar phase={phase} />
