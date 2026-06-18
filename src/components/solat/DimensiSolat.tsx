@@ -24,6 +24,16 @@ const RUKUN_DATA = [
     iam_prompt: "Pengguna sedang merenungi simbolik Wudhu' Zahir dan Batin — bersuci fizikal dan spiritual sebelum solat. Bantu mereka merenung tentang apa yang 'menajiskan' hati mereka dalam kehidupan harian dan bagaimana untuk membersihkannya.",
   },
   {
+    id: 'niat',
+    name: 'Niat',
+    arabic: 'النِّيَّة',
+    icon: '🤍',
+    simbolik: "Niat itu ada dua — zahir dan batin. Niat Zahir: lafaz yang kamu ucapkan dalam hati — 'Aku berniat solat Subuh/Zohor/... dua/empat rakaat, menghadap kiblat, kerana Allah Ta'ala.' Niat Batin: sesuatu yang jauh lebih dalam. Ia bukan sekadar kata-kata — ia adalah kehendak hati yang paling jujur, yang hanya Allah sahaja yang tahu. Niat batin yang suci murni adalah: إِلَٰهِي أَنْتَ مَقْصُودِي — Ya Allah, Engkaulah tujuanku. Tiada yang aku cari, tiada yang aku tuju — melainkan kembali kepada-Mu semata.",
+    implikasi: "Ramai yang melafaz niat zahir tetapi hati pergi ke tempat lain — ke masalah kerja, ke rancangan hari esok, ke orang yang buat kita sakit hati. Niat batin yang benar-benar 'I AM' — Ilahi Anta Maqsudi — adalah disiplin seumur hidup. Setiap kali kamu berjaya memasuki solat dengan niat yang murni, kamu berdiri bukan sekadar sebagai hamba yang menunaikan kewajipan — kamu berdiri sebagai insan yang benar-benar menghala kepada Tuhan.",
+    soalan: "Jika kamu jujur — apa yang paling kerap 'bersaing' dengan Allah dalam niat hati kamu ketika memulakan solat?",
+    iam_prompt: "Pengguna sedang merenungi Niat Zahir dan Batin dalam solat — khususnya makna 'Ilahi Anta Maqsudi' (I AM) sebagai niat batin yang suci. Bantu mereka merenung tentang kejujuran niat mereka dan apa yang sebenarnya mereka 'tuju' dalam kehidupan.",
+  },
+  {
     id: 'takbir',
     name: 'Takbiratul Ihram',
     arabic: 'اللَّهُ أَكْبَرُ',
