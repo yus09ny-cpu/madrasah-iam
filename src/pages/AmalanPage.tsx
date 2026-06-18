@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   CheckCircle2, ChevronDown, ChevronUp, Flame, Volume2, VolumeX,
 } from 'lucide-react'
@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface AmalanItem {
   id: string
@@ -27,23 +27,23 @@ type SessionPhase = 'dashboard' | 1 | 2 | 3 | 'done' | 'khafi'
 type AmalanTab = 'zikir' | 'khataman' | 'manakiban' | 'inabah' | 'ziarah'
 
 const AMALAN_TABS: { id: AmalanTab; label: string; arabic: string; soon?: boolean }[] = [
-  { id: 'zikir',     label: 'Zikir',     arabic: 'Ø§Ù„Ø°ÙÙ‘ÙƒÙ’Ø±'     },
-  { id: 'khataman',  label: 'Khataman',  arabic: 'Ø§Ù„Ø®ÙŽØªÙ’Ù…',  soon: true },
-  { id: 'manakiban', label: 'Manakiban', arabic: 'Ø§Ù„Ù…ÙŽÙ†ÙŽØ§Ù‚ÙØ¨', soon: true },
-  { id: 'inabah',    label: 'Inabah',    arabic: 'Ø§Ù„Ø¥ÙÙ†ÙŽØ§Ø¨ÙŽØ©', soon: true },
-  { id: 'ziarah',    label: 'Ziarah',    arabic: 'Ø§Ù„Ø²ÙÙ‘ÙŠÙŽØ§Ø±ÙŽØ©', soon: true },
+  { id: 'zikir',     label: 'Zikir',     arabic: 'الذِّكْر'     },
+  { id: 'khataman',  label: 'Khataman',  arabic: 'الخَتْم',  soon: true },
+  { id: 'manakiban', label: 'Manakiban', arabic: 'المَنَاقِب', soon: true },
+  { id: 'inabah',    label: 'Inabah',    arabic: 'الإِنَابَة', soon: true },
+  { id: 'ziarah',    label: 'Ziarah',    arabic: 'الزِّيَارَة', soon: true },
 ]
 
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Constants ─────────────────────────────────────────────────────────────────
 
 
 const AYAT_LIST = [
-  { arab: 'ÙˆÙŽÙ„ÙŽØ°ÙÙƒÙ’Ø±Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø£ÙŽÙƒÙ’Ø¨ÙŽØ±Ù', tr: '"Dan sesungguhnya zikir kepada Allah adalah yang paling agung"', src: 'Al-Ankabut: 45' },
-  { arab: 'Ø£ÙŽÙ„ÙŽØ§ Ø¨ÙØ°ÙÙƒÙ’Ø±Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù ØªÙŽØ·Ù’Ù…ÙŽØ¦ÙÙ†ÙÙ‘ Ø§Ù„Ù’Ù‚ÙÙ„ÙÙˆØ¨Ù', tr: '"Ketahuilah, hanya dengan mengingati Allah hati menjadi tenang"', src: "Ar-Ra'd: 28" },
-  { arab: 'ÙÙŽØ§Ø°Ù’ÙƒÙØ±ÙÙˆÙ†ÙÙŠ Ø£ÙŽØ°Ù’ÙƒÙØ±Ù’ÙƒÙÙ…Ù’ ÙˆÙŽØ§Ø´Ù’ÙƒÙØ±ÙÙˆØ§ Ù„ÙÙŠ', tr: '"Ingatlah Aku, nescaya Aku ingat kepadamu"', src: 'Al-Baqarah: 152' },
+  { arab: 'وَلَذِكْرُ اللَّهِ أَكْبَرُ', tr: '"Dan sesungguhnya zikir kepada Allah adalah yang paling agung"', src: 'Al-Ankabut: 45' },
+  { arab: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ', tr: '"Ketahuilah, hanya dengan mengingati Allah hati menjadi tenang"', src: "Ar-Ra'd: 28" },
+  { arab: 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي', tr: '"Ingatlah Aku, nescaya Aku ingat kepadamu"', src: 'Al-Baqarah: 152' },
 ]
 
-// â”€â”€â”€ Phase Progress Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Phase Progress Bar ────────────────────────────────────────────────────────
 
 function PhaseBar({ phase }: { phase: SessionPhase }) {
   const steps = [
@@ -64,7 +64,7 @@ function PhaseBar({ phase }: { phase: SessionPhase }) {
                 border: `2px solid ${n >= s.id ? s.color : '#1e2d40'}`,
                 color: n >= s.id ? s.color : '#8a7a65',
               }}>
-              {n > s.id ? 'âœ“' : s.id}
+              {n > s.id ? '✓' : s.id}
             </div>
             <p className="text-[8px]" style={{ color: n >= s.id ? s.color : '#8a7a65' }}>{s.label}</p>
           </div>
@@ -75,7 +75,7 @@ function PhaseBar({ phase }: { phase: SessionPhase }) {
   )
 }
 
-// â”€â”€â”€ Bacaan Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Bacaan Card ───────────────────────────────────────────────────────────────
 
 function BacaanCard({ item, accent = '#c9a96e' }: { item: AmalanItem; accent?: string }) {
   return (
@@ -92,13 +92,13 @@ function BacaanCard({ item, accent = '#c9a96e' }: { item: AmalanItem; accent?: s
       {item.rumi && <p className="text-[#8a7a65] text-xs italic">{item.rumi}</p>}
       {item.terjemahan && <p className="text-[#e8dcc8] text-xs leading-relaxed">{item.terjemahan}</p>}
       {item.ulangan && item.ulangan > 1 && (
-        <p className="text-xs" style={{ color: accent + 'cc' }}>Ulangan: {item.ulangan}Ã—</p>
+        <p className="text-xs" style={{ color: accent + 'cc' }}>Ulangan: {item.ulangan}×</p>
       )}
     </div>
   )
 }
 
-// â”€â”€â”€ Fasa 1 â€” Bacaan Pembuka â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Fasa 1 — Bacaan Pembuka ───────────────────────────────────────────────────
 
 function Fasa1({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
   const [confirmed, setConfirmed] = useState(false)
@@ -113,7 +113,7 @@ function Fasa1({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
       {items.length === 0 ? (
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 text-center space-y-2">
           <p className="text-[#8a7a65] text-sm">Bacaan belum diisi.</p>
-          <p className="text-[#8a7a65] text-xs italic">Nine boleh isi melalui Supabase â†’ amalan_content (jenis: zikir_jahar, urutan 1-4)</p>
+          <p className="text-[#8a7a65] text-xs italic">Nine boleh isi melalui Supabase → amalan_content (jenis: zikir_jahar, urutan 1-4)</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -132,13 +132,13 @@ function Fasa1({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
 
       <button onClick={onDone} disabled={!confirmed}
         className="w-full py-4 bg-[#c9a96e] text-[#060d16] font-semibold rounded-2xl hover:bg-[#e2c89a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-        Mulakan Zikir Jahar â†’
+        Mulakan Zikir Jahar →
       </button>
     </div>
   )
 }
 
-// â”€â”€â”€ Fasa 2 â€” Zikir Jahar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Fasa 2 — Zikir Jahar ─────────────────────────────────────────────────────
 
 function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: number, target: number) => void }) {
   const TARGETS = [165, 200, 300, 500]
@@ -256,15 +256,15 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
       {/* Panduan gerakan */}
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-xl overflow-hidden">
         <button onClick={() => setShowGuide(v => !v)} className="w-full flex items-center justify-between px-4 py-3">
-          <p className="text-[#8a7a65] text-xs">ðŸ“– Panduan Gerakan</p>
+          <p className="text-[#8a7a65] text-xs">📖 Panduan Gerakan</p>
           {showGuide ? <ChevronUp size={14} className="text-[#8a7a65]" /> : <ChevronDown size={14} className="text-[#8a7a65]" />}
         </button>
         {showGuide && (
           <div className="px-4 pb-4 space-y-3">
             {[
-              { arab: 'Ù„ÙŽØ§', g: 'Dari bawah pusat naik ke kepala' },
-              { arab: 'Ø¥ÙÙ„ÙŽÙ°Ù‡ÙŽ', g: 'Dari susu kanan atas ke susu kanan bawah' },
-              { arab: 'Ø¥ÙÙ„ÙŽÙ‘Ø§ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù', g: 'Dari susu kiri atas ke jantung dengan hentakan yang menggegarkan' },
+              { arab: 'لَا', g: 'Dari bawah pusat naik ke kepala' },
+              { arab: 'إِلَٰهَ', g: 'Dari susu kanan atas ke susu kanan bawah' },
+              { arab: 'إِلَّا اللَّهُ', g: 'Dari susu kiri atas ke jantung dengan hentakan yang menggegarkan' },
             ].map(({ arab, g }) => (
               <div key={arab} className="bg-[#060d16] rounded-xl p-3 space-y-1">
                 <p className="font-serif text-[#60a5fa] text-base text-right" dir="rtl">{arab}</p>
@@ -278,14 +278,14 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
       {/* Done */}
       {isDone ? (
         <div className="space-y-4 text-center bg-[#0d1821] border border-[#60a5fa30] rounded-2xl p-6">
-          <p className="font-serif text-[#60a5fa] text-2xl">Alhamdulillah âœ¦</p>
+          <p className="font-serif text-[#60a5fa] text-2xl">Alhamdulillah ✦</p>
           <p className="text-[#8a7a65] text-sm">{count} kali selesai</p>
           <p className="font-serif text-[#c9a96e] text-base leading-loose" dir="rtl">
-            Ø³ÙŽÙŠÙÙ‘Ø¯ÙÙ†ÙŽØ§ Ù…ÙØ­ÙŽÙ…ÙŽÙ‘Ø¯ÙŒ Ø±ÙŽÙ‘Ø³ÙÙˆÙ’Ù„Ù Ø§Ù„Ù„Ù‘Ù°Ù‡Ù
+            سَيِّدُنَا مُحَمَّدٌ رَّسُوْلُ اللّٰهِ
           </p>
           <button onClick={() => onDone(count, target)}
             className="w-full py-4 bg-[#60a5fa] text-[#060d16] font-semibold rounded-2xl hover:opacity-90 transition-opacity">
-            Teruskan ke Doa â†’
+            Teruskan ke Doa →
           </button>
         </div>
       ) : (
@@ -294,14 +294,14 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
             flash ? 'scale-[0.97] bg-[#60a5fa25]' : 'hover:bg-[#60a5fa08] active:scale-[0.97]')}
           style={{ height: 80, border: '2px solid #60a5fa', fontSize: 24 }}
           dir="rtl">
-          Ù„ÙŽØ§ Ø¥ÙÙ„ÙŽÙ°Ù‡ÙŽ Ø¥ÙÙ„ÙŽÙ‘Ø§ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù
+          لَا إِلَٰهَ إِلَّا اللَّهُ
         </button>
       )}
     </div>
   )
 }
 
-// â”€â”€â”€ Fasa 3 â€” Doa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Fasa 3 — Doa ─────────────────────────────────────────────────────────────
 
 function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
   const [confirmed, setConfirmed] = useState(false)
@@ -315,12 +315,12 @@ function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
       <div className="rounded-2xl p-5 space-y-4"
         style={{ background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.25)' }}>
         <div className="flex items-center gap-2">
-          <span className="text-lg">ðŸ¤²</span>
+          <span className="text-lg">🤲</span>
           <p className="text-[#c9a96e] text-sm font-medium">Doa Penutup Zikir Jahar</p>
         </div>
 
         {items.length === 0 ? (
-          <p className="text-[#8a7a65] text-xs italic text-center">Doa belum diisi â€” Nine boleh isi via Supabase (urutan 6-7)</p>
+          <p className="text-[#8a7a65] text-xs italic text-center">Doa belum diisi — Nine boleh isi via Supabase (urutan 6-7)</p>
         ) : (
           items.map((item, i) => (
             <div key={item.id} className={cn('space-y-2', i > 0 && 'border-t border-[#c9a96e20] pt-4')}>
@@ -328,7 +328,7 @@ function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
               {item.arab && <p className="font-serif text-[#c9a96e] text-base leading-loose text-right" dir="rtl">{item.arab}</p>}
               {item.rumi && <p className="text-[#8a7a65] text-xs italic">{item.rumi}</p>}
               {item.terjemahan && <p className="text-[#e8dcc8] text-xs leading-relaxed">{item.terjemahan}</p>}
-              {item.ulangan && item.ulangan > 1 && <p className="text-[#c9a96e80] text-xs">Ã— {item.ulangan}</p>}
+              {item.ulangan && item.ulangan > 1 && <p className="text-[#c9a96e80] text-xs">× {item.ulangan}</p>}
             </div>
           ))
         )}
@@ -345,14 +345,15 @@ function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
 
       <button onClick={onDone} disabled={!confirmed}
         className="w-full py-4 bg-[#c9a96e] text-[#060d16] font-semibold rounded-2xl hover:bg-[#e2c89a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-        Teruskan ke Fatihah â†’
+        Teruskan ke Fatihah →
       </button>
     </div>
   )
 }
 
+// ─── Selesai Screen (Jahar) ───────────────────────────────────────────────────
 
-// â”€â”€â”€ Selesai Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Selesai Screen ────────────────────────────────────────────────────────────
 
 function SelesaiScreen({ jaharCount, jaharTarget, khafiMins, onClose }: {
   jaharCount: number; jaharTarget: number; khafiMins: number; onClose: () => void
@@ -363,7 +364,7 @@ function SelesaiScreen({ jaharCount, jaharTarget, khafiMins, onClose }: {
       <div className="text-center space-y-3">
         <div className="flex justify-center gap-1">
           {Array.from({ length: 5 }, (_, i) => (
-            <span key={i} className="text-[#c9a96e] text-xl animate-bounce" style={{ animationDelay: `${i * 0.15}s` }}>âœ¦</span>
+            <span key={i} className="text-[#c9a96e] text-xl animate-bounce" style={{ animationDelay: `${i * 0.15}s` }}>✦</span>
           ))}
         </div>
         <p className="font-serif text-[#c9a96e] text-3xl">Alhamdulillah</p>
@@ -371,10 +372,10 @@ function SelesaiScreen({ jaharCount, jaharTarget, khafiMins, onClose }: {
 
       <div className="text-center">
         <p className="font-serif text-[#c9a96e] text-xl leading-loose" dir="rtl">
-          Ø¥ÙÙ„ÙŽÙ°Ù‡ÙÙŠ Ø£ÙŽÙ†Ù’ØªÙŽ Ù…ÙŽÙ‚Ù’ØµÙÙˆØ¯ÙÙŠ
+          إِلَٰهِي أَنْتَ مَقْصُودِي
         </p>
         <p className="font-serif text-[#c9a96e] text-xl leading-loose" dir="rtl">
-          ÙˆÙŽØ±ÙØ¶ÙŽØ§ÙƒÙŽ Ù…ÙŽØ·Ù’Ù„ÙÙˆØ¨ÙÙŠ
+          وَرِضَاكَ مَطْلُوبِي
         </p>
         <p className="text-[#8a7a65] text-xs mt-2 italic">"Ya Allah, Engkaulah tujuanku dan keredhaan-Mu yang aku cari"</p>
       </div>
@@ -403,13 +404,13 @@ function SelesaiScreen({ jaharCount, jaharTarget, khafiMins, onClose }: {
       <button onClick={onClose}
         className="w-full py-4 font-semibold rounded-2xl text-[#060d16] hover:opacity-90 transition-opacity"
         style={{ background: 'linear-gradient(135deg, #c9a96e, #e2c89a)' }}>
-        âœ¦ Selesai
+        ✦ Selesai
       </button>
     </div>
   )
 }
 
-// â”€â”€â”€ Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Dashboard ─────────────────────────────────────────────────────────────────
 
 function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => void; onStartKhafi: () => void; user: { id: string } | null }) {
   const [stats, setStats] = useState({ todayDone: false, streak: 0, totalJahar: 0, totalKhafiMins: 0 })
@@ -449,14 +450,14 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
       <div className="bg-[#0d1821] border border-[#c9a96e15] rounded-2xl p-5 text-center space-y-2">
         <p className="font-serif text-[#c9a96e] text-base leading-loose" dir="rtl">{ayat.arab}</p>
         <p className="text-[#8a7a65] text-xs italic">{ayat.tr}</p>
-        <p className="text-[#c9a96e60] text-xs">â€” {ayat.src}</p>
+        <p className="text-[#c9a96e60] text-xs">— {ayat.src}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
         {[
           {
-            icon: stats.todayDone ? 'âœ“' : 'â—‹',
+            icon: stats.todayDone ? '✓' : '○',
             label: 'Sesi Hari Ini',
             value: stats.todayDone ? 'Selesai' : 'Belum',
             color: stats.todayDone ? 'text-emerald-400' : 'text-[#8a7a65]',
@@ -468,13 +469,13 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
             color: 'text-[#c9a96e]',
           },
           {
-            icon: 'âœ¦',
+            icon: '✦',
             label: 'Jumlah Jahar',
             value: stats.totalJahar.toLocaleString(),
             color: 'text-[#60a5fa]',
           },
           {
-            icon: 'ðŸ’œ',
+            icon: '💜',
             label: 'Jumlah Khafi',
             value: stats.totalKhafiMins >= 60
               ? `${Math.floor(stats.totalKhafiMins / 60)}j ${stats.totalKhafiMins % 60}m`
@@ -497,44 +498,40 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
       {/* Two independent entry cards */}
       <div className="space-y-3">
         <p className="text-xs font-medium text-[#c9a96e] uppercase tracking-wider px-1">Pilih Amalan</p>
-
-        {/* Zikir Jahar */}
         <button onClick={onStartJahar}
           className="w-full flex items-center gap-4 p-5 rounded-2xl border border-[#60a5fa30] bg-[#60a5fa08] hover:bg-[#60a5fa12] hover:border-[#60a5fa50] transition-all text-left">
           <div className="w-12 h-12 rounded-xl bg-[#60a5fa15] border border-[#60a5fa30] flex items-center justify-center flex-shrink-0">
-            <span className="text-xl">ðŸ”µ</span>
+            <span className="text-xl">🔵</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[#60a5fa] font-serif text-base font-medium">Zikir Jahar</p>
-            <p className="text-[#8a7a65] text-xs mt-0.5">Zikir berlafaz â€” Bacaan Pembuka, Jahar, Doa</p>
-            <p className="text-[#60a5fa60] text-xs mt-1">Jumlah: {stats.totalJahar.toLocaleString()}Ã—</p>
+            <p className="text-[#8a7a65] text-xs mt-0.5">Bacaan Pembuka, Zikir Berlafaz, Doa</p>
+            <p className="text-[#60a5fa60] text-xs mt-1">Jumlah: {stats.totalJahar.toLocaleString()}x</p>
           </div>
-          <span className="text-[#60a5fa] text-lg">â€º</span>
+          <span className="text-[#60a5fa] text-lg">›</span>
         </button>
-
-        {/* Zikir Khafi */}
         <button onClick={onStartKhafi}
           className="w-full flex items-center gap-4 p-5 rounded-2xl border border-[#a78bfa30] bg-[#a78bfa08] hover:bg-[#a78bfa12] hover:border-[#a78bfa50] transition-all text-left">
           <div className="w-12 h-12 rounded-xl bg-[#a78bfa15] border border-[#a78bfa30] flex items-center justify-center flex-shrink-0">
-            <span className="text-xl">ðŸ’œ</span>
+            <span className="text-xl">💜</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[#a78bfa] font-serif text-base font-medium">Zikir Khafi</p>
-            <p className="text-[#8a7a65] text-xs mt-0.5">Zikir hati â€” sync degupan jantung</p>
+            <p className="text-[#8a7a65] text-xs mt-0.5">Zikir hati — sync degupan jantung</p>
             <p className="text-[#a78bfa60] text-xs mt-1">
               {stats.totalKhafiMins >= 60
                 ? `${Math.floor(stats.totalKhafiMins / 60)}j ${stats.totalKhafiMins % 60}m`
                 : `${stats.totalKhafiMins} min`} terkumpul
             </p>
           </div>
-          <span className="text-[#a78bfa] text-lg">â€º</span>
+          <span className="text-[#a78bfa] text-lg">›</span>
         </button>
       </div>
     </div>
   )
 }
 
-// â”€â”€â”€ Khataman Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Khataman Tab ──────────────────────────────────────────────────────────────
 
 function KhatamanTab() {
   const today = new Date().getDay() // 0=Sun,1=Mon,...,4=Thu
@@ -544,17 +541,17 @@ function KhatamanTab() {
   return (
     <div className="space-y-5">
       <div className="text-center space-y-1 py-2">
-        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">Ø§Ù„Ø®ÙŽØªÙ’Ù…</p>
+        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">الخَتْم</p>
         <h2 className="font-serif text-[#e8dcc8] text-lg">Khataman TQN</h2>
-        <p className="text-[#8a7a65] text-xs">Makanan Roh â€” Soul Food</p>
+        <p className="text-[#8a7a65] text-xs">Makanan Roh — Soul Food</p>
       </div>
 
       {/* Hari ini indicator */}
       {isRecommended && (
         <div className="bg-[#c9a96e15] border border-[#c9a96e40] rounded-2xl p-4 flex items-center gap-3">
-          <span className="text-2xl">âœ¦</span>
+          <span className="text-2xl">✦</span>
           <div>
-            <p className="text-[#c9a96e] text-sm font-medium">Malam {DAYS[today]} â€” Malam Khataman</p>
+            <p className="text-[#c9a96e] text-sm font-medium">Malam {DAYS[today]} — Malam Khataman</p>
             <p className="text-[#8a7a65] text-xs">Malam yang disyorkan untuk hadir khataman berjemaah</p>
           </div>
         </div>
@@ -579,30 +576,30 @@ function KhatamanTab() {
                 <p className={cn('text-[9px] font-medium', isToday ? 'text-[#c9a96e]' : isRec ? 'text-[#c9a96e80]' : 'text-[#8a7a65]')}>
                   {day.slice(0, 3)}
                 </p>
-                {isRec && <span className="text-[#c9a96e] text-[10px]">âœ¦</span>}
+                {isRec && <span className="text-[#c9a96e] text-[10px]">✦</span>}
               </div>
             )
           })}
         </div>
-        <p className="text-[#8a7a65] text-xs text-center">âœ¦ = Malam Khataman (Isnin & Khamis disyorkan)</p>
+        <p className="text-[#8a7a65] text-xs text-center">✦ = Malam Khataman (Isnin & Khamis disyorkan)</p>
       </div>
 
       {/* Description */}
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
         <p className="text-[#c9a96e] text-sm font-medium">Apakah Khataman TQN?</p>
         <p className="text-[#8a7a65] text-sm leading-relaxed">
-          Khataman adalah majlis zikir berjemaah dalam Thariqah Qadiriyah Naqsyabandiyah. Roh-roh para murid berkumpul bersama guru-guru silsilah untuk membaca wird khas â€” Al-Fatihah, Istigfar, Selawat, dan Zikir bersama.
+          Khataman adalah majlis zikir berjemaah dalam Thariqah Qadiriyah Naqsyabandiyah. Roh-roh para murid berkumpul bersama guru-guru silsilah untuk membaca wird khas — Al-Fatihah, Istigfar, Selawat, dan Zikir bersama.
         </p>
         <div className="space-y-1.5">
           {[
             'Al-Fatihah (hadiah kepada Nabi & silsilah)',
-            'Istighfar (100Ã—)',
-            'Selawat Nabi (100Ã—)',
-            'Zikir Jahar berjemaah (165Ã—+)',
+            'Istighfar (100×)',
+            'Selawat Nabi (100×)',
+            'Zikir Jahar berjemaah (165×+)',
             'Doa Penutup Khataman',
           ].map(item => (
             <div key={item} className="flex items-start gap-2">
-              <span className="text-[#c9a96e] text-xs mt-0.5">âœ¦</span>
+              <span className="text-[#c9a96e] text-xs mt-0.5">✦</span>
               <p className="text-[#8a7a65] text-xs">{item}</p>
             </div>
           ))}
@@ -624,18 +621,18 @@ function KhatamanTab() {
             <span className="text-xs px-2 py-0.5 rounded-lg border text-[#c9a96e] bg-[#c9a96e15] border-[#c9a96e30]">{s.badge}</span>
           </div>
         ))}
-        <p className="text-[#8a7a65] text-xs pt-1">Minimum 2Ã— seminggu. Boleh hadir setiap malam jika mampu.</p>
+        <p className="text-[#8a7a65] text-xs pt-1">Minimum 2× seminggu. Boleh hadir setiap malam jika mampu.</p>
       </div>
 
       <div className="flex items-center justify-center gap-2 py-4 text-[#8a7a65]">
-        <span className="text-xs">ðŸ“– Log kehadiran & rakaman khataman</span>
+        <span className="text-xs">📖 Log kehadiran & rakaman khataman</span>
         <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#1e2d40] border border-[#2a3d55]">Akan Datang</span>
       </div>
     </div>
   )
 }
 
-// â”€â”€â”€ Manakiban Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Manakiban Tab ─────────────────────────────────────────────────────────────
 
 function ManakibanTab() {
   const NEXT_11 = (() => {
@@ -658,7 +655,7 @@ function ManakibanTab() {
   return (
     <div className="space-y-5">
       <div className="text-center space-y-1 py-2">
-        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">Ø§Ù„Ù…ÙŽÙ†ÙŽØ§Ù‚ÙØ¨</p>
+        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">المَنَاقِب</p>
         <h2 className="font-serif text-[#e8dcc8] text-lg">Manakiban</h2>
         <p className="text-[#8a7a65] text-xs">Manakib Syeikh Abdul Qadir Al-Jailani r.a.</p>
       </div>
@@ -667,16 +664,16 @@ function ManakibanTab() {
       <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-5 space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-[#c9a96e15] border border-[#c9a96e30] flex items-center justify-center flex-shrink-0">
-            <span className="font-serif text-[#c9a96e] text-xl">Ø¹</span>
+            <span className="font-serif text-[#c9a96e] text-xl">ع</span>
           </div>
           <div>
             <p className="text-[#e8dcc8] font-medium text-sm">Syeikh Abdul Qadir Al-Jailani r.a.</p>
-            <p className="text-[#8a7a65] text-xs">470H â€“ 561H (1077M â€“ 1166M)</p>
-            <p className="text-[#c9a96e] text-xs">Al-Ghawts Al-A'zam Â· Muhyiddin</p>
+            <p className="text-[#8a7a65] text-xs">470H – 561H (1077M – 1166M)</p>
+            <p className="text-[#c9a96e] text-xs">Al-Ghawts Al-A'zam · Muhyiddin</p>
           </div>
         </div>
         <p className="text-[#8a7a65] text-sm leading-relaxed">
-          "Sultannya para wali" â€” pengasas Thariqah Qadiriyah. Penyambung silsilah TQN kepada Nabi Muhammad ï·º melalui jalur kerohanian.
+          "Sultannya para wali" — pengasas Thariqah Qadiriyah. Penyambung silsilah TQN kepada Nabi Muhammad ﷺ melalui jalur kerohanian.
         </p>
       </div>
 
@@ -707,32 +704,32 @@ function ManakibanTab() {
       </div>
 
       <div className="flex items-center justify-center gap-2 py-4 text-[#8a7a65]">
-        <span className="text-xs">ðŸ“– Log kehadiran & bacaan Manakib</span>
+        <span className="text-xs">📖 Log kehadiran & bacaan Manakib</span>
         <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#1e2d40] border border-[#2a3d55]">Akan Datang</span>
       </div>
     </div>
   )
 }
 
-// â”€â”€â”€ Inabah Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Inabah Tab ────────────────────────────────────────────────────────────────
 
 function InabaTab() {
   const SCHEDULE = [
-    { time: '02:00 â€“ 03:30', amalan: 'Tahajjud', sub: 'Solat malam & munajat', color: '#a78bfa' },
-    { time: '05:00 â€“ 05:45', amalan: 'Subuh + Wirid', sub: 'Solat Subuh & wirid Subuh panjang', color: '#60a5fa' },
-    { time: '06:00 â€“ 07:00', amalan: 'Dhuha', sub: 'Solat Dhuha (4 rakaat)', color: '#fbbf24' },
-    { time: '08:00 â€“ 10:00', amalan: 'Mujahadah', sub: 'Tilawah Al-Quran & zikir pagi', color: '#c9a96e' },
-    { time: '12:30 â€“ 13:30', amalan: 'Zuhur + Zikir', sub: 'Solat Zuhur & zikir harian', color: '#c9a96e' },
-    { time: '15:30 â€“ 16:00', amalan: 'Asar', sub: 'Solat Asar & wirid ringkas', color: '#c9a96e' },
-    { time: '18:15 â€“ 19:00', amalan: 'Maghrib + Wirid', sub: 'Solat Maghrib & wirid Maghrib', color: '#f97316' },
-    { time: '19:30 â€“ 20:30', amalan: 'Isyak + Zikir Malam', sub: 'Solat Isyak & muhasabah malam', color: '#8b5cf6' },
-    { time: '20:30 â€“ 22:00', amalan: 'Khataman (Isnin/Khamis)', sub: 'Zikir berjemaah & doa', color: '#c9a96e' },
+    { time: '02:00 – 03:30', amalan: 'Tahajjud', sub: 'Solat malam & munajat', color: '#a78bfa' },
+    { time: '05:00 – 05:45', amalan: 'Subuh + Wirid', sub: 'Solat Subuh & wirid Subuh panjang', color: '#60a5fa' },
+    { time: '06:00 – 07:00', amalan: 'Dhuha', sub: 'Solat Dhuha (4 rakaat)', color: '#fbbf24' },
+    { time: '08:00 – 10:00', amalan: 'Mujahadah', sub: 'Tilawah Al-Quran & zikir pagi', color: '#c9a96e' },
+    { time: '12:30 – 13:30', amalan: 'Zuhur + Zikir', sub: 'Solat Zuhur & zikir harian', color: '#c9a96e' },
+    { time: '15:30 – 16:00', amalan: 'Asar', sub: 'Solat Asar & wirid ringkas', color: '#c9a96e' },
+    { time: '18:15 – 19:00', amalan: 'Maghrib + Wirid', sub: 'Solat Maghrib & wirid Maghrib', color: '#f97316' },
+    { time: '19:30 – 20:30', amalan: 'Isyak + Zikir Malam', sub: 'Solat Isyak & muhasabah malam', color: '#8b5cf6' },
+    { time: '20:30 – 22:00', amalan: 'Khataman (Isnin/Khamis)', sub: 'Zikir berjemaah & doa', color: '#c9a96e' },
   ]
 
   return (
     <div className="space-y-5">
       <div className="text-center space-y-1 py-2">
-        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">Ø§Ù„Ø¥ÙÙ†ÙŽØ§Ø¨ÙŽØ©</p>
+        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">الإِنَابَة</p>
         <h2 className="font-serif text-[#e8dcc8] text-lg">Program Inabah</h2>
         <p className="text-[#8a7a65] text-xs">Kembali kepada Allah melalui disiplin ibadah harian</p>
       </div>
@@ -740,10 +737,10 @@ function InabaTab() {
       <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-4 space-y-2">
         <p className="text-[#8a7a65] text-xs uppercase tracking-wider">Apakah Inabah?</p>
         <p className="text-[#8a7a65] text-sm leading-relaxed">
-          Program pembersihan jiwa secara total â€” menggabungkan solat, zikir, mujahadah dan muhasabah dalam jadual harian yang disiplin. Inabah bermaksud "kembali sepenuhnya kepada Allah."
+          Program pembersihan jiwa secara total — menggabungkan solat, zikir, mujahadah dan muhasabah dalam jadual harian yang disiplin. Inabah bermaksud "kembali sepenuhnya kepada Allah."
         </p>
-        <p className="font-serif text-[#c9a96e] text-sm leading-loose text-center" dir="rtl">ÙˆÙŽØ£ÙŽÙ†ÙÙŠØ¨ÙÙˆØ§ Ø¥ÙÙ„ÙŽÙ‰Ù° Ø±ÙŽØ¨ÙÙ‘ÙƒÙÙ…Ù’</p>
-        <p className="text-[#8a7a65] text-xs text-center italic">"Dan kembalilah kamu kepada Tuhanmu" â€” Az-Zumar: 54</p>
+        <p className="font-serif text-[#c9a96e] text-sm leading-loose text-center" dir="rtl">وَأَنِيبُوا إِلَىٰ رَبِّكُمْ</p>
+        <p className="text-[#8a7a65] text-xs text-center italic">"Dan kembalilah kamu kepada Tuhanmu" — Az-Zumar: 54</p>
       </div>
 
       {/* Daily Schedule */}
@@ -761,28 +758,28 @@ function InabaTab() {
       </div>
 
       <div className="flex items-center justify-center gap-2 py-4 text-[#8a7a65]">
-        <span className="text-xs">ðŸ“… Pengesanan amalan harian & rekod Inabah</span>
+        <span className="text-xs">📅 Pengesanan amalan harian & rekod Inabah</span>
         <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#1e2d40] border border-[#2a3d55]">Akan Datang</span>
       </div>
     </div>
   )
 }
 
-// â”€â”€â”€ Ziarah Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Ziarah Tab ────────────────────────────────────────────────────────────────
 
 function ZiarahTab() {
   const WALI_LIST = [
     {
       name: 'Syeikh Abdul Qadir Al-Jailani r.a.',
       location: 'Baghdad, Iraq',
-      title: 'Al-Ghawts Al-A\'zam Â· Pengasas Thariqah Qadiriyah',
-      year: '470H â€“ 561H',
+      title: 'Al-Ghawts Al-A\'zam · Pengasas Thariqah Qadiriyah',
+      year: '470H – 561H',
     },
     {
       name: 'Syeikh Ahmad Khatib Sambas r.a.',
       location: 'Makkah Al-Mukarramah & Sambas, Kalimantan',
       title: 'Pengasas Thariqah Qadiriyah Naqsyabandiyah',
-      year: '1217H â€“ 1289H',
+      year: '1217H – 1289H',
     },
     {
       name: 'Syeikh Tholhah Cirebon r.a.',
@@ -793,31 +790,31 @@ function ZiarahTab() {
     {
       name: 'Abah Abuya Sepuh r.a.',
       location: 'Suryalaya, Jawa Barat',
-      title: 'Mursyid TQN Suryalaya Â· Pendiri Pondok Pesantren',
-      year: '1836M â€“ 1956M',
+      title: 'Mursyid TQN Suryalaya · Pendiri Pondok Pesantren',
+      year: '1836M – 1956M',
     },
     {
       name: 'Abah Anom r.a. (KH. A. Shohibul Wafa Tajul Arifin)',
       location: 'Suryalaya, Tasikmalaya, Jawa Barat',
-      title: 'Mursyid TQN Suryalaya Â· Penyebar ke seluruh dunia',
-      year: '1915M â€“ 2011M',
+      title: 'Mursyid TQN Suryalaya · Penyebar ke seluruh dunia',
+      year: '1915M – 2011M',
     },
   ]
 
   return (
     <div className="space-y-5">
       <div className="text-center space-y-1 py-2">
-        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">Ø§Ù„Ø²ÙÙ‘ÙŠÙŽØ§Ø±ÙŽØ©</p>
+        <p className="font-serif text-[#c9a96e] text-2xl leading-none" dir="rtl">الزِّيَارَة</p>
         <h2 className="font-serif text-[#e8dcc8] text-lg">Ziarah Wali Allah</h2>
         <p className="text-[#8a7a65] text-xs">Mengingati perjalanan mereka membawa manusia kepada Allah</p>
       </div>
 
       <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-4 space-y-2">
         <p className="text-[#8a7a65] text-sm leading-relaxed">
-          Ziarah ke makam para wali bukan sekadar melawat â€” ia menghidupkan semangat, menyambung roh kepada silsilah, dan mengingatkan kita bahawa perjalanan rohani ini nyata dan berterusan.
+          Ziarah ke makam para wali bukan sekadar melawat — ia menghidupkan semangat, menyambung roh kepada silsilah, dan mengingatkan kita bahawa perjalanan rohani ini nyata dan berterusan.
         </p>
-        <p className="font-serif text-[#c9a96e] text-sm leading-loose text-center" dir="rtl">ÙˆÙŽÙƒÙÙ†ØªÙÙ…Ù’ Ø£ÙŽÙ…Ù’ÙˆÙŽØ§ØªÙ‹Ø§ ÙÙŽØ£ÙŽØ­Ù’ÙŠÙŽØ§ÙƒÙÙ…Ù’</p>
-        <p className="text-[#8a7a65] text-xs text-center italic">"Kamu dahulunya mati, lalu Dia menghidupkan kamu" â€” Al-Baqarah: 28</p>
+        <p className="font-serif text-[#c9a96e] text-sm leading-loose text-center" dir="rtl">وَكُنتُمْ أَمْوَاتًا فَأَحْيَاكُمْ</p>
+        <p className="text-[#8a7a65] text-xs text-center italic">"Kamu dahulunya mati, lalu Dia menghidupkan kamu" — Al-Baqarah: 28</p>
       </div>
 
       {/* Wali list */}
@@ -831,21 +828,21 @@ function ZiarahTab() {
             </div>
             <p className="text-[#c9a96e] text-xs">{w.title}</p>
             <p className="text-[#8a7a65] text-xs flex items-center gap-1">
-              <span>ðŸ•Œ</span> {w.location}
+              <span>🕌</span> {w.location}
             </p>
           </div>
         ))}
       </div>
 
       <div className="flex items-center justify-center gap-2 py-4 text-[#8a7a65]">
-        <span className="text-xs">ðŸ—ºï¸ Log ziarah & panduan perjalanan</span>
+        <span className="text-xs">🗺️ Log ziarah & panduan perjalanan</span>
         <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#1e2d40] border border-[#2a3d55]">Akan Datang</span>
       </div>
     </div>
   )
 }
 
-// â”€â”€â”€ Main AmalanPage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main AmalanPage ───────────────────────────────────────────────────────────
 
 export default function AmalanPage() {
   const navigate = useNavigate()
@@ -937,40 +934,40 @@ export default function AmalanPage() {
     localStorage.removeItem('amalan_jahar_count')
   }
 
-  // â”€â”€ Gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Gate ───────────────────────────────────────────────────────────
   if (!isTalqin) {
     return (
       <div className="p-5 md:p-8 max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center space-y-5">
         <div className="w-16 h-16 rounded-2xl bg-[#c9a96e15] border border-[#c9a96e30] flex items-center justify-center">
-          <span className="font-serif text-[#c9a96e] text-2xl">âœ¦</span>
+          <span className="font-serif text-[#c9a96e] text-2xl">✦</span>
         </div>
         <div>
           <p className="font-serif text-[#c9a96e] text-2xl">Amalan TQN</p>
-          <p className="font-serif text-[#8a7a65] text-sm mt-1" dir="rtl">Ø§Ù„Ø·ÙŽÙ‘Ø±ÙÙŠÙ‚ÙŽØ© Ø§Ù„Ù‚Ø§Ø¯Ø±ÙŠØ© Ø§Ù„Ù†Ù‚Ø´Ø¨Ù†Ø¯ÙŠØ©</p>
+          <p className="font-serif text-[#8a7a65] text-sm mt-1" dir="rtl">الطَّرِيقَة القادرية النقشبندية</p>
         </div>
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 max-w-sm space-y-3">
           <p className="text-[#e8dcc8] text-sm leading-relaxed">Halaman ini untuk peserta yang telah ditalqin Zikir Jahar oleh guru.</p>
           <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-3 text-center">
-            <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">ÙÙŽØ§Ø³Ù’Ø£ÙŽÙ„ÙÙˆØ§ Ø£ÙŽÙ‡Ù’Ù„ÙŽ Ø§Ù„Ø°ÙÙ‘ÙƒÙ’Ø±Ù Ø¥ÙÙ† ÙƒÙÙ†ØªÙÙ…Ù’ Ù„ÙŽØ§ ØªÙŽØ¹Ù’Ù„ÙŽÙ…ÙÙˆÙ†ÙŽ</p>
-            <p className="text-[#8a7a65] text-xs mt-1">"Bertanyalah kepada ahli dzikir" â€” An-Nahl: 43</p>
+            <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">فَاسْأَلُوا أَهْلَ الذِّكْرِ إِن كُنتُمْ لَا تَعْلَمُونَ</p>
+            <p className="text-[#8a7a65] text-xs mt-1">"Bertanyalah kepada ahli dzikir" — An-Nahl: 43</p>
           </div>
         </div>
         <button onClick={() => navigate('/zikir')}
           className="w-full max-w-sm py-3.5 bg-[#c9a96e] text-[#060d16] font-semibold rounded-xl text-sm hover:bg-[#e2c89a] transition-colors">
-          âœ¦ Daftar Sesi Talqin
+          ✦ Daftar Sesi Talqin
         </button>
       </div>
     )
   }
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Render ─────────────────────────────────────────────────────────
   return (
     <div className="p-5 md:p-8 max-w-2xl mx-auto space-y-5 pb-8">
 
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-serif text-3xl text-[#c9a96e] leading-none">Ø§Ù„Ø£ÙŽÙ…ÙŽÙ„</p>
+          <p className="font-serif text-3xl text-[#c9a96e] leading-none">الأَمَل</p>
           <h1 className="font-serif text-xl text-[#e8dcc8] mt-1">Amalan TQN</h1>
           <p className="text-[#8a7a65] text-xs">Thariqah Qadiriyah Naqsyabandiyah</p>
         </div>
@@ -1001,7 +998,7 @@ export default function AmalanPage() {
         ))}
       </div>
 
-      {/* Zikir tab â€” always mounted to preserve session state */}
+      {/* Zikir tab — always mounted to preserve session state */}
       <div className={activeTab === 'zikir' ? '' : 'hidden'}>
         {!contentLoaded && phase !== 'dashboard' && (
           <div className="flex items-center gap-2 text-[#8a7a65] text-sm mb-4">
@@ -1023,12 +1020,12 @@ export default function AmalanPage() {
         {phase === 'khafi' && (
           <div className="space-y-3">
             <button onClick={resetSession} className="flex items-center gap-2 text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors">
-              â† Kembali
+              &larr; Kembali
             </button>
             <div className="rounded-2xl overflow-hidden border border-[#a78bfa30]" style={{ height: 'calc(100dvh - 260px)', minHeight: '480px' }}>
               <iframe
                 src="https://zikirkhafi.lovable.app"
-                title="Zikir Khafi â€” Madrasah I AM"
+                title="Zikir Khafi"
                 className="w-full h-full border-0"
                 allow="vibrate; autoplay"
                 loading="lazy"
