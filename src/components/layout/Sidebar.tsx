@@ -1,25 +1,13 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, BookHeart, Sparkles, Clock, MessageCircle, LogOut, Heart, Settings, Shield } from 'lucide-react'
+import { LogOut, Settings, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { signOut } from '@/hooks/useAuth'
 import { useTranslation } from 'react-i18next'
+import { BASE_NAV_ITEMS, AMALAN_ITEM } from './navConfig'
 
-type SidebarItem =
-  | { to: string; icon: React.ComponentType<{ size?: number }>; emoji?: never; label: string }
-  | { to: string; icon?: never; emoji: string; label: string }
-
-const BASE_NAV_ITEMS: SidebarItem[] = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Ruang Utama' },
-  { to: '/audit-jiwa', icon: BookHeart, label: 'Audit Jiwa' },
-  { to: '/zikir', icon: Sparkles, label: 'Zikir' },
-  { to: '/solat', icon: Clock, label: 'Solat' },
-  { to: '/iam', icon: MessageCircle, label: 'I AM' },
-  { to: '/hablum', icon: Heart, label: 'Hablum' },
-  { to: '/rezeki', emoji: '🗝️', label: 'Pintu Rezeki' },
-]
-
-const AMALAN_ITEM: SidebarItem = { to: '/amalan', emoji: '✦', label: 'Amalan TQN' }
+// Settings is shown in the footer section — exclude from main nav
+const MAIN_NAV_ITEMS = BASE_NAV_ITEMS.filter(item => item.to !== '/settings/notifications')
 
 export default function Sidebar() {
   const navigate = useNavigate()
@@ -27,19 +15,8 @@ export default function Sidebar() {
   const { t } = useTranslation()
 
   const navItems = user?.talqin_completed
-    ? [...BASE_NAV_ITEMS, AMALAN_ITEM]
-    : BASE_NAV_ITEMS
-
-  const NAV_LABELS: Record<string, string> = {
-    '/dashboard': t('nav.utama'),
-    '/audit-jiwa': t('nav.audit_jiwa'),
-    '/zikir': t('nav.zikir'),
-    '/solat': t('nav.solat'),
-    '/iam': t('nav.iam'),
-    '/hablum': t('nav.hablum'),
-    '/rezeki': t('nav.pintu_rezeki'),
-    '/amalan': t('nav.amalan'),
-  }
+    ? [...MAIN_NAV_ITEMS, AMALAN_ITEM]
+    : MAIN_NAV_ITEMS
 
   const displayName = user?.nickname ?? user?.name ?? 'Sahabat'
   const initial = displayName.charAt(0).toUpperCase()
@@ -61,7 +38,7 @@ export default function Sidebar() {
         <p className="text-xs text-[#8a7a65] mt-1">Perjalanan Rohani</p>
       </div>
 
-      {/* Nav */}
+      {/* Main Nav */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map(item => (
           <NavLink
@@ -80,12 +57,12 @@ export default function Sidebar() {
               ? <item.icon size={18} />
               : <span className="text-base leading-none w-[18px] text-center">{item.emoji}</span>
             }
-            <span>{NAV_LABELS[item.to] ?? item.label}</span>
+            <span>{t(item.labelKey, item.label)}</span>
           </NavLink>
         ))}
       </nav>
 
-      {/* User info + Logout */}
+      {/* Footer: Profile, Settings, Admin, Logout */}
       <div className="p-4 border-t border-[#1e2d40] space-y-2">
         <NavLink to="/settings/profile"
           className={({ isActive }) => cn(
