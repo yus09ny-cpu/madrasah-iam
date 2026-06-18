@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Bell, Loader2, CheckCircle2, Type } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Bell, Loader2, CheckCircle2, Type, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import type { AppLanguage } from '@/types'
@@ -89,9 +91,23 @@ const LANGUAGES = [
 ]
 
 export default function NotificationSettingsPage() {
-  const { user, setUser } = useAuthStore()
+  const { user, setUser, logout } = useAuthStore()
+  const navigate = useNavigate()
   const { i18n, t } = useTranslation()
   const { showRumi, toggle: toggleRumi } = useRumiMode()
+
+  async function handleLogout() {
+    try {
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000)),
+      ])
+    } catch { /* ignore */ }
+    finally {
+      logout()
+      navigate('/login', { replace: true })
+    }
+  }
   const [currentLang, setCurrentLang] = useState(i18n.language || 'bm')
 
   function handleLanguageChange(lang: string) {
@@ -384,6 +400,15 @@ export default function NotificationSettingsPage() {
         {saving ? <Loader2 size={16} className="animate-spin" /> :
          saved ? <><CheckCircle2 size={16} /> {t('tetapan.tersimpan')}</> :
          t('tetapan.simpan')}
+      </button>
+
+      {/* Sign Out */}
+      <button
+        onClick={handleLogout}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-red-400 hover:border-red-900/40 hover:bg-red-900/10 transition-all"
+      >
+        <LogOut size={15} />
+        {t('nav.tinggalkan', 'Tinggalkan Sementara')}
       </button>
     </div>
   )
