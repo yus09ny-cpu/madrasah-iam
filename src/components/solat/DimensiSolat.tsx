@@ -371,11 +371,11 @@ function TarekatPanel({ isPro }: { isPro: boolean; isTarekatUnlocked?: boolean }
         <div className="bg-[#0d1821] border border-[#60a5fa20] rounded-2xl p-6 text-center space-y-4">
           <Lock size={28} className="text-[#60a5fa] mx-auto" />
           <div>
-            <p className="font-serif text-[#60a5fa] text-xl">Solat Tarekat</p>
+            <p className="font-serif text-[#60a5fa] text-xl">Solat Berteraskan Iman</p>
             <p className="font-serif text-[#8a7a65] text-sm mt-1" dir="rtl">مَقَام الإِيمَان</p>
           </div>
           <p className="text-[#8a7a65] text-sm leading-relaxed">
-            Dimensi Solat Tarekat membuka makna batin setiap rukun — perjalanan rohani yang lebih dalam dari sekadar gerakan.
+            Dimensi Solat Berteraskan Iman membuka makna batin setiap rukun — perjalanan rohani yang lebih dalam dari sekadar gerakan.
           </p>
           <div className="bg-[#060d16] border border-[#60a5fa15] rounded-xl p-4 text-center">
             <p className="font-serif text-[#60a5fa] text-base leading-loose" dir="rtl">
@@ -443,7 +443,7 @@ function HakikatPanel({ user }: { user: User | null }) {
           <p className="text-[#8a7a65] text-sm italic">"Ya Allah, Engkaulah Tujuanku"</p>
           <div className="h-px bg-[#1e2d40]" />
           <p className="text-[#8a7a65] text-sm leading-relaxed">
-            Dimensi Hakikat anda sedang disediakan oleh Nine.
+            Dimensi Ihsan anda sedang disediakan oleh Nine.
             <br />InsyaAllah, perjalanan ini akan diteruskan tidak lama lagi.
           </p>
         </div>
@@ -458,7 +458,7 @@ function HakikatPanel({ user }: { user: User | null }) {
           <span className="font-serif text-[#a78bfa] text-xl">✦</span>
         </div>
         <div>
-          <p className="font-serif text-[#a78bfa] text-xl">Solat Hakikat</p>
+          <p className="font-serif text-[#a78bfa] text-xl">Solat Berteraskan Ihsan</p>
           <p className="font-serif text-[#8a7a65] text-sm mt-1" dir="rtl">مَقَام الإِحْسَان</p>
         </div>
         <div className="bg-[#060d16] border border-[#a78bfa15] rounded-xl p-4 space-y-3">
@@ -470,7 +470,7 @@ function HakikatPanel({ user }: { user: User | null }) {
           </p>
         </div>
         <p className="text-[#8a7a65] text-sm leading-relaxed">
-          Dimensi Hakikat adalah dimensi tertinggi — mengapa manusia dihadirkan di dunia dan apa hubungannya dengan solat.
+          Dimensi Ihsan adalah dimensi tertinggi — mengapa manusia dihadirkan di dunia dan apa hubungannya dengan solat.
         </p>
         <p className="text-[#8a7a65] text-xs leading-relaxed">
           Ini tidak boleh diajar melalui teks. Ia perlu dibuka melalui pertemuan langsung dengan Nine.
