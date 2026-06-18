@@ -311,8 +311,12 @@
     "lihat_diagnosis": "View Your Soul Diagnosis"
   },
   "tetapan": {
-    "tajuk": "Spiritual Reminders",
-    "sub": "Settings for heartfelt reminders",
+    "tajuk": "Settings",
+    "sub": "Notifications, language, and display preferences",
+    "notif_tajuk": "Spiritual Reminders",
+    "rumi_tajuk": "Rumi Mode",
+    "rumi_sub": "Show Roman transliteration below Arabic text to help with pronunciation",
+    "rumi_label": "Show Rumi Transliteration",
     "simpan": "Save Settings",
     "tersimpan": "Saved",
     "notif_browser": "Browser Notifications",

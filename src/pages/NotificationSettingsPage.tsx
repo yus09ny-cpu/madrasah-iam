@@ -1,9 +1,28 @@
 import { useState, useEffect } from 'react'
-import { Bell, Loader2, CheckCircle2 } from 'lucide-react'
+import { Bell, Loader2, CheckCircle2, Type } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import type { AppLanguage } from '@/types'
+
+const RUMI_KEY = 'madrasah_show_rumi'
+export function useRumiMode() {
+  const [showRumi, setShowRumi] = useState(() => localStorage.getItem(RUMI_KEY) === 'true')
+  function toggle() {
+    setShowRumi(prev => {
+      const next = !prev
+      localStorage.setItem(RUMI_KEY, String(next))
+      window.dispatchEvent(new Event('rumi-mode-change'))
+      return next
+    })
+  }
+  useEffect(() => {
+    function sync() { setShowRumi(localStorage.getItem(RUMI_KEY) === 'true') }
+    window.addEventListener('rumi-mode-change', sync)
+    return () => window.removeEventListener('rumi-mode-change', sync)
+  }, [])
+  return { showRumi, toggle }
+}
 
 const NOTIF_ITEMS = [
   {
@@ -72,6 +91,7 @@ const LANGUAGES = [
 export default function NotificationSettingsPage() {
   const { user, setUser } = useAuthStore()
   const { i18n, t } = useTranslation()
+  const { showRumi, toggle: toggleRumi } = useRumiMode()
   const [currentLang, setCurrentLang] = useState(i18n.language || 'bm')
 
   function handleLanguageChange(lang: string) {
@@ -178,6 +198,9 @@ export default function NotificationSettingsPage() {
         <h1 className="font-serif text-xl text-[#e8dcc8] mt-1">{t('tetapan.tajuk')}</h1>
         <p className="text-[#8a7a65] text-sm mt-0.5">{t('tetapan.sub')}</p>
       </div>
+
+      {/* Notifikasi sub-heading */}
+      <p className="text-xs font-medium text-[#c9a96e] uppercase tracking-wider px-1">{t('tetapan.notif_tajuk', 'Peringatan Rohani')}</p>
 
       {/* Permission status */}
       <div className={cn('rounded-2xl p-4 border space-y-3',
@@ -329,6 +352,30 @@ export default function NotificationSettingsPage() {
         <p className="text-[#8a7a65] text-xs leading-relaxed">
           <span className="text-[#c9a96e]">✦</span> {t('bahasa.arab_kekal')}
         </p>
+      </div>
+
+      {/* ── Mod Rumi ──────────────────────────────────────────────────── */}
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-4">
+        <div className="flex items-center gap-2 mb-1">
+          <Type size={15} className="text-[#c9a96e]" />
+          <p className="text-sm font-medium text-[#e8dcc8]">{t('tetapan.rumi_tajuk', 'Mod Rumi')}</p>
+        </div>
+        <p className="text-xs text-[#8a7a65] leading-relaxed -mt-2">{t('tetapan.rumi_sub', 'Papar transliterasi Rumi di bawah tulisan Arab untuk bantu sebutan')}</p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-[#e8dcc8]">{t('tetapan.rumi_label', 'Tunjukkan Transliterasi Rumi')}</p>
+          <button onClick={toggleRumi}
+            className={cn('w-11 h-6 rounded-full relative transition-all flex-shrink-0',
+              showRumi ? 'bg-[#c9a96e]' : 'bg-[#1e2d40]')}>
+            <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all',
+              showRumi ? 'left-[22px]' : 'left-0.5')} />
+          </button>
+        </div>
+        {showRumi && (
+          <div className="bg-[#060d16] rounded-xl p-3 space-y-1">
+            <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">سُبْحَانَ اللَّهِ</p>
+            <p className="text-[#8a7a65] text-xs italic">Subhanallah</p>
+          </div>
+        )}
       </div>
 
       {/* Save button */}

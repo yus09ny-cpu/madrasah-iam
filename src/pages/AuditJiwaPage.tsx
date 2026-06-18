@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, ChevronLeft, RotateCcw, Loader2, CheckCircle2, BookOpen, ChevronDown, Lock } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
-import { useTodayAuditJiwa, useSaveAuditJiwa } from '@/hooks/useAuditJiwa'
+import { useTodayAuditJiwa, useSaveAuditJiwa, useAuditJiwaCount } from '@/hooks/useAuditJiwa'
 import { callAnthropic } from '@/lib/anthropic-fetch'
 import AuditMotivasiCard from '@/components/AuditMotivasiCard'
 import { cn } from '@/lib/utils'
@@ -1276,15 +1276,19 @@ function AuditUpgradeModal({ onClose }: { onClose: () => void }) {
   )
 }
 
+const FREE_AUDIT_LIMIT = 2
+
 export default function AuditJiwaPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
   const { data: todayEntry } = useTodayAuditJiwa()
   const { mutate: saveAuditToSupabase } = useSaveAuditJiwa()
+  const { data: auditCount = 0 } = useAuditJiwaCount()
 
   const isPro = user?.tier === 'pro' || user?.tier === 'family'
   const userTier = isPro ? 'pro' : 'free'
+  const isFreeLimitReached = !isPro && auditCount >= FREE_AUDIT_LIMIT
 
   const [phase, setPhase] = useState<Phase>('opening')
   const [pillarIndex, setPillarIndex] = useState(0)
@@ -1491,8 +1495,45 @@ export default function AuditJiwaPage() {
         </div>
       )}
 
+      {/* Phase: Opening — Free limit gate */}
+      {phase === 'opening' && user && isFreeLimitReached && (
+        <div className="space-y-5 py-4">
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-[#c9a96e15] border border-[#c9a96e30] flex items-center justify-center mx-auto">
+              <span className="font-serif text-[#c9a96e] text-2xl">✦</span>
+            </div>
+            <p className="font-serif text-3xl text-[#c9a96e] leading-none" dir="rtl">مُحاسَبَة</p>
+            <h2 className="font-serif text-xl text-[#e8dcc8]">{t('ajv2.tajuk', 'Audit Jiwa')}</h2>
+          </div>
+          <div className="bg-[#0d1821] border border-[#c9a96e30] rounded-2xl p-5 space-y-3 text-center">
+            <p className="text-[#c9a96e] text-sm font-medium">
+              {t('ajv2.had_percuma_tajuk', 'Had Audit Percuma Dicapai')}
+            </p>
+            <p className="text-[#8a7a65] text-sm leading-relaxed">
+              {t('ajv2.had_percuma_desc', `Anda telah membuat ${FREE_AUDIT_LIMIT} audit percuma. Untuk terus memantau perjalanan jiwa anda dari semasa ke semasa, naik taraf ke Pro.`)}
+            </p>
+            <div className="bg-[#060d16] rounded-xl p-3">
+              <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">
+                أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ
+              </p>
+              <p className="text-[#8a7a65] text-xs italic mt-1">"Ketahuilah, dengan mengingati Allah hati-hati akan menjadi tenteram." — Ar-Ra'd: 28</p>
+            </div>
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="w-full py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #c9a96e, #a07840)', color: '#060d16' }}
+            >
+              {t('ajv2.upsell_cta', 'Audit Lebih Mendalam (30 Soalan) — Naik Taraf ke Pro')}
+            </button>
+          </div>
+          <p className="text-center text-[#8a7a65] text-xs">
+            {t('ajv2.had_percuma_nota', `${auditCount} daripada ${FREE_AUDIT_LIMIT} audit percuma telah digunakan`)}
+          </p>
+        </div>
+      )}
+
       {/* Phase: Opening */}
-      {phase === 'opening' && user && (
+      {phase === 'opening' && user && !isFreeLimitReached && (
         <OpeningScreen
           user={user}
           isPro={isPro}

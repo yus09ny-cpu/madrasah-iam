@@ -311,8 +311,12 @@
     "lihat_diagnosis": "Lihat Diagnosis Jiwa Anda"
   },
   "tetapan": {
-    "tajuk": "Peringatan Rohani",
-    "sub": "Tetapan peringatan yang menyentuh hati",
+    "tajuk": "Tetapan",
+    "sub": "Notifikasi, bahasa, dan pilihan paparan",
+    "notif_tajuk": "Peringatan Rohani",
+    "rumi_tajuk": "Mod Rumi",
+    "rumi_sub": "Papar transliterasi Rumi di bawah tulisan Arab untuk bantu sebutan",
+    "rumi_label": "Tunjukkan Transliterasi Rumi",
     "simpan": "Simpan Tetapan",
     "tersimpan": "Tersimpan",
     "notif_browser": "Notifikasi Browser",

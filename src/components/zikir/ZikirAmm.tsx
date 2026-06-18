@@ -3,6 +3,7 @@ import { CheckCircle2, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
+import { useRumiMode } from '@/pages/NotificationSettingsPage'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -62,7 +63,7 @@ function DailyChart({ counts }: { counts: Record<string, number> }) {
           return (
             <div key={z.id}>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-[#8a7a65]">{z.rumi}</span>
+                <span className="text-[#8a7a65]">{showRumi ? z.rumi : z.name}</span>
                 <span style={{ color: complete ? '#4ade80' : z.hex }}>
                   {cnt}/{z.target}{complete ? ' ✓' : ` (${Math.round(pct)}%)`}
                 </span>
@@ -85,6 +86,7 @@ function DailyChart({ counts }: { counts: Record<string, number> }) {
 
 export default function ZikirAmm() {
   const { t } = useTranslation()
+  const { showRumi } = useRumiMode()
   const [ayatIdx, setAyatIdx] = useState(0)
   const [activeId, setActiveId] = useState(ZIKIR_LIST[0].id)
   const [counts, setCounts] = useState<Record<string, number>>(loadTodayCounts)
@@ -167,7 +169,7 @@ export default function ZikirAmm() {
           <p className="font-serif leading-loose" style={{ fontSize: 'clamp(1.8rem, 6vw, 2.8rem)', color: active.hex, direction: 'rtl' }}>
             {active.arabic}
           </p>
-          <p className="text-[#e8dcc8] text-sm mt-1">{active.rumi}</p>
+          {showRumi && <p className="text-[#8a7a65] text-xs italic mt-0.5">{active.rumi}</p>}
           <p className="text-[#8a7a65] text-xs">{active.meaning}</p>
         </div>
 

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, BookHeart, Sparkles, Clock, MessageCircle, LogOut, Heart, Bell, Shield } from 'lucide-react'
+import { LayoutDashboard, BookHeart, Sparkles, Clock, MessageCircle, LogOut, Heart, Settings, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { signOut } from '@/hooks/useAuth'
@@ -105,8 +105,8 @@ export default function Sidebar() {
             'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200',
             isActive ? 'text-[#c9a96e]' : 'text-[#8a7a65] hover:text-[#e8dcc8] hover:bg-[#1a2535]'
           )}>
-          <Bell size={16} />
-          <span>{t('nav.notifikasi')}</span>
+          <Settings size={16} />
+          <span>{t('nav.tetapan')}</span>
         </NavLink>
         {(user?.role === 'master_admin' || user?.role === 'super_admin' || user?.role === 'wakil_talkin') && (
           <NavLink to="/admin"

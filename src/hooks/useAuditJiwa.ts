@@ -69,6 +69,27 @@ export function useAuditJiwaHistory(limit = 30) {
   })
 }
 
+export function useAuditJiwaCount() {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['audit-jiwa-count', user?.id],
+    queryFn: async () => {
+      if (!user) return 0
+      try {
+        const { count, error } = await supabase
+          .from('audit_jiwa_entries')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('selesai', true)
+        if (error) return 0
+        return count ?? 0
+      } catch { return 0 }
+    },
+    enabled: !!user,
+    retry: false,
+  })
+}
+
 export function useSaveAuditJiwa() {
   const { user } = useAuthStore()
   const queryClient = useQueryClient()
