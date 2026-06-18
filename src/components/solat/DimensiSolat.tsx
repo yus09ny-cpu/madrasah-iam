@@ -14,6 +14,16 @@ const SYARIAT_OPENING = {
 
 const RUKUN_DATA = [
   {
+    id: 'wudhu',
+    name: "Wudhu'",
+    arabic: 'الوُضُوء',
+    icon: '💧',
+    simbolik: "Sebelum berdiri di hadapan Allah, kamu perlu bersih — zahir dan batin. Wudhu' zahir membersihkan anggota fizikal dengan air mengikut syariat. Wudhu' batin membersihkan qalbu melalui taubat dan penyucian jiwa (tazkiyatun nafs) — sebagaimana diajarkan dalam Kitab Sirrul Asrar oleh Syeikh Abdul Qadir Al-Jailani. Qalbu adalah pusat penyaksian (mahall al-musyahadah) — ia perlu 'diperbaharui' sentiasa, seperti wudhu' zahir yang batal oleh hadas.",
+    implikasi: "Wudhu' zahir batal dengan hadas kecil dan besar. Wudhu' batin 'batal' dengan dosa, kelalaian, dan hati yang jauh dari Allah. Orang yang selalu menjaga wudhu' batin — menjaga qalbunya bersih dengan zikir, taubat, dan muhasabah — sentiasa berada dalam keadaan bersuci di hadapan Allah, walaupun di luar waktu solat.",
+    soalan: "Apa yang paling kerap 'membatalkan' wudhu' batin kamu — dan apa langkah kamu untuk membaharuinya?",
+    iam_prompt: "Pengguna sedang merenungi simbolik Wudhu' Zahir dan Batin — bersuci fizikal dan spiritual sebelum solat. Bantu mereka merenung tentang apa yang 'menajiskan' hati mereka dalam kehidupan harian dan bagaimana untuk membersihkannya.",
+  },
+  {
     id: 'takbir',
     name: 'Takbiratul Ihram',
     arabic: 'اللَّهُ أَكْبَرُ',
