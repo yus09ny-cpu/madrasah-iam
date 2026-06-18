@@ -1226,7 +1226,7 @@ function RekodTab({ isPro }: { isPro: boolean }) {
           <p className="text-[#8a7a65] text-xs italic">"Allah tidak membebani melainkan sesuai kesanggupan" — Al-Baqarah: 286</p>
         </div>
         <a
-          href={`https://wa.me/60182119135?text=${encodeURIComponent('Saya ingin upgrade ke Pro untuk akses Rekod & Analitik Pintu Rezeki.')}`}
+          href={`https://wa.me/60182119135?text=${encodeURIComponent('Saya minat dengan feature Rekod & Analitik di Pintu Rezeki Madrasah I AM')}`}
           target="_blank" rel="noopener noreferrer"
           className="w-full py-3.5 rounded-2xl text-sm font-medium bg-[#c9a96e20] border border-[#c9a96e50] text-[#c9a96e] hover:bg-[#c9a96e30] transition-colors text-center block"
         >
