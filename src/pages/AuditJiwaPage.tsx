@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { format } from 'date-fns'
 import ReactMarkdown from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, ChevronLeft, RotateCcw, Loader2, CheckCircle2, BookOpen, ChevronDown, Lock } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
-import { useTodayAuditJiwa, useSaveAuditJiwa, useAuditJiwaCount } from '@/hooks/useAuditJiwa'
+import { useTodayAuditJiwa, useSaveAuditJiwa } from '@/hooks/useAuditJiwa'
 import { callAnthropic } from '@/lib/anthropic-fetch'
 import AuditMotivasiCard from '@/components/AuditMotivasiCard'
 import { cn } from '@/lib/utils'
@@ -1278,6 +1279,25 @@ function AuditUpgradeModal({ onClose }: { onClose: () => void }) {
 }
 
 const FREE_AUDIT_LIMIT = 2
+const DAILY_AUDIT_KEY = (uid: string) => `madrasah_free_audit_${uid}`
+
+function getDailyAuditCount(userId: string): number {
+  try {
+    const raw = localStorage.getItem(DAILY_AUDIT_KEY(userId))
+    if (!raw) return 0
+    const { date, count } = JSON.parse(raw) as { date: string; count: number }
+    return date === format(new Date(), 'yyyy-MM-dd') ? count : 0
+  } catch { return 0 }
+}
+
+function incrementDailyAuditCount(userId: string): number {
+  try {
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const next = getDailyAuditCount(userId) + 1
+    localStorage.setItem(DAILY_AUDIT_KEY(userId), JSON.stringify({ date: today, count: next }))
+    return next
+  } catch { return 0 }
+}
 
 export default function AuditJiwaPage() {
   const { t } = useTranslation()
@@ -1285,11 +1305,14 @@ export default function AuditJiwaPage() {
   const { user } = useAuthStore()
   const { data: todayEntry } = useTodayAuditJiwa()
   const { mutate: saveAuditToSupabase } = useSaveAuditJiwa()
-  const { data: auditCount = 0 } = useAuditJiwaCount()
 
   const isPro = user?.tier === 'pro' || user?.tier === 'family'
   const userTier = isPro ? 'pro' : 'free'
-  const isFreeLimitReached = !isPro && auditCount >= FREE_AUDIT_LIMIT
+
+  const [dailyAuditCount, setDailyAuditCount] = useState(() =>
+    user ? getDailyAuditCount(user.id) : 0
+  )
+  const isFreeLimitReached = !isPro && dailyAuditCount >= FREE_AUDIT_LIMIT
 
   const [phase, setPhase] = useState<Phase>('opening')
   const [pillarIndex, setPillarIndex] = useState(0)
@@ -1453,6 +1476,10 @@ export default function AuditJiwaPage() {
 
   function handleReset() {
     setDidReset(true)
+    if (!isPro && user?.id) {
+      const newCount = incrementDailyAuditCount(user.id)
+      setDailyAuditCount(newCount)
+    }
     if (user?.id) {
       try {
         localStorage.removeItem(getTodayKey(user.id))
@@ -1534,7 +1561,7 @@ export default function AuditJiwaPage() {
             </Link>
           </div>
           <p className="text-center text-[#8a7a65] text-xs">
-            {t('ajv2.had_percuma_nota', `${auditCount} daripada ${FREE_AUDIT_LIMIT} audit percuma digunakan hari ini`)}
+            {t('ajv2.had_percuma_nota', `${dailyAuditCount} daripada ${FREE_AUDIT_LIMIT} audit percuma digunakan hari ini`)}
           </p>
         </div>
       )}
