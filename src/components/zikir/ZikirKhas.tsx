@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Loader2, Lock, ArrowLeft, Play, Square } from 'lucide-react'
+import { CheckCircle2, Loader2, Lock, ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useSaveZikir } from '@/hooks/useZikir'
 import { supabase } from '@/lib/supabase'
@@ -662,188 +662,32 @@ function ZikirJahar() {
   )
 }
 
-// ─── Khafi Timer — timer sesi tanpa animasi nafas ────────────────────────────
-
-const KHAFI_DURATIONS = [5, 10, 15, 20] as const
-
-function KhafiTimer() {
-  const { user } = useAuthStore()
-  const { mutateAsync: saveZikir } = useSaveZikir()
-  const today = format(new Date(), 'yyyy-MM-dd')
-
-  const [selectedMins, setSelectedMins] = useState<typeof KHAFI_DURATIONS[number]>(10)
-  const [isRunning, setIsRunning] = useState(false)
-  const [secondsLeft, setSecondsLeft] = useState(10 * 60)
-  const [sessionSaved, setSessionSaved] = useState(false)
-
-  useEffect(() => {
-    if (!isRunning) return
-    const iv = setInterval(() => {
-      setSecondsLeft(s => {
-        if (s <= 1) {
-          setIsRunning(false)
-          handleSessionEnd(selectedMins * 60)
-          return 0
-        }
-        return s - 1
-      })
-    }, 1000)
-    return () => clearInterval(iv)
-  }, [isRunning])
-
-  async function handleSessionEnd(totalSeconds: number) {
-    if (!user) return
-    try {
-      await saveZikir({
-        type: 'khafi', zikir_name: 'Zikir Khafi',
-        count: totalSeconds, target: selectedMins * 60,
-        completed: true, date: today,
-      })
-      setSessionSaved(true)
-    } catch { /* table not yet created */ }
-  }
-
-  function startSession() {
-    setSecondsLeft(selectedMins * 60)
-    setSessionSaved(false)
-    setIsRunning(true)
-  }
-
-  function stopSession() {
-    const elapsed = selectedMins * 60 - secondsLeft
-    setIsRunning(false)
-    if (elapsed > 30) handleSessionEnd(elapsed)
-  }
-
-  const mins = Math.floor(secondsLeft / 60)
-  const secs = secondsLeft % 60
-  const timeDisplay = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-
-  return (
-    <div className="space-y-4">
-      {/* Hadith */}
-      <div className="bg-[#060d16] border border-[#a78bfa15] rounded-xl p-4 text-center space-y-1.5">
-        <p className="font-serif text-[#a78bfa] text-base leading-loose" dir="rtl">أَفْضَلُ الذِّكْرِ مَا خَفِيَ</p>
-        <p className="text-[#8a7a65] text-xs italic">"Zikir yang paling utama adalah yang tersembunyi" — HR. Ahmad</p>
-      </div>
-
-      {/* Duration selector */}
-      {!isRunning && (
-        <div className="flex gap-2">
-          {KHAFI_DURATIONS.map(d => (
-            <button key={d}
-              onClick={() => { setSelectedMins(d); setSecondsLeft(d * 60) }}
-              className={cn('flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all',
-                selectedMins === d ? 'border-[#a78bfa50] bg-[#a78bfa15] text-[#a78bfa]' : 'border-[#1e2d40] text-[#8a7a65] hover:text-[#e8dcc8]')}>
-              {d} min
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Timer + Teks Zikir */}
-      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-6 text-center space-y-4">
-        <p className="font-serif text-[#a78bfa] leading-loose"
-          style={{ fontSize: isRunning ? 'clamp(1.8rem, 8vw, 2.8rem)' : '1.5rem' }}
-          dir="rtl">
-          اَللَّه
-        </p>
-        <p className="text-[#8a7a65] font-mono text-3xl tracking-widest">{timeDisplay}</p>
-        {secondsLeft === 0 && sessionSaved && (
-          <div className="flex items-center justify-center gap-2">
-            <CheckCircle2 size={18} className="text-[#a78bfa]" />
-            <p className="text-[#a78bfa] text-sm">Sesi dicatat. Alhamdulillah.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Buttons */}
-      {secondsLeft === 0 ? (
-        <button onClick={startSession}
-          className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#a78bfa20] border border-[#a78bfa40] text-[#a78bfa] rounded-2xl text-sm font-medium hover:bg-[#a78bfa30] transition-colors">
-          <Play size={15} />
-          Mulakan Semula
-        </button>
-      ) : isRunning ? (
-        <button onClick={stopSession}
-          className="w-full flex items-center justify-center gap-2 py-3.5 border border-[#1e2d40] rounded-2xl text-sm text-[#8a7a65] hover:text-red-400 hover:border-red-900/40 transition-colors">
-          <Square size={14} />
-          Tamatkan Sesi
-        </button>
-      ) : (
-        <button onClick={startSession}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-semibold text-white transition-all hover:opacity-90"
-          style={{ backgroundColor: '#a78bfa' }}>
-          <Play size={16} />
-          Mulakan Sesi {selectedMins} Minit
-        </button>
-      )}
-    </div>
-  )
-}
-
 // ─── Zikir Khafi Section ───────────────────────────────────────────────────────
 
-function ZikirKhafi({ hasJaharRequest }: { hasJaharRequest: boolean }) {
-  // 'talqin_khafi' bukan lajur dalam 'profiles' — anggap belum ditalqin
-  // sehingga status ini disokong dalam pangkalan data.
-  const isTalqin = false
-
+function ZikirKhafi({ hasJaharRequest: _hasJaharRequest }: { hasJaharRequest: boolean }) {
   return (
-    <div className="space-y-4">
-      {/* Header card */}
-      <div className="bg-[#0d1821] border border-[#a78bfa30] rounded-2xl p-5 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#a78bfa15] border border-[#a78bfa30] flex items-center justify-center flex-shrink-0">
-            <span className="text-lg">💜</span>
-          </div>
-          <div>
-            <p className="text-[#a78bfa] font-serif text-base">Zikir Khafi</p>
-            <p className="text-[#8a7a65] text-xs">Zikir Hati</p>
-          </div>
+    <div className="space-y-3">
+      {/* Context strip */}
+      <div className="flex items-center gap-3 px-1">
+        <div className="w-8 h-8 rounded-xl bg-[#a78bfa15] border border-[#a78bfa30] flex items-center justify-center flex-shrink-0">
+          <span className="text-sm">💜</span>
         </div>
-
-        <p className="text-[#e8dcc8] text-sm leading-relaxed">
-          Zikir Khafi adalah zikir yang tidak bersuara, dilakukan mengikut degupan jantung. Ia adalah zikir paling tinggi darjatnya — zikir hati yang tidak pernah berhenti.
-        </p>
-
-        <div className="bg-[#060d16] border border-[#a78bfa15] rounded-xl p-4 text-center">
-          <p className="font-serif text-[#a78bfa] text-base leading-loose" dir="rtl">أَفْضَلُ الذِّكْرِ مَا خَفِيَ</p>
-          <p className="text-[#8a7a65] text-xs mt-2 italic">
-            "Zikir yang paling utama adalah yang tersembunyi (dalam hati)"
-          </p>
-          <p className="text-[#a78bfa60] text-xs mt-1">— Hadith Riwayat Ahmad</p>
+        <div>
+          <p className="text-[#a78bfa] font-serif text-sm">Zikir Khafi — Zikir Hati</p>
+          <p className="font-serif text-[#a78bfa60] text-xs" dir="rtl">أَفْضَلُ الذِّكْرِ مَا خَفِيَ</p>
         </div>
-
-        <p className="text-[#8a7a65] text-xs text-center">
-          Zikir ini <strong className="text-[#a78bfa]">MESTI</strong> diajar secara langsung oleh guru sebelum boleh diamalkan dengan betul.
-        </p>
       </div>
 
-      {/* State: Belum talqin */}
-      {!isTalqin && (
-        <div className="bg-[#0d1821] border border-[#a78bfa20] rounded-2xl p-5 text-center space-y-3">
-          {hasJaharRequest ? (
-            <>
-              <p className="text-[#a78bfa] font-medium text-sm">⏳ Menunggu Talqin Jahar</p>
-              <p className="text-[#8a7a65] text-xs leading-relaxed">
-                Zikir Khafi diajar selepas peserta menguasai Zikir Jahar. Sila selesaikan sesi talqin Zikir Jahar terlebih dahulu.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-[#a78bfa] font-medium text-sm">Talqin Diperlukan</p>
-              <p className="text-[#8a7a65] text-xs leading-relaxed">
-                Sila daftar sesi talqin untuk Zikir Jahar terlebih dahulu. Zikir Khafi akan diajar selepas anda menguasai Zikir Jahar.
-              </p>
-              <p className="text-[#8a7a65] text-xs">↑ Daftar melalui bahagian Zikir Jahar di atas</p>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* State: Sudah talqin — timer sesi */}
-      {isTalqin && <KhafiTimer />}
+      {/* Lovable embed */}
+      <div className="rounded-2xl overflow-hidden border border-[#a78bfa30]" style={{ height: 'calc(100dvh - 220px)', minHeight: '480px' }}>
+        <iframe
+          src="https://zikirkhafi.lovable.app"
+          title="Zikir Khafi — Madrasah I AM"
+          className="w-full h-full border-0"
+          allow="vibrate; autoplay"
+          loading="lazy"
+        />
+      </div>
     </div>
   )
 }
