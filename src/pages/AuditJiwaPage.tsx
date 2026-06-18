@@ -1329,6 +1329,7 @@ export default function AuditJiwaPage() {
 
   const pendingScores = useRef<PillarScores | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const lastSessionRef = useRef<SavedSession | null>(null)
 
   // On mount: check if already completed today, restore draft
   useEffect(() => {
@@ -1479,6 +1480,9 @@ export default function AuditJiwaPage() {
     if (!isPro && user?.id) {
       const newCount = incrementDailyAuditCount(user.id)
       setDailyAuditCount(newCount)
+      if (newCount >= FREE_AUDIT_LIMIT) {
+        lastSessionRef.current = savedSession
+      }
     }
     if (user?.id) {
       try {
@@ -1553,12 +1557,24 @@ export default function AuditJiwaPage() {
             >
               {t('ajv2.upsell_cta', 'Audit Lebih Mendalam (30 Soalan) — Naik Taraf ke Pro')}
             </button>
-            <Link
-              to="/dashboard"
-              className="block w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] hover:border-[#c9a96e30] transition-all"
-            >
-              ← {t('umum.kembali', 'Kembali ke Utama')}
-            </Link>
+            {lastSessionRef.current ? (
+              <button
+                onClick={() => {
+                  setSavedSession(lastSessionRef.current)
+                  setPhase('done')
+                }}
+                className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] hover:border-[#c9a96e30] transition-all"
+              >
+                ← {t('ajv2.lihat_audit_terakhir', 'Lihat Semula Audit Terakhir')}
+              </button>
+            ) : (
+              <Link
+                to="/dashboard"
+                className="block w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] hover:border-[#c9a96e30] transition-all text-center"
+              >
+                ← {t('umum.kembali', 'Kembali ke Utama')}
+              </Link>
+            )}
           </div>
           <p className="text-center text-[#8a7a65] text-xs">
             {t('ajv2.had_percuma_nota', `${dailyAuditCount} daripada ${FREE_AUDIT_LIMIT} audit percuma digunakan hari ini`)}
