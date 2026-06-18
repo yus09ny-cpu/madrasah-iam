@@ -1,5 +1,52 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle2, Loader2, Lock } from 'lucide-react'
+
+function HablumUpgradeModal({ onClose }: { onClose: () => void }) {
+  const { user } = useAuthStore()
+  const [loadingPkg, setLoadingPkg] = useState<'pro' | 'pro_plus' | null>(null)
+  const [error, setError] = useState('')
+  async function handleUpgrade(pkg: 'pro' | 'pro_plus') {
+    if (!user) return
+    setError(''); setLoadingPkg(pkg)
+    try {
+      const res = await fetch('/api/create-bill', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, email: user.email, nama: user.name ?? user.email, package: pkg }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data?.error?.message ?? 'Gagal mencipta bil')
+      window.location.href = data.url
+    } catch { setError('Gagal memulakan pembayaran. Sila cuba lagi.'); setLoadingPkg(null) }
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5" onClick={onClose}>
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          <Lock size={16} className="text-[#c9a96e]" />
+          <p className="text-[#c9a96e] font-medium text-sm">Buka Hablumminannas</p>
+        </div>
+        <p className="text-[#e8dcc8] text-sm leading-relaxed">Akses refleksi, amalan, dan doa untuk tali hubungan dengan manusia — keluarga, sahabat, dan komuniti.</p>
+        {error && <p className="text-red-400 text-xs">{error}</p>}
+        <div className="space-y-2">
+          <button onClick={() => handleUpgrade('pro')} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            {loadingPkg === 'pro' && <Loader2 size={14} className="animate-spin" />}
+            Upgrade ke Pro — RM19.90/bulan
+          </button>
+          <button onClick={() => handleUpgrade('pro_plus')} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            {loadingPkg === 'pro_plus' && <Loader2 size={14} className="animate-spin" />}
+            Upgrade ke Pro Plus — RM29.90/bulan
+          </button>
+          <button onClick={onClose} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors disabled:opacity-60">
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 import { useAuthStore } from '@/store/authStore'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
@@ -219,6 +266,7 @@ export default function HablumPage() {
   const { user } = useAuthStore()
   const isPro = user?.tier === 'pro' || user?.tier === 'family'
   const [tab, setTab] = useState<'minallah' | 'minannas'>('minallah')
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   return (
     <div className="p-5 md:p-8 max-w-2xl mx-auto space-y-5 pb-8">
@@ -280,8 +328,8 @@ export default function HablumPage() {
                 Tali hubungan anda dengan Allah sudah mula terbina.<br/>
                 Tali yang sempurna memerlukan kedua-duanya.
               </p>
-              <button className="w-full py-2.5 bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium rounded-xl hover:bg-[#c9a96e25] transition-colors mt-1">
-                ✦ Buka Hablumminannas — Perjalanan ini ada lebih dalam...
+              <button onClick={() => setShowUpgradeModal(true)} className="w-full py-2.5 bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium rounded-xl hover:bg-[#c9a96e25] transition-colors mt-1">
+                ✦ Buka Hablumminannas — Naik Taraf ke Pro
               </button>
             </div>
           )}
@@ -327,6 +375,7 @@ export default function HablumPage() {
         </div>
       )}
 
+      {showUpgradeModal && <HablumUpgradeModal onClose={() => setShowUpgradeModal(false)} />}
     </div>
   )
 }
