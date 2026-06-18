@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Lock, MessageCircle, X, CheckCircle2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Lock, MessageCircle, X, CheckCircle2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/authStore'
 import type { User } from '@/types'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -268,6 +269,64 @@ function IAMProModal({ rukun, question, onClose }: {
   )
 }
 
+// ─── Upgrade Modal ────────────────────────────────────────────────────────────
+
+function SolatUpgradeModal({ onClose }: { onClose: () => void }) {
+  const { user } = useAuthStore()
+  const [loadingPkg, setLoadingPkg] = useState<'pro' | 'pro_plus' | null>(null)
+  const [error, setError] = useState('')
+
+  async function handleUpgrade(pkg: 'pro' | 'pro_plus') {
+    if (!user) return
+    setError('')
+    setLoadingPkg(pkg)
+    try {
+      const res = await fetch('/api/create-bill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, email: user.email, nama: user.name ?? user.email, package: pkg }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data?.error?.message ?? 'Gagal mencipta bil')
+      window.location.href = data.url
+    } catch {
+      setError('Gagal memulakan pembayaran. Sila cuba lagi.')
+      setLoadingPkg(null)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5" onClick={onClose}>
+      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          <Lock size={16} className="text-[#c9a96e]" />
+          <p className="text-[#c9a96e] font-medium text-sm">Buka Dimensi Iman & Ihsan</p>
+        </div>
+        <p className="text-[#e8dcc8] text-sm leading-relaxed">
+          Akses makna batin setiap rukun solat — perjalanan Iman dan Ihsan yang lebih dalam.
+        </p>
+        {error && <p className="text-red-400 text-xs">{error}</p>}
+        <div className="space-y-2">
+          <button onClick={() => handleUpgrade('pro')} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            {loadingPkg === 'pro' && <Loader2 size={14} className="animate-spin" />}
+            Upgrade ke Pro — RM19.90/bulan
+          </button>
+          <button onClick={() => handleUpgrade('pro_plus')} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            {loadingPkg === 'pro_plus' && <Loader2 size={14} className="animate-spin" />}
+            Upgrade ke Pro Plus — RM29.90/bulan
+          </button>
+          <button onClick={onClose} disabled={loadingPkg !== null}
+            className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors disabled:opacity-60">
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Syariat Panel ────────────────────────────────────────────────────────────
 
 function SyariatPanel({ onIAM, isPro }: { onIAM: (r: typeof RUKUN_DATA[0]) => void; isPro: boolean }) {
@@ -362,7 +421,7 @@ function SyariatPanel({ onIAM, isPro }: { onIAM: (r: typeof RUKUN_DATA[0]) => vo
 
 // ─── Tarekat Panel ────────────────────────────────────────────────────────────
 
-function TarekatPanel({ isPro }: { isPro: boolean; isTarekatUnlocked?: boolean }) {
+function TarekatPanel({ isPro, onUpgrade }: { isPro: boolean; isTarekatUnlocked?: boolean; onUpgrade: () => void }) {
   const [expanded, setExpanded] = useState<string | null>(null)
 
   if (!isPro) {
@@ -385,7 +444,7 @@ function TarekatPanel({ isPro }: { isPro: boolean; isTarekatUnlocked?: boolean }
               "Allah meninggikan orang yang beriman dan berilmu beberapa darjat" — Al-Mujadilah: 11
             </p>
           </div>
-          <button className="w-full py-3 bg-[#60a5fa] text-[#060d16] font-semibold rounded-xl text-sm hover:opacity-90 transition-opacity">
+          <button onClick={onUpgrade} className="w-full py-3 bg-[#60a5fa] text-[#060d16] font-semibold rounded-xl text-sm hover:opacity-90 transition-opacity">
             ✦ Langkah ini ada lebih dalam...
           </button>
         </div>
@@ -432,7 +491,7 @@ function TarekatPanel({ isPro }: { isPro: boolean; isTarekatUnlocked?: boolean }
 
 // ─── Hakikat Panel ────────────────────────────────────────────────────────────
 
-function HakikatPanel({ user }: { user: User | null }) {
+function HakikatPanel({ user, onUpgrade }: { user: User | null; onUpgrade: () => void }) {
   const isActivated = user?.solat_hakikat_unlocked === true
 
   if (isActivated) {
@@ -475,8 +534,8 @@ function HakikatPanel({ user }: { user: User | null }) {
         <p className="text-[#8a7a65] text-xs leading-relaxed">
           Ini tidak boleh diajar melalui teks. Ia perlu dibuka melalui pertemuan langsung dengan Nine.
         </p>
-        <button className="w-full py-3 bg-[#a78bfa15] border border-[#a78bfa40] text-[#a78bfa] font-medium rounded-xl text-sm hover:bg-[#a78bfa25] transition-colors">
-          ✦ Hubungi Madrasah I AM
+        <button onClick={onUpgrade} className="w-full py-3 bg-[#a78bfa15] border border-[#a78bfa40] text-[#a78bfa] font-medium rounded-xl text-sm hover:bg-[#a78bfa25] transition-colors">
+          ✦ Buka Dimensi Ihsan
         </button>
       </div>
     </div>
@@ -495,6 +554,7 @@ interface DimensiSolatProps {
 export default function DimensiSolat({ isPro, user }: DimensiSolatProps) {
   const [panel, setPanel] = useState<DimensiPanel>('syariat')
   const [iamRukun, setIamRukun] = useState<typeof RUKUN_DATA[0] | null>(null)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   const isTarekatUnlocked = user?.solat_tarekat_unlocked === true || isPro
 
@@ -538,16 +598,18 @@ export default function DimensiSolat({ isPro, user }: DimensiSolatProps) {
         <SyariatPanel onIAM={setIamRukun} isPro={isPro} />
       )}
       {panel === 'tarekat' && (
-        <TarekatPanel isPro={isPro} isTarekatUnlocked={isTarekatUnlocked} />
+        <TarekatPanel isPro={isPro} isTarekatUnlocked={isTarekatUnlocked} onUpgrade={() => setShowUpgradeModal(true)} />
       )}
       {panel === 'hakikat' && (
-        <HakikatPanel user={user} />
+        <HakikatPanel user={user} onUpgrade={() => setShowUpgradeModal(true)} />
       )}
 
       {/* IAM Modal */}
       {iamRukun && (
         <IAMModal rukun={iamRukun} isPro={isPro} onClose={() => setIamRukun(null)} />
       )}
+
+      {showUpgradeModal && <SolatUpgradeModal onClose={() => setShowUpgradeModal(false)} />}
     </div>
   )
 }
