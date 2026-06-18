@@ -596,7 +596,7 @@ Ibn Ata'illah As-Sukandari r.a. (Al-Hikam):
 "Tanda Zikir Khafi yang benar: apabila kamu meninggalkan ucapan zikir, maka Zikir Khafi itu tidak akan meninggalkanmu."
 
 MENGAPA TIDAK DIAJAR LUAS:
-Hadith Ali bin Abi Thalib (Bukhari): حَدِّثُوا النَّاسَ بِمَا يَعْرِفُونَ
+Kata-kata Sayyidina Ali r.a. (riwayat Bukhari): حَدِّثُوا النَّاسَ بِمَا يَعْرِفُونَ
 "Ceritakanlah kepada manusia apa yang mereka dapat faham."
 
 Hadith Muslim: بَدَأَ الْإِسْلَامُ غَرِيبًا وَسَيَعُودُ غَرِيبًا فَطُوبَى لِلْغُرَبَاءِ
