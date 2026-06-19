@@ -805,12 +805,14 @@ function AuditTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
                 yang difahami dengan hati — bukan sekadar di mulut.
               </p>
             </div>
-            <button
-              onClick={() => { setLockedSifat(null); onUpgrade() }}
-              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-medium bg-[#c9a96e20] border border-[#c9a96e50] text-[#c9a96e] hover:bg-[#c9a96e30] transition-colors"
-            >
-              ✦ Buka Audit Penuh
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={() => { setLockedSifat(null); onUpgrade() }}
+                className="flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-medium bg-[#c9a96e20] border border-[#c9a96e50] text-[#c9a96e] hover:bg-[#c9a96e30] transition-colors"
+              >
+                ✦ Buka Audit Penuh
+              </button>
+            </div>
             <button onClick={() => setLockedSifat(null)} className="w-full text-[#8a7a65] text-[10px] text-center py-1">
               Perjalanan ini ada lebih dalam...
             </button>
