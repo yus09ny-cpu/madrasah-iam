@@ -786,36 +786,40 @@ function AuditTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
 
       {/* Locked sifat modal */}
       {lockedSifat && (
-        <div className="fixed inset-0 z-40 bg-black/70 flex items-end" onClick={() => setLockedSifat(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-5" onClick={() => setLockedSifat(null)}>
           <div
-            className="w-full bg-[#0d1821] border-t border-[#1e2d40] rounded-t-2xl p-4 space-y-3"
+            className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 max-w-sm w-full space-y-4"
             onClick={e => e.stopPropagation()}
           >
-            <div className="text-center space-y-2">
+            <div className="flex items-center gap-2">
+              <Lock size={16} className="text-[#c9a96e]" />
+              <p className="text-[#c9a96e] font-medium text-sm">{lockedSifat.name} — Pro</p>
+            </div>
+            <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-3 text-center">
               <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">
                 وَمِمَّا رَزَقْنَاهُمْ يُنفِقُونَ
               </p>
-              <p className="text-[#e8dcc8] text-xs leading-relaxed">
-                Allah mengajar kita untuk membelanjakan dari pinjaman-Nya.
-                Tapi sebelum membelanja — kita perlu <strong>SEDAR</strong> apa yang kita pegang.
-              </p>
-              <p className="text-[#8a7a65] text-xs leading-relaxed">
-                Audit {lockedSifat.name} menunggu. Setiap audit membawa anda selangkah lebih dekat kepada{' '}
-                <span className="font-serif text-[#c9a96e]">لَا إِلَٰهَ إِلَّا اللَّهُ</span>{' '}
-                yang difahami dengan hati — bukan sekadar di mulut.
+              <p className="text-[#8a7a65] text-xs mt-1 italic">
+                "Dan mereka membelanjakan sebahagian dari rezeki yang Kami berikan" — Al-Baqarah: 3
               </p>
             </div>
-            <div className="flex justify-center">
+            <p className="text-[#8a7a65] text-xs leading-relaxed">
+              Audit {lockedSifat.name} menunggu. Setiap audit membawa anda selangkah lebih dekat kepada{' '}
+              <span className="font-serif text-[#c9a96e]">لَا إِلَٰهَ إِلَّا اللَّهُ</span>{' '}
+              yang difahami dengan hati — bukan sekadar di mulut.
+            </p>
+            <div className="space-y-2">
               <button
                 onClick={() => { setLockedSifat(null); onUpgrade() }}
-                className="flex items-center justify-center gap-2 px-5 py-2 rounded-xl text-xs font-medium bg-[#c9a96e20] border border-[#c9a96e50] text-[#c9a96e] hover:bg-[#c9a96e30] transition-colors"
+                className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors flex items-center justify-center gap-2"
               >
                 ✦ Buka Audit Penuh
               </button>
+              <button onClick={() => setLockedSifat(null)}
+                className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors">
+                Tutup
+              </button>
             </div>
-            <button onClick={() => setLockedSifat(null)} className="w-full text-[#8a7a65] text-[10px] text-center py-1">
-              Perjalanan ini ada lebih dalam...
-            </button>
           </div>
         </div>
       )}
