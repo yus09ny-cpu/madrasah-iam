@@ -1206,7 +1206,7 @@ function AmalanTab() {
 
 // ─── Rekod Tab ────────────────────────────────────────────────────────────────
 
-function RekodTab({ isPro }: { isPro: boolean }) {
+function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void }) {
   if (!isPro) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center space-y-5">
@@ -1225,13 +1225,12 @@ function RekodTab({ isPro }: { isPro: boolean }) {
           </p>
           <p className="text-[#8a7a65] text-xs italic">"Allah tidak membebani melainkan sesuai kesanggupan" — Al-Baqarah: 286</p>
         </div>
-        <a
-          href={`https://wa.me/60182119135?text=${encodeURIComponent('Saya minat dengan feature Rekod & Analitik di Pintu Rezeki Madrasah I AM')}`}
-          target="_blank" rel="noopener noreferrer"
-          className="w-full py-3.5 rounded-2xl text-sm font-medium bg-[#c9a96e20] border border-[#c9a96e50] text-[#c9a96e] hover:bg-[#c9a96e30] transition-colors text-center block"
+        <button
+          onClick={onUpgrade}
+          className="w-full py-3.5 rounded-2xl text-sm font-medium bg-[#c9a96e20] border border-[#c9a96e50] text-[#c9a96e] hover:bg-[#c9a96e30] transition-colors"
         >
           ✦ Buka Rekod Penuh — Pro
-        </a>
+        </button>
       </div>
     )
   }
@@ -1339,6 +1338,7 @@ export default function PintuRezekiPage() {
   const { user } = useAuthStore()
   const isPro = user?.tier === 'pro' || user?.tier === 'family'
   const [subTab, setSubTab] = useState<SubTab>('pintu')
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   return (
     <div className="flex flex-col max-w-2xl mx-auto h-[calc(100vh-80px)] md:h-screen overflow-hidden">
@@ -1366,7 +1366,9 @@ export default function PintuRezekiPage() {
       {subTab === 'pintu' && <PintuTab />}
       {subTab === 'audit' && <AuditTab isPro={isPro} />}
       {subTab === 'amalan' && <AmalanTab />}
-      {subTab === 'rekod' && <RekodTab isPro={isPro} />}
+      {subTab === 'rekod' && <RekodTab isPro={isPro} onUpgrade={() => setShowUpgradeModal(true)} />}
+
+      {showUpgradeModal && <UpgradeModal onClose={() => setShowUpgradeModal(false)} />}
     </div>
   )
 }
