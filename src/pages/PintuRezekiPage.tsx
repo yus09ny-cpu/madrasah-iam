@@ -663,7 +663,7 @@ CARA MENJAWAB:
 
 // ─── Audit Tab ────────────────────────────────────────────────────────────────
 
-function AuditTab({ isPro }: { isPro: boolean }) {
+function AuditTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void }) {
   const [auditData, setAuditData] = useState<AuditData>(loadAuditData)
   const [selected, setSelected] = useState<typeof SIFAT_MAANI[0] | null>(null)
   const [lockedSifat, setLockedSifat] = useState<typeof SIFAT_MAANI[0] | null>(null)
@@ -778,13 +778,9 @@ function AuditTab({ isPro }: { isPro: boolean }) {
       {!isPro && (
         <p className="text-[#8a7a65] text-xs text-center leading-relaxed">
           Anda sedang mengaudit 1 dari 7 amanah Allah.{' '}
-          <a
-            href={`https://wa.me/60182119135?text=${encodeURIComponent('Saya ingin upgrade ke Pro untuk akses Audit Penuh 7 Sifat Maani.')}`}
-            target="_blank" rel="noopener noreferrer"
-            className="text-[#c9a96e] underline"
-          >
+          <button onClick={onUpgrade} className="text-[#c9a96e] underline">
             Buka semua audit dengan Pro.
-          </a>
+          </button>
         </p>
       )}
 
@@ -809,13 +805,12 @@ function AuditTab({ isPro }: { isPro: boolean }) {
                 yang difahami dengan hati — bukan sekadar di mulut.
               </p>
             </div>
-            <a
-              href={`https://wa.me/60182119135?text=${encodeURIComponent('Saya ingin upgrade ke Pro untuk akses Audit Penuh 7 Sifat Maani.')}`}
-              target="_blank" rel="noopener noreferrer"
+            <button
+              onClick={() => { setLockedSifat(null); onUpgrade() }}
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl text-sm font-medium bg-[#c9a96e20] border border-[#c9a96e50] text-[#c9a96e] hover:bg-[#c9a96e30] transition-colors"
             >
               ✦ Buka Audit Penuh
-            </a>
+            </button>
             <button onClick={() => setLockedSifat(null)} className="w-full text-[#8a7a65] text-xs text-center py-1">
               Perjalanan ini ada lebih dalam...
             </button>
@@ -1364,7 +1359,7 @@ export default function PintuRezekiPage() {
       </div>
 
       {subTab === 'pintu' && <PintuTab />}
-      {subTab === 'audit' && <AuditTab isPro={isPro} />}
+      {subTab === 'audit' && <AuditTab isPro={isPro} onUpgrade={() => setShowUpgradeModal(true)} />}
       {subTab === 'amalan' && <AmalanTab />}
       {subTab === 'rekod' && <RekodTab isPro={isPro} onUpgrade={() => setShowUpgradeModal(true)} />}
 
