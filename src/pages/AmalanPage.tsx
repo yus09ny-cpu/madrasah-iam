@@ -370,72 +370,6 @@ function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
   )
 }
 
-// ─── Fasa 4 — 3× Al-Fatihah ───────────────────────────────────────────────────
-
-function Fasa4({ onDone }: { onDone: () => void }) {
-  const [count, setCount] = useState(0)
-  const [flash, setFlash] = useState(false)
-  const isDone = count >= 3
-
-  const handleTap = () => {
-    if (isDone) return
-    setCount(c => c + 1)
-    setFlash(true)
-    setTimeout(() => setFlash(false), 80)
-    if ('vibrate' in navigator) navigator.vibrate(20)
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="text-center space-y-1">
-        <p className="font-serif text-[#4ade80] text-xl">3× Al-Fatihah</p>
-        <p className="text-[#8a7a65] text-sm">Bacaan penutup sebelum Zikir Khafi</p>
-      </div>
-
-      <div className="bg-[#0d1821] border border-[#4ade8020] rounded-2xl p-5 space-y-3">
-        <p className="text-[#4ade80] text-xs font-medium uppercase tracking-wider">سُورَةُ الفَاتِحَة</p>
-        <p className="font-serif text-[#c9a96e] leading-loose text-right" dir="rtl"
-          style={{ fontSize: 18, lineHeight: 2.4 }}>
-          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴿١﴾ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ﴿٢﴾ الرَّحْمَٰنِ الرَّحِيمِ ﴿٣﴾ مَالِكِ يَوْمِ الدِّينِ ﴿٤﴾ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ ﴿٥﴾ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ ﴿٦﴾ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ ﴿٧﴾
-        </p>
-      </div>
-
-      <div className="flex items-center justify-center gap-4">
-        {[1, 2, 3].map(n => (
-          <div key={n} className={cn(
-            'w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold border-2 transition-all duration-200',
-            count >= n
-              ? 'border-[#4ade80] bg-[#4ade8030] text-[#4ade80]'
-              : 'border-[#1e2d40] text-[#8a7a65]'
-          )}>
-            {count >= n ? '✓' : n}
-          </div>
-        ))}
-      </div>
-
-      {isDone ? (
-        <div className="space-y-4 text-center bg-[#0d1821] border border-[#4ade8030] rounded-2xl p-6">
-          <p className="font-serif text-[#4ade80] text-2xl">Alhamdulillah ✦</p>
-          <p className="text-[#8a7a65] text-sm">3 bacaan Al-Fatihah selesai</p>
-          <button onClick={onDone}
-            className="w-full py-4 bg-[#4ade80] text-[#060d16] font-semibold rounded-2xl hover:opacity-90 transition-opacity">
-            Teruskan ke Zikir Khafi →
-          </button>
-        </div>
-      ) : (
-        <button onClick={handleTap}
-          className={cn(
-            'w-full rounded-2xl select-none font-serif text-[#4ade80] transition-all duration-75',
-            flash ? 'scale-[0.97] bg-[#4ade8025]' : 'hover:bg-[#4ade8008] active:scale-[0.97]'
-          )}
-          style={{ height: 72, border: '2px solid #4ade80', fontSize: 18 }}>
-          ✓ Selesai bacaan ke-{count + 1} ({count}/3)
-        </button>
-      )}
-    </div>
-  )
-}
-
 // ─── Selesai Screen ────────────────────────────────────────────────────────────
 
 function SelesaiScreen({ jaharCount, jaharTarget, khafiMins, onClose }: {
@@ -535,12 +469,15 @@ function KhafiSection({ userTier, onBack, onComplete }: {
   onBack: () => void
   onComplete: (khafiMins: number) => void
 }) {
-  const [subPhase, setSubPhase] = useState<'pembuka' | 'berzikir' | 'refleksi' | 'ai_done'>('pembuka')
+  const [subPhase, setSubPhase] = useState<'pembuka' | 'berzikir' | 'penutup' | 'refleksi' | 'ai_done'>('pembuka')
   const startRef = useRef(Date.now())
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [aiReply, setAiReply] = useState<string | null>(null)
   const [pembukaan, setPembukaan] = useState<AmalanItem[]>([])
+  const [penutupan, setPenutupan] = useState<AmalanItem[]>([])
+  const [pembConfirmed, setPembConfirmed] = useState(false)
+  const [penutupConfirmed, setPenutupConfirmed] = useState(false)
 
   const allAnswered = REFLEKSI_SOALAN.every(s => answers[s.id])
   const tier = userTier === 'pro' || userTier === 'pro_plus' ? 'pro' : 'free'
@@ -549,15 +486,27 @@ function KhafiSection({ userTier, onBack, onComplete }: {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
     fetch(
-      `${supabaseUrl}/rest/v1/amalan_content?select=*&jenis=eq.zikir_khafi&order=urutan.asc`,
+      `${supabaseUrl}/rest/v1/amalan_content?select=*&jenis=in.(zikir_khafi,zikir_khafi_penutup)&order=urutan.asc`,
       { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
     )
       .then(r => r.ok ? r.json() : [])
       .then((data: AmalanItem[]) => {
-        if (data?.length > 0) setPembukaan(data.filter(d => d.aktif !== false))
+        const active = (data ?? []).filter(d => d.aktif !== false)
+        setPembukaan(active.filter(d => d.jenis === 'zikir_khafi'))
+        setPenutupan(active.filter(d => d.jenis === 'zikir_khafi_penutup'))
       })
       .catch(() => {})
   }, [])
+
+  function goToBerzikir() {
+    startRef.current = Date.now()
+    setSubPhase('berzikir')
+  }
+
+  function goFromBerzikir() {
+    // Pergi ke penutup jika ada kandungan, atau terus ke refleksi
+    setSubPhase(penutupan.length > 0 ? 'penutup' : 'refleksi')
+  }
 
   async function handleSubmitRefleksi() {
     if (!allAnswered || loading) return
@@ -599,33 +548,40 @@ function KhafiSection({ userTier, onBack, onComplete }: {
         <div className="w-16" />
       </div>
 
-      {/* Sub-phase: pembuka (bacaan dari Supabase + 3× Al-Fatihah) */}
+      {/* Sub-phase: pembuka — Tawajjuh (Supabase jenis=zikir_khafi) */}
       {subPhase === 'pembuka' && (
         <div className="space-y-4">
-          <div className="text-center space-y-1">
-            <p className="font-serif text-[#a78bfa] text-lg">Bacaan Pembuka Zikir Khafi</p>
-            <p className="text-[#8a7a65] text-xs">Baca sebelum memulakan zikir hati</p>
-          </div>
-
-          {/* Kandungan dari Supabase (Nine isi jenis=zikir_khafi) */}
-          {pembukaan.length > 0 && (
+          {pembukaan.length > 0 ? (
             <div className="space-y-3">
               {pembukaan.map(item => <BacaanCard key={item.id} item={item} accent="#a78bfa" />)}
             </div>
+          ) : (
+            <div className="bg-[#0d1821] border border-[#a78bfa20] rounded-2xl p-5 text-center space-y-2">
+              <p className="font-serif text-[#a78bfa] text-base leading-loose" dir="rtl">أَفْضَلُ الذِّكْرِ مَا خَفِيَ</p>
+              <p className="text-[#8a7a65] text-xs italic">"Sebaik-baik zikir ialah yang tersembunyi"</p>
+            </div>
           )}
 
-          {/* 3× Al-Fatihah (sentiasa ada) */}
-          <Fasa4 onDone={() => {
-            startRef.current = Date.now()
-            setSubPhase('berzikir')
-          }} />
+          <button onClick={() => setPembConfirmed(v => !v)}
+            className="w-full flex items-center gap-3 p-4 bg-[#0d1821] border border-[#1e2d40] rounded-xl hover:border-[#a78bfa30] transition-colors">
+            <div className={cn('w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all',
+              pembConfirmed ? 'border-[#a78bfa] bg-[#a78bfa]' : 'border-[#2a3d55]')}>
+              {pembConfirmed && <CheckCircle2 size={12} className="text-[#060d16]" />}
+            </div>
+            <span className="text-sm text-[#e8dcc8]">Saya telah membaca dan bersedia untuk berzikir</span>
+          </button>
+
+          <button onClick={goToBerzikir} disabled={!pembConfirmed}
+            className="w-full py-4 bg-[#a78bfa] text-[#060d16] font-semibold rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
+            Mulakan Zikir Khafi →
+          </button>
         </div>
       )}
 
-      {/* Iframe — hanya tunjuk selepas pembuka selesai */}
-      {subPhase !== 'pembuka' && (
+      {/* Iframe — tunjuk semasa berzikir atau penutup */}
+      {(subPhase === 'berzikir' || subPhase === 'penutup') && (
         <div className="rounded-2xl overflow-hidden border border-[#a78bfa30]"
-          style={{ height: 'calc(100dvh - 360px)', minHeight: '380px' }}>
+          style={{ height: 'calc(100dvh - 300px)', minHeight: '400px' }}>
           <iframe
             src="https://zikirkhafi.lovable.app"
             title="Zikir Khafi"
@@ -638,10 +594,33 @@ function KhafiSection({ userTier, onBack, onComplete }: {
 
       {/* Sub-phase: berzikir */}
       {subPhase === 'berzikir' && (
-        <button onClick={() => setSubPhase('refleksi')}
+        <button onClick={goFromBerzikir}
           className="w-full py-3.5 bg-[#a78bfa] text-[#060d16] font-semibold rounded-xl text-sm hover:opacity-90 transition-opacity">
-          ✓ Sudah Berzikir — Mulakan Refleksi
+          ✓ Sudah Berzikir — Teruskan
         </button>
+      )}
+
+      {/* Sub-phase: penutup — Sayyiduna Muhammad (Supabase jenis=zikir_khafi_penutup) */}
+      {subPhase === 'penutup' && (
+        <div className="space-y-4">
+          <div className="space-y-3">
+            {penutupan.map(item => <BacaanCard key={item.id} item={item} accent="#a78bfa" />)}
+          </div>
+
+          <button onClick={() => setPenutupConfirmed(v => !v)}
+            className="w-full flex items-center gap-3 p-4 bg-[#0d1821] border border-[#1e2d40] rounded-xl hover:border-[#a78bfa30] transition-colors">
+            <div className={cn('w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all',
+              penutupConfirmed ? 'border-[#a78bfa] bg-[#a78bfa]' : 'border-[#2a3d55]')}>
+              {penutupConfirmed && <CheckCircle2 size={12} className="text-[#060d16]" />}
+            </div>
+            <span className="text-sm text-[#e8dcc8]">Saya telah membaca bacaan penutup</span>
+          </button>
+
+          <button onClick={() => setSubPhase('refleksi')} disabled={!penutupConfirmed}
+            className="w-full py-4 bg-[#a78bfa] text-[#060d16] font-semibold rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
+            Teruskan ke Refleksi Diri →
+          </button>
+        </div>
       )}
 
       {/* Sub-phase: refleksi */}
