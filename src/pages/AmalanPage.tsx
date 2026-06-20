@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
+import { sendIAMMessage } from '@/lib/iam-chat'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,24 @@ const AYAT_LIST = [
   { arab: 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي', tr: '"Ingatlah Aku, nescaya Aku ingat kepadamu"', src: 'Al-Baqarah: 152' },
 ]
 
+const REFLEKSI_KHAFI_SYSTEM_PROMPT = `Anda adalah pembimbing rohani Thariqah Qadiriyah Naqsyabandiyah (TQN) yang membantu murid merefleksi pengalaman Zikir Khafi mereka.
+
+Murid baru selesai sesi Zikir Khafi (zikir hati — "Allah" dalam qalbu). Mereka menjawab soalan refleksi mengenai kualiti fokus semasa berzikir.
+
+ARAHAN RESPONS:
+1. Mulakan dengan mengakui secara empatik apa yang mereka kongsi
+2. Jelaskan bahawa gangguan atau kurang fokus dalam Zikir Khafi sering berhubung kait dengan ketidakistiqamahan dalam Zikir Jahar — kerana Zikir Jahar (La ilaha illallah berlafaz) berfungsi sebagai perisai dan pembersih hati daripada was-was luar
+3. Sebut: Allah berfirman dalam Surah Al-A'raf: 17 bahawa syaitan berjanji memasuki hati manusia dari segala penjuru — dan Zikir Jahar yang istiqamah adalah benteng pertama yang menghalang kemasukan ini
+4. Hubungkan: apabila benteng Jahar tidak kukuh, was-was lebih mudah mengganggu sewaktu Zikir Khafi yang lebih dalam. Ini bukan kelemahan, tapi tanda perlu memperkukuh asas
+5. Akhiri dengan SATU soalan balik: "Bagaimana amalan Zikir Jahar anda hari-hari ini? Sejauh mana anda mengamalkannya dengan istiqamah dan penuh penghayatan?"
+
+PENTING:
+- Hanya guna dalil yang disahkan: Quran, hadith sahih (Bukhari/Muslim/Ahmad/dll), atau Miftahus Shudur (Abah Anom)
+- JANGAN nisbahkan kata-kata kepada seseorang secara samar atau tidak pasti
+- Bahasa Melayu Malaysia yang halus — LARANG kata Indonesia: butuh, gimana, banget, nggak, udah, dong, kayak, karena, bisa, besok, setelah, terjadi, dirasakan, agar, pelan-pelan, langsung, lewat, meskipun, selalu, bahwa
+- GUNA: perlukan, bagaimana, sangat, tidak, sudah, sahaja, kerana, boleh, bila, esok, selepas, berlaku, dirasai, supaya, perlahan-lahan, terus, melalui, walaupun, sentiasa, bahawa
+- Format prosa, 2-3 perenggan pendek. Maksimum 150 patah perkataan`
+
 // ─── Phase Progress Bar ────────────────────────────────────────────────────────
 
 function PhaseBar({ phase }: { phase: SessionPhase }) {
@@ -51,7 +70,7 @@ function PhaseBar({ phase }: { phase: SessionPhase }) {
     { id: 2, label: 'Jahar',  color: '#60a5fa' },
     { id: 3, label: 'Doa',   color: '#c9a96e' },
   ]
-  const n = phase === 'done' ? 4 : typeof phase === 'number' ? phase : 0
+  const n = phase === 'done' || phase === 'khafi' ? 4 : typeof phase === 'number' ? phase : 0
 
   return (
     <div className="flex items-center gap-1">
@@ -68,7 +87,7 @@ function PhaseBar({ phase }: { phase: SessionPhase }) {
             </div>
             <p className="text-[8px]" style={{ color: n >= s.id ? s.color : '#8a7a65' }}>{s.label}</p>
           </div>
-          {i < 3 && <div className="w-5 h-px mb-3" style={{ backgroundColor: n > s.id ? '#c9a96e40' : '#1e2d40' }} />}
+          {i < 2 && <div className="w-5 h-px mb-3" style={{ backgroundColor: n > s.id ? '#c9a96e40' : '#1e2d40' }} />}
         </div>
       ))}
     </div>
@@ -351,7 +370,71 @@ function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
   )
 }
 
-// ─── Selesai Screen (Jahar) ───────────────────────────────────────────────────
+// ─── Fasa 4 — 3× Al-Fatihah ───────────────────────────────────────────────────
+
+function Fasa4({ onDone }: { onDone: () => void }) {
+  const [count, setCount] = useState(0)
+  const [flash, setFlash] = useState(false)
+  const isDone = count >= 3
+
+  const handleTap = () => {
+    if (isDone) return
+    setCount(c => c + 1)
+    setFlash(true)
+    setTimeout(() => setFlash(false), 80)
+    if ('vibrate' in navigator) navigator.vibrate(20)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="text-center space-y-1">
+        <p className="font-serif text-[#4ade80] text-xl">3× Al-Fatihah</p>
+        <p className="text-[#8a7a65] text-sm">Bacaan penutup sebelum Zikir Khafi</p>
+      </div>
+
+      <div className="bg-[#0d1821] border border-[#4ade8020] rounded-2xl p-5 space-y-3">
+        <p className="text-[#4ade80] text-xs font-medium uppercase tracking-wider">سُورَةُ الفَاتِحَة</p>
+        <p className="font-serif text-[#c9a96e] leading-loose text-right" dir="rtl"
+          style={{ fontSize: 18, lineHeight: 2.4 }}>
+          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ﴿١﴾ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ﴿٢﴾ الرَّحْمَٰنِ الرَّحِيمِ ﴿٣﴾ مَالِكِ يَوْمِ الدِّينِ ﴿٤﴾ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ ﴿٥﴾ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ ﴿٦﴾ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ ﴿٧﴾
+        </p>
+      </div>
+
+      <div className="flex items-center justify-center gap-4">
+        {[1, 2, 3].map(n => (
+          <div key={n} className={cn(
+            'w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold border-2 transition-all duration-200',
+            count >= n
+              ? 'border-[#4ade80] bg-[#4ade8030] text-[#4ade80]'
+              : 'border-[#1e2d40] text-[#8a7a65]'
+          )}>
+            {count >= n ? '✓' : n}
+          </div>
+        ))}
+      </div>
+
+      {isDone ? (
+        <div className="space-y-4 text-center bg-[#0d1821] border border-[#4ade8030] rounded-2xl p-6">
+          <p className="font-serif text-[#4ade80] text-2xl">Alhamdulillah ✦</p>
+          <p className="text-[#8a7a65] text-sm">3 bacaan Al-Fatihah selesai</p>
+          <button onClick={onDone}
+            className="w-full py-4 bg-[#4ade80] text-[#060d16] font-semibold rounded-2xl hover:opacity-90 transition-opacity">
+            Teruskan ke Zikir Khafi →
+          </button>
+        </div>
+      ) : (
+        <button onClick={handleTap}
+          className={cn(
+            'w-full rounded-2xl select-none font-serif text-[#4ade80] transition-all duration-75',
+            flash ? 'scale-[0.97] bg-[#4ade8025]' : 'hover:bg-[#4ade8008] active:scale-[0.97]'
+          )}
+          style={{ height: 72, border: '2px solid #4ade80', fontSize: 18 }}>
+          ✓ Selesai bacaan ke-{count + 1} ({count}/3)
+        </button>
+      )}
+    </div>
+  )
+}
 
 // ─── Selesai Screen ────────────────────────────────────────────────────────────
 
@@ -382,18 +465,21 @@ function SelesaiScreen({ jaharCount, jaharTarget, khafiMins, onClose }: {
 
       <div className="space-y-2">
         {[
-          { label: 'Bacaan Pembuka', value: 'Selesai', color: '#c9a96e' },
-          { label: 'Zikir Jahar', value: `${jaharCount}x (target: ${jaharTarget})`, color: '#60a5fa' },
-          { label: 'Doa', value: 'Selesai', color: '#c9a96e' },
+          jaharCount > 0 && { label: 'Bacaan Pembuka', value: 'Selesai', color: '#c9a96e' },
+          jaharCount > 0 && { label: 'Zikir Jahar', value: `${jaharCount}x (target: ${jaharTarget})`, color: '#60a5fa' },
+          jaharCount > 0 && { label: 'Doa', value: 'Selesai', color: '#c9a96e' },
           { label: '3 Fatihah', value: 'Selesai', color: '#4ade80' },
-          { label: 'Zikir Khafi', value: `${khafiMins} minit`, color: '#a78bfa' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="flex items-center gap-3 bg-[#0d1821]/80 rounded-xl px-4 py-3">
-            <CheckCircle2 size={16} style={{ color, flexShrink: 0 }} />
-            <p className="text-[#e8dcc8] text-sm flex-1">{label}</p>
-            <p className="text-sm font-medium" style={{ color }}>{value}</p>
-          </div>
-        ))}
+          { label: 'Zikir Khafi', value: khafiMins > 0 ? `${khafiMins} minit` : 'Selesai', color: '#a78bfa' },
+        ].filter(Boolean).map(item => {
+          const { label, value, color } = item as { label: string; value: string; color: string }
+          return (
+            <div key={label} className="flex items-center gap-3 bg-[#0d1821]/80 rounded-xl px-4 py-3">
+              <CheckCircle2 size={16} style={{ color, flexShrink: 0 }} />
+              <p className="text-[#e8dcc8] text-sm flex-1">{label}</p>
+              <p className="text-sm font-medium" style={{ color }}>{value}</p>
+            </div>
+          )
+        })}
       </div>
 
       <p className="text-[#8a7a65] text-sm text-center leading-relaxed">
@@ -410,12 +496,218 @@ function SelesaiScreen({ jaharCount, jaharTarget, khafiMins, onClose }: {
   )
 }
 
+// ─── Khafi Section (Iframe + Refleksi Interaktif AI) ──────────────────────────
+
+const REFLEKSI_SOALAN = [
+  {
+    id: 'fokus',
+    soalan: 'Bagaimana tahap fokus anda semasa berzikir tadi?',
+    pilihan: [
+      'Sangat fokus — hati hadir sepenuhnya',
+      'Agak fokus — kadang-kadang menumpang',
+      'Kurang fokus — banyak fikiran lain',
+      'Tidak fokus langsung',
+    ],
+  },
+  {
+    id: 'ganggu',
+    soalan: 'Apa yang mengganggu fokus anda semasa berzikir?',
+    pilihan: [
+      'Fikiran tentang kerja / urusan dunia',
+      'Perasaan tidak tenang atau resah',
+      'Tidak tahu sebabnya',
+      'Tiada gangguan',
+    ],
+  },
+  {
+    id: 'rasa',
+    soalan: 'Bagaimana perasaan anda selepas selesai berzikir?',
+    pilihan: [
+      'Tenang dan damai ✦',
+      'Biasa sahaja',
+      'Masih berasa berat / gelisah',
+    ],
+  },
+]
+
+function KhafiSection({ userTier, onBack, onComplete }: {
+  userTier: string
+  onBack: () => void
+  onComplete: (khafiMins: number) => void
+}) {
+  const [subPhase, setSubPhase] = useState<'pembuka' | 'berzikir' | 'refleksi' | 'ai_done'>('pembuka')
+  const startRef = useRef(Date.now())
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
+  const [aiReply, setAiReply] = useState<string | null>(null)
+  const [pembukaan, setPembukaan] = useState<AmalanItem[]>([])
+
+  const allAnswered = REFLEKSI_SOALAN.every(s => answers[s.id])
+  const tier = userTier === 'pro' || userTier === 'pro_plus' ? 'pro' : 'free'
+
+  useEffect(() => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+    fetch(
+      `${supabaseUrl}/rest/v1/amalan_content?select=*&jenis=eq.zikir_khafi&order=urutan.asc`,
+      { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+    )
+      .then(r => r.ok ? r.json() : [])
+      .then((data: AmalanItem[]) => {
+        if (data?.length > 0) setPembukaan(data.filter(d => d.aktif !== false))
+      })
+      .catch(() => {})
+  }, [])
+
+  async function handleSubmitRefleksi() {
+    if (!allAnswered || loading) return
+    setLoading(true)
+    try {
+      const userMessage = REFLEKSI_SOALAN
+        .map(s => `${s.soalan}\nJawapan: ${answers[s.id]}`)
+        .join('\n\n')
+      const reply = await sendIAMMessage(
+        [{ role: 'user', content: userMessage }],
+        tier,
+        REFLEKSI_KHAFI_SYSTEM_PROMPT,
+        undefined,
+        'refleksi_khafi',
+      )
+      setAiReply(reply)
+      setSubPhase('ai_done')
+    } catch {
+      setAiReply('Maaf, tidak dapat menyambung ke AI. Sila cuba lagi.')
+      setSubPhase('ai_done')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleSelesai() {
+    const khafiMins = Math.round((Date.now() - startRef.current) / 60000)
+    onComplete(khafiMins)
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-2 text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors">
+          &larr; Kembali
+        </button>
+        <p className="font-serif text-[#a78bfa] text-sm">Zikir Khafi</p>
+        <div className="w-16" />
+      </div>
+
+      {/* Sub-phase: pembuka (bacaan dari Supabase + 3× Al-Fatihah) */}
+      {subPhase === 'pembuka' && (
+        <div className="space-y-4">
+          <div className="text-center space-y-1">
+            <p className="font-serif text-[#a78bfa] text-lg">Bacaan Pembuka Zikir Khafi</p>
+            <p className="text-[#8a7a65] text-xs">Baca sebelum memulakan zikir hati</p>
+          </div>
+
+          {/* Kandungan dari Supabase (Nine isi jenis=zikir_khafi) */}
+          {pembukaan.length > 0 && (
+            <div className="space-y-3">
+              {pembukaan.map(item => <BacaanCard key={item.id} item={item} accent="#a78bfa" />)}
+            </div>
+          )}
+
+          {/* 3× Al-Fatihah (sentiasa ada) */}
+          <Fasa4 onDone={() => {
+            startRef.current = Date.now()
+            setSubPhase('berzikir')
+          }} />
+        </div>
+      )}
+
+      {/* Iframe — hanya tunjuk selepas pembuka selesai */}
+      {subPhase !== 'pembuka' && (
+        <div className="rounded-2xl overflow-hidden border border-[#a78bfa30]"
+          style={{ height: 'calc(100dvh - 360px)', minHeight: '380px' }}>
+          <iframe
+            src="https://zikirkhafi.lovable.app"
+            title="Zikir Khafi"
+            className="w-full h-full border-0"
+            allow="vibrate; autoplay"
+            loading="lazy"
+          />
+        </div>
+      )}
+
+      {/* Sub-phase: berzikir */}
+      {subPhase === 'berzikir' && (
+        <button onClick={() => setSubPhase('refleksi')}
+          className="w-full py-3.5 bg-[#a78bfa] text-[#060d16] font-semibold rounded-xl text-sm hover:opacity-90 transition-opacity">
+          ✓ Sudah Berzikir — Mulakan Refleksi
+        </button>
+      )}
+
+      {/* Sub-phase: refleksi */}
+      {subPhase === 'refleksi' && (
+        <div className="bg-[#0d1821] border border-[#a78bfa30] rounded-2xl p-5 space-y-5">
+          <div>
+            <p className="text-[#a78bfa] font-serif text-base">✦ Refleksi Diri</p>
+            <p className="text-[#8a7a65] text-xs mt-1">Luangkan sejenak untuk muhasabah pengalaman zikir anda.</p>
+          </div>
+
+          {REFLEKSI_SOALAN.map(s => (
+            <div key={s.id} className="space-y-2">
+              <p className="text-[#e8dcc8] text-sm leading-relaxed">{s.soalan}</p>
+              <div className="space-y-1.5">
+                {s.pilihan.map(p => (
+                  <button key={p} onClick={() => setAnswers(prev => ({ ...prev, [s.id]: p }))}
+                    className={cn(
+                      'w-full text-left px-3 py-2.5 rounded-xl border text-xs transition-all',
+                      answers[s.id] === p
+                        ? 'border-[#a78bfa] bg-[#a78bfa15] text-[#a78bfa]'
+                        : 'border-[#1e2d40] text-[#8a7a65] hover:border-[#2a3d55] hover:text-[#e8dcc8]'
+                    )}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <button onClick={handleSubmitRefleksi} disabled={!allAnswered || loading}
+            className="w-full py-3.5 bg-[#a78bfa] text-[#060d16] font-semibold rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-[#060d16] border-t-transparent rounded-full animate-spin" />
+                Menganalisis...
+              </>
+            ) : 'Hantar Refleksi →'}
+          </button>
+        </div>
+      )}
+
+      {/* Sub-phase: ai_done */}
+      {subPhase === 'ai_done' && (
+        <div className="space-y-4">
+          <div className="bg-[#0d1821] border border-[#a78bfa30] rounded-2xl p-5 space-y-3">
+            <p className="text-[#a78bfa] text-xs font-medium uppercase tracking-wider">Tindak Balas Pembimbing ✦</p>
+            <p className="text-[#e8dcc8] text-sm leading-relaxed" style={{ whiteSpace: 'pre-wrap' }}>{aiReply}</p>
+          </div>
+          <button onClick={handleSelesai}
+            className="w-full py-4 font-semibold rounded-2xl text-[#060d16] hover:opacity-90 transition-opacity"
+            style={{ background: 'linear-gradient(135deg, #a78bfa, #c4b5fd)' }}>
+            ✦ Selesai Sesi Hari Ini
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Dashboard ─────────────────────────────────────────────────────────────────
 
 function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => void; onStartKhafi: () => void; user: { id: string } | null }) {
   const [stats, setStats] = useState({ todayDone: false, streak: 0, totalJahar: 0, totalKhafiMins: 0 })
   const ayatIdx = new Date().getDate() % AYAT_LIST.length
   const ayat = AYAT_LIST[ayatIdx]
+
 
   useEffect(() => {
     if (!user) return
@@ -855,6 +1147,7 @@ export default function AmalanPage() {
   const [contentLoaded, setContentLoaded] = useState(false)
   const [jaharCount, setJaharCount] = useState(0)
   const [jaharTarget, setJaharTarget] = useState(165)
+  const [khafiMins, setKhafiMins] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -920,17 +1213,26 @@ export default function AmalanPage() {
   }
 
   function handleDoaDone() {
+    // Selesai Jahar — auto-navigate terus ke Zikir Khafi sebagai sambungan amalan
+    setPhase('khafi')
+  }
+
+  function handleKhafiComplete(mins: number) {
+    setKhafiMins(mins)
     saveSession({
-      bacaan_pembuka: true,
-      jahar_kiraan: jaharCount, jahar_target: jaharTarget, jahar_selesai: true,
-      doa_selesai: true, sesi_lengkap: true,
+      ...(jaharCount > 0 ? {
+        bacaan_pembuka: true,
+        jahar_kiraan: jaharCount, jahar_target: jaharTarget, jahar_selesai: true,
+        doa_selesai: true,
+      } : {}),
+      fatihah_selesai: true, sesi_lengkap: true, khafi_minit: mins,
     })
     setPhase('done')
   }
 
   function resetSession() {
     setPhase('dashboard')
-    setJaharCount(0); setJaharTarget(165)
+    setJaharCount(0); setJaharTarget(165); setKhafiMins(0)
     localStorage.removeItem('amalan_jahar_count')
   }
 
@@ -1015,23 +1317,10 @@ export default function AmalanPage() {
         {phase === 2 && <Fasa2 item={zikirJaharItem} onDone={handleJaharDone} />}
         {phase === 3 && <Fasa3 items={doaItems} onDone={handleDoaDone} />}
         {phase === 'done' && (
-          <SelesaiScreen jaharCount={jaharCount} jaharTarget={jaharTarget} khafiMins={0} onClose={resetSession} />
+          <SelesaiScreen jaharCount={jaharCount} jaharTarget={jaharTarget} khafiMins={khafiMins} onClose={resetSession} />
         )}
         {phase === 'khafi' && (
-          <div className="space-y-3">
-            <button onClick={resetSession} className="flex items-center gap-2 text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors">
-              &larr; Kembali
-            </button>
-            <div className="rounded-2xl overflow-hidden border border-[#a78bfa30]" style={{ height: 'calc(100dvh - 260px)', minHeight: '480px' }}>
-              <iframe
-                src="https://zikirkhafi.lovable.app"
-                title="Zikir Khafi"
-                className="w-full h-full border-0"
-                allow="vibrate; autoplay"
-                loading="lazy"
-              />
-            </div>
-          </div>
+          <KhafiSection userTier={(user as { tier?: string } | null)?.tier ?? 'free'} onBack={resetSession} onComplete={handleKhafiComplete} />
         )}
       </div>
 
