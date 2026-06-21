@@ -388,11 +388,11 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
       if (pacerOuterRef.current) pacerOuterRef.current.style.transform = `scale(${0.85 + breathProgress * 0.4})`
       if (pacerOuterLabelRef.current && pacerOuterRef.current) {
         if (breathProgress > 0.6) {
-          pacerOuterLabelRef.current.textContent = 'Breath State: Habs (Hold)'
+          pacerOuterLabelRef.current.textContent = 'Keadaan Nafas: Tahan Nafas'
           pacerOuterLabelRef.current.className = 'text-xs text-amber-300 font-medium uppercase tracking-widest mb-3 transition-colors duration-300'
           pacerOuterRef.current.className = 'absolute inset-0 rounded-full bg-amber-500/5 border border-amber-500/35 transition-colors duration-500'
         } else {
-          pacerOuterLabelRef.current.textContent = 'Breath State: Natural Release'
+          pacerOuterLabelRef.current.textContent = 'Keadaan Nafas: Lepas Semula'
           pacerOuterLabelRef.current.className = 'text-xs text-emerald-400 font-medium uppercase tracking-widest mb-3 transition-colors duration-300'
           pacerOuterRef.current.className = 'absolute inset-0 rounded-full bg-emerald-500/5 border border-emerald-500/20 transition-colors duration-500'
         }
@@ -435,8 +435,8 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white leading-tight">Sufi Biofeedback Simulator</h1>
-              <p className="text-xs text-gray-400">Naqshbandi Dhikr al-Qalb · Tap-Based HRV + Progressive Pacing</p>
+              <h1 className="text-xl font-bold tracking-tight text-white leading-tight">Pemantau Degupan Zikir</h1>
+              <p className="text-xs text-gray-400">Tazkiyatun Nafs · Pemantauan HRV & Degupan Zikir</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -565,7 +565,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
             {/* Divider + Heart Orb (Allah/Hu pacing visual) */}
             <div className="w-full pt-4 border-t border-gray-800/60 flex flex-col items-center">
               <span ref={pacerOuterLabelRef} className="text-xs text-amber-200/70 uppercase tracking-widest mb-3">
-                Breath State: Habs (Hold)
+                Keadaan Nafas: Tahan Nafas
               </span>
 
               <div className="relative w-32 h-32 flex items-center justify-center">
@@ -615,7 +615,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               </div>
 
               <p className="text-xs text-center text-gray-400 mt-4 max-w-xs italic leading-relaxed">
-                Hold your breath (Habs) or release naturally. Keep your lips closed and tongue silent, focusing your entire attention inward on synchronizing with the alternating colored heart glows.
+                Tahan nafas atau lepaskan secara semula jadi. Tutup bibir, diam lisan — fokus sepenuh hati menyelaraskan diri dengan glow jantung yang berganti warna.
               </p>
             </div>
           </div>
@@ -625,15 +625,15 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
             <div>
               <h2 className="text-lg font-medium text-emerald-400 mb-1 flex items-center gap-2">
                 <span className="font-mono text-sm">&lt;/&gt;</span>
-                Live Binary GATT Parser (0x2A37)
+                Data Sensor (Live)
               </h2>
-              <p className="text-xs text-gray-400 mb-1">BPM & R-R dari tap sebenar — dikod semula sebagai paket BLE emulasi.</p>
-              <p className="text-[10px] text-yellow-500/80 font-medium">⚠ Format hex adalah EMULASI — bukan output sensor sebenar</p>
+              <p className="text-xs text-gray-400 mb-1">BPM & R-R Interval dikira daripada data degupan nadi sebenar.</p>
+              <p className="text-[10px] text-gray-600 font-mono">Format: GATT 0x2A37 standard · Flags · HR · R-R</p>
             </div>
             <div className="bg-black/60 rounded-xl p-4 font-mono text-xs text-emerald-300/90 border border-emerald-950/40 h-36 flex flex-col gap-1.5 overflow-y-auto zk-scroll">
               <div className="text-gray-500">{'// [Flags] [HR BPM] [R-R low] [R-R high]'}</div>
               {logs.length === 0
-                ? <div className="text-gray-600 italic">Awaiting tap data...</div>
+                ? <div className="text-gray-600 italic">Menunggu data degupan nadi...</div>
                 : logs.map((log, idx) => <div key={idx}><span className="text-gray-500">[Packet]</span> {log}</div>)
               }
             </div>
@@ -643,7 +643,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                 <div className="col-span-3 text-amber-400 font-semibold">Byte 0 (Flags):</div>
                 <div className="col-span-9">R-R presence flag (<code className="bg-gray-900 px-1 py-0.5 rounded">0x10</code>)</div>
                 <div className="col-span-3 text-emerald-400 font-semibold">Byte 1 (BPM):</div>
-                <div className="col-span-9">Heart beats per minute dari tap.</div>
+                <div className="col-span-9">Degupan jantung per minit.</div>
                 <div className="col-span-3 text-blue-400 font-semibold">Bytes 2-3 (R-R):</div>
                 <div className="col-span-9">Raw intervals (1/1024s) → milliseconds.</div>
               </div>
@@ -692,7 +692,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                 : coherence >= 71 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                 : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
               }`}>
-                {coherence >= 86 ? 'Stage 3: Yad Dasht' : coherence >= 71 ? 'Stage 2: Sultan-ul-Adhkar' : 'Stage 1: Dhikr-e-Qalbi'}
+                {coherence >= 86 ? 'Stage 3: Kesedaran Berterusan' : coherence >= 71 ? 'Stage 2: Zikir Beresonans' : 'Stage 1: Zikir Hati'}
               </span>
             </div>
             <div className="relative w-full h-48 bg-black/40 rounded-xl overflow-hidden border border-gray-900">
@@ -716,14 +716,14 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
           {/* Spiritual milestones — label dalaman */}
           <div className="zk-glass rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-medium text-amber-200">Sufi Spiritual Progression Milestones</h2>
+              <h2 className="text-base font-medium text-amber-200">Peringkat Kemajuan Zikir</h2>
               <span className="text-[10px] text-yellow-500/70 bg-yellow-900/20 border border-yellow-800/40 px-2 py-0.5 rounded-full">Label dalaman — dev only</span>
             </div>
             <div className="space-y-4">
               {[
-                { stage: 1, label: 'Dhikr-e-Qalbi (Conscious Effort)', range: 'Coherence < 71%', active: coherence < 71, color: 'blue' },
-                { stage: 2, label: 'Sultan-ul-Adhkar (Resonating Presence)', range: 'Coherence 71%–85%', active: coherence >= 71 && coherence < 86, color: 'emerald' },
-                { stage: 3, label: 'Yad Dasht (Perpetual Connection)', range: 'Coherence > 85%', active: coherence >= 86, color: 'amber' },
+                { stage: 1, label: 'Usaha Sedar / Zikir Hati', range: 'Coherence < 71%', active: coherence < 71, color: 'blue' },
+                { stage: 2, label: 'Zikir Beresonans', range: 'Coherence 71%–85%', active: coherence >= 71 && coherence < 86, color: 'emerald' },
+                { stage: 3, label: 'Kesedaran Berterusan', range: 'Coherence > 85%', active: coherence >= 86, color: 'amber' },
               ].map(({ stage, label, range, active, color }) => (
                 <div key={stage} className={`p-3.5 rounded-xl border transition-all duration-300 ${
                   active
