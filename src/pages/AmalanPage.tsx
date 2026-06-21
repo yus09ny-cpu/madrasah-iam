@@ -504,8 +504,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
   }
 
   function goFromBerzikir() {
-    // Pergi ke penutup jika ada kandungan, atau terus ke refleksi
-    setSubPhase(penutupan.length > 0 ? 'penutup' : 'refleksi')
+    setSubPhase('refleksi')
   }
 
   async function handleSubmitRefleksi() {
@@ -578,8 +577,8 @@ function KhafiSection({ userTier, onBack, onComplete }: {
         </div>
       )}
 
-      {/* Iframe — tunjuk semasa berzikir atau penutup */}
-      {(subPhase === 'berzikir' || subPhase === 'penutup') && (
+      {/* Iframe — tunjuk semasa berzikir sahaja */}
+      {subPhase === 'berzikir' && (
         <div className="rounded-2xl overflow-hidden border border-[#a78bfa30]"
           style={{ height: 'calc(100dvh - 300px)', minHeight: '400px' }}>
           <iframe
@@ -616,9 +615,10 @@ function KhafiSection({ userTier, onBack, onComplete }: {
             <span className="text-sm text-[#e8dcc8]">Saya telah membaca bacaan penutup</span>
           </button>
 
-          <button onClick={() => setSubPhase('refleksi')} disabled={!penutupConfirmed}
-            className="w-full py-4 bg-[#a78bfa] text-[#060d16] font-semibold rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
-            Teruskan ke Refleksi Diri →
+          <button onClick={handleSelesai} disabled={!penutupConfirmed}
+            className="w-full py-4 font-semibold rounded-2xl text-[#060d16] hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: 'linear-gradient(135deg, #a78bfa, #c4b5fd)' }}>
+            ✦ Selesai Sesi Hari Ini
           </button>
         </div>
       )}
@@ -669,10 +669,11 @@ function KhafiSection({ userTier, onBack, onComplete }: {
             <p className="text-[#a78bfa] text-xs font-medium uppercase tracking-wider">Tindak Balas Pembimbing ✦</p>
             <p className="text-[#e8dcc8] text-sm leading-relaxed" style={{ whiteSpace: 'pre-wrap' }}>{aiReply}</p>
           </div>
-          <button onClick={handleSelesai}
+          <button
+            onClick={penutupan.length > 0 ? () => setSubPhase('penutup') : handleSelesai}
             className="w-full py-4 font-semibold rounded-2xl text-[#060d16] hover:opacity-90 transition-opacity"
             style={{ background: 'linear-gradient(135deg, #a78bfa, #c4b5fd)' }}>
-            ✦ Selesai Sesi Hari Ini
+            {penutupan.length > 0 ? 'Teruskan ke Bacaan Penutup →' : '✦ Selesai Sesi Hari Ini'}
           </button>
         </div>
       )}
