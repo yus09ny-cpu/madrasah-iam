@@ -8,18 +8,18 @@ import { useRumiMode } from '@/pages/NotificationSettingsPage'
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const AYAT_LIST = [
-  { arabic: 'وَلَذِكْرُ اللَّهِ أَكْبَرُ', translation: 'Dan sesungguhnya zikir kepada Allah adalah yang paling agung', source: 'Al-Ankabut: 45' },
-  { arabic: 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي', translation: 'Maka ingatlah kepada-Ku, nescaya Aku ingat kepadamu, dan bersyukurlah', source: 'Al-Baqarah: 152' },
-  { arabic: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ', translation: 'Ketahuilah, hanya dengan mengingati Allah hati menjadi tenang', source: "Ar-Ra'd: 28" },
+  { arabic: 'وَلَذِكْرُ اللَّهِ أَكْبَرُ', transKey: 'zikir.amm_ayat_ankabut', source: 'Al-Ankabut: 45' },
+  { arabic: 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي', transKey: 'zikir.amm_ayat_baqarah', source: 'Al-Baqarah: 152' },
+  { arabic: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ', transKey: 'zikir.amm_ayat_rad', source: "Ar-Ra'd: 28" },
 ]
 
 const ZIKIR_LIST = [
-  { id: 'tasbih',   name: 'Tasbih',    arabic: 'سُبْحَانَ اللَّهِ',             rumi: 'Subhanallah',             meaning: 'Maha Suci Allah',                         target: 33,  hex: '#34d399', tabClass: 'text-emerald-400 border-emerald-500/50 bg-emerald-900/20', ringHex: '#34d39930' },
-  { id: 'tahmid',   name: 'Tahmid',    arabic: 'اَلْحَمْدُ لِلَّهِ',            rumi: 'Alhamdulillah',           meaning: 'Segala puji bagi Allah',                  target: 33,  hex: '#fbbf24', tabClass: 'text-amber-400 border-amber-500/50 bg-amber-900/20',   ringHex: '#fbbf2430' },
-  { id: 'takbir',   name: 'Takbir',    arabic: 'اللَّهُ أَكْبَرُ',              rumi: 'Allahu Akbar',            meaning: 'Allah Maha Besar',                        target: 34,  hex: '#f87171', tabClass: 'text-rose-400 border-rose-500/50 bg-rose-900/20',     ringHex: '#f8717130' },
-  { id: 'tahlil',   name: 'Tahlil',    arabic: 'لَا إِلَٰهَ إِلَّا اللَّهُ',   rumi: 'La ilaha illallah',       meaning: 'Tiada tuhan melainkan Allah',              target: 100, hex: '#60a5fa', tabClass: 'text-blue-400 border-blue-500/50 bg-blue-900/20',      ringHex: '#60a5fa30' },
-  { id: 'selawat',  name: 'Selawat',   arabic: 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ', rumi: "Allahumma Solli 'ala Muhammad", meaning: 'Ya Allah, selawatlah ke atas Nabi Muhammad ﷺ', target: 100, hex: '#c9a96e', tabClass: 'text-[#c9a96e] border-[#c9a96e50] bg-[#c9a96e15]',  ringHex: '#c9a96e30' },
-  { id: 'istighfar',name: 'Istighfar', arabic: 'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ', rumi: "Astaghfirullahal 'Azim", meaning: 'Aku pohon ampun kepada Allah Yang Maha Agung', target: 100, hex: '#a78bfa', tabClass: 'text-violet-400 border-violet-500/50 bg-violet-900/20', ringHex: '#a78bfa30' },
+  { id: 'tasbih',   name: 'Tasbih',    arabic: 'سُبْحَانَ اللَّهِ',             rumi: 'Subhanallah',             meaningKey: 'zikir.amm_m_tasbih',    target: 33,  hex: '#34d399', tabClass: 'text-emerald-400 border-emerald-500/50 bg-emerald-900/20', ringHex: '#34d39930' },
+  { id: 'tahmid',   name: 'Tahmid',    arabic: 'اَلْحَمْدُ لِلَّهِ',            rumi: 'Alhamdulillah',           meaningKey: 'zikir.amm_m_tahmid',    target: 33,  hex: '#fbbf24', tabClass: 'text-amber-400 border-amber-500/50 bg-amber-900/20',   ringHex: '#fbbf2430' },
+  { id: 'takbir',   name: 'Takbir',    arabic: 'اللَّهُ أَكْبَرُ',              rumi: 'Allahu Akbar',            meaningKey: 'zikir.amm_m_takbir',    target: 34,  hex: '#f87171', tabClass: 'text-rose-400 border-rose-500/50 bg-rose-900/20',     ringHex: '#f8717130' },
+  { id: 'tahlil',   name: 'Tahlil',    arabic: 'لَا إِلَٰهَ إِلَّا اللَّهُ',   rumi: 'La ilaha illallah',       meaningKey: 'zikir.amm_m_tahlil',    target: 100, hex: '#60a5fa', tabClass: 'text-blue-400 border-blue-500/50 bg-blue-900/20',      ringHex: '#60a5fa30' },
+  { id: 'selawat',  name: 'Selawat',   arabic: 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ', rumi: "Allahumma Solli 'ala Muhammad", meaningKey: 'zikir.amm_m_selawat',   target: 100, hex: '#c9a96e', tabClass: 'text-[#c9a96e] border-[#c9a96e50] bg-[#c9a96e15]',  ringHex: '#c9a96e30' },
+  { id: 'istighfar',name: 'Istighfar', arabic: 'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ', rumi: "Astaghfirullahal 'Azim", meaningKey: 'zikir.amm_m_istighfar', target: 100, hex: '#a78bfa', tabClass: 'text-violet-400 border-violet-500/50 bg-violet-900/20', ringHex: '#a78bfa30' },
 ]
 
 const STORAGE_KEY_PREFIX = 'madrasah-zikir-am'
@@ -135,7 +135,7 @@ export default function ZikirAmm() {
       {/* Ayat Banner */}
       <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-5 text-center transition-all duration-700">
         <p className="font-serif text-[#c9a96e] text-lg leading-loose" dir="rtl">{ayat.arabic}</p>
-        <p className="text-[#8a7a65] text-xs mt-2 leading-relaxed italic">"{ayat.translation}"</p>
+        <p className="text-[#8a7a65] text-xs mt-2 leading-relaxed italic">"{t(ayat.transKey)}"</p>
         <p className="text-[#c9a96e60] text-xs mt-1">— {ayat.source}</p>
       </div>
 
@@ -158,7 +158,7 @@ export default function ZikirAmm() {
       {/* Panduan Khusyuk */}
       <div className="bg-[#060d16] border border-[#c9a96e20] rounded-xl px-4 py-3 text-center">
         <p className="text-[#c9a96e] text-xs font-serif leading-relaxed">
-          ✦ Lafazkan dengan khusyuk — hayati makna setiap kalimah. Hadirkan hati bersama lidah.
+          {t('zikir.amm_khusyuk')}
         </p>
       </div>
 
@@ -171,7 +171,7 @@ export default function ZikirAmm() {
             {active.arabic}
           </p>
           {showRumi && <p className="text-[#8a7a65] text-xs italic mt-0.5">{active.rumi}</p>}
-          <p className="text-[#8a7a65] text-xs">{active.meaning}</p>
+          <p className="text-[#8a7a65] text-xs">{t(active.meaningKey)}</p>
         </div>
 
         {/* Progress bar */}
