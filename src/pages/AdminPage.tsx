@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, RotateCcw, Users, BookOpen, Star, Wrench, Crown, Gauge } from 'lucide-react'
+import { Shield, RotateCcw, Users, BookOpen, Star, Wrench, Crown, Gauge, FlaskConical } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import type { UserTier } from '@/types'
@@ -210,6 +210,25 @@ export default function AdminPage() {
                 Kembali ke Tier Asal ({originalTier})
               </button>
             )}
+          </div>
+
+          {/* Zikir Khafi Dev — akses Master Admin sahaja */}
+          <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <FlaskConical size={14} className="text-emerald-400" />
+              <p className="text-[#8a7a65] text-xs uppercase tracking-wider">Zikir Khafi (Beta/Dev)</p>
+            </div>
+            <p className="text-xs text-[#8a7a65] leading-relaxed">
+              Sufi Biofeedback Simulator — visualisasi HRV, simulasi data BLE, sistem peringkat kemajuan (3 stages).
+              Prototype sahaja; bukan data sensor sebenar.
+            </p>
+            <button
+              onClick={() => navigate('/admin/zikir-khafi-dev')}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm border border-emerald-800/50 text-emerald-400 hover:bg-emerald-900/20 transition-colors"
+            >
+              <FlaskConical size={14} />
+              Buka Simulator
+            </button>
           </div>
 
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-2">
