@@ -469,15 +469,14 @@ function KhafiSection({ userTier, onBack, onComplete }: {
   onBack: () => void
   onComplete: (khafiMins: number) => void
 }) {
-  const [subPhase, setSubPhase] = useState<'pembuka' | 'berzikir' | 'penutup' | 'refleksi' | 'ai_done'>('pembuka')
+  const [subPhase, setSubPhase] = useState<'pembuka' | 'berzikir' | 'refleksi' | 'ai_done'>('pembuka')
   const startRef = useRef(Date.now())
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [aiReply, setAiReply] = useState<string | null>(null)
   const [pembukaan, setPembukaan] = useState<AmalanItem[]>([])
-  const [penutupan, setPenutupan] = useState<AmalanItem[]>([])
   const [pembConfirmed, setPembConfirmed] = useState(false)
-  const [penutupConfirmed, setPenutupConfirmed] = useState(false)
+  const [showPenutupModal, setShowPenutupModal] = useState(false)
 
   const allAnswered = REFLEKSI_SOALAN.every(s => answers[s.id])
   const tier = userTier === 'pro' || userTier === 'pro_plus' ? 'pro' : 'free'
@@ -486,14 +485,13 @@ function KhafiSection({ userTier, onBack, onComplete }: {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
     fetch(
-      `${supabaseUrl}/rest/v1/amalan_content?select=*&jenis=in.(zikir_khafi,zikir_khafi_penutup)&order=urutan.asc`,
+      `${supabaseUrl}/rest/v1/amalan_content?select=*&jenis=eq.zikir_khafi&order=urutan.asc`,
       { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
     )
       .then(r => r.ok ? r.json() : [])
       .then((data: AmalanItem[]) => {
         const active = (data ?? []).filter(d => d.aktif !== false)
-        setPembukaan(active.filter(d => d.jenis === 'zikir_khafi'))
-        setPenutupan(active.filter(d => d.jenis === 'zikir_khafi_penutup'))
+        setPembukaan(active)
       })
       .catch(() => {})
   }, [])
@@ -593,33 +591,32 @@ function KhafiSection({ userTier, onBack, onComplete }: {
 
       {/* Sub-phase: berzikir */}
       {subPhase === 'berzikir' && (
-        <button onClick={goFromBerzikir}
+        <button onClick={() => setShowPenutupModal(true)}
           className="w-full py-3.5 bg-[#a78bfa] text-[#060d16] font-semibold rounded-xl text-sm hover:opacity-90 transition-opacity">
           ✓ Sudah Berzikir — Teruskan
         </button>
       )}
 
-      {/* Sub-phase: penutup — Sayyiduna Muhammad (Supabase jenis=zikir_khafi_penutup) */}
-      {subPhase === 'penutup' && (
-        <div className="space-y-4">
-          <div className="space-y-3">
-            {penutupan.map(item => <BacaanCard key={item.id} item={item} accent="#a78bfa" />)}
-          </div>
-
-          <button onClick={() => setPenutupConfirmed(v => !v)}
-            className="w-full flex items-center gap-3 p-4 bg-[#0d1821] border border-[#1e2d40] rounded-xl hover:border-[#a78bfa30] transition-colors">
-            <div className={cn('w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all',
-              penutupConfirmed ? 'border-[#a78bfa] bg-[#a78bfa]' : 'border-[#2a3d55]')}>
-              {penutupConfirmed && <CheckCircle2 size={12} className="text-[#060d16]" />}
+      {/* Modal Penutup — Sayyiduna Muhammad ﷺ */}
+      {showPenutupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-5"
+          style={{ background: 'rgba(6,13,22,0.92)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-sm space-y-6">
+            <div className="bg-[#0d1821] border border-[#a78bfa30] rounded-3xl p-8 text-center space-y-5">
+              <p className="text-[#a78bfa] text-xs font-medium uppercase tracking-widest">Penutup</p>
+              <p className="font-serif leading-loose text-[#c9a96e]"
+                dir="rtl" style={{ fontSize: 32, lineHeight: 2 }}>
+                سَيِّدُنَا مُحَمَّدٌ ﷺ
+              </p>
+              <p className="text-[#8a7a65] text-sm italic">Sayyidunā Muḥammad ﷺ</p>
             </div>
-            <span className="text-sm text-[#e8dcc8]">Saya telah membaca bacaan penutup</span>
-          </button>
-
-          <button onClick={handleSelesai} disabled={!penutupConfirmed}
-            className="w-full py-4 font-semibold rounded-2xl text-[#060d16] hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: 'linear-gradient(135deg, #a78bfa, #c4b5fd)' }}>
-            ✦ Selesai Sesi Hari Ini
-          </button>
+            <button
+              onClick={() => { setShowPenutupModal(false); goFromBerzikir() }}
+              className="w-full py-4 font-semibold rounded-2xl text-[#060d16] hover:opacity-90 transition-opacity"
+              style={{ background: 'linear-gradient(135deg, #a78bfa, #c4b5fd)' }}>
+              Teruskan →
+            </button>
+          </div>
         </div>
       )}
 
@@ -670,10 +667,10 @@ function KhafiSection({ userTier, onBack, onComplete }: {
             <p className="text-[#e8dcc8] text-sm leading-relaxed" style={{ whiteSpace: 'pre-wrap' }}>{aiReply}</p>
           </div>
           <button
-            onClick={penutupan.length > 0 ? () => setSubPhase('penutup') : handleSelesai}
+            onClick={handleSelesai}
             className="w-full py-4 font-semibold rounded-2xl text-[#060d16] hover:opacity-90 transition-opacity"
             style={{ background: 'linear-gradient(135deg, #a78bfa, #c4b5fd)' }}>
-            {penutupan.length > 0 ? 'Teruskan ke Bacaan Penutup →' : '✦ Selesai Sesi Hari Ini'}
+            ✦ Selesai Sesi Hari Ini
           </button>
         </div>
       )}
