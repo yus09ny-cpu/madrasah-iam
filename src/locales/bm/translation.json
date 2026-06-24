@@ -696,7 +696,13 @@
     "dashboard_terkumpul": "terkumpul", "pilih_amalan": "Pilih Amalan",
     "jahar_sub": "Bacaan Pembuka, Zikir Berlafaz, Doa",
     "jahar_jumlah": "Jumlah: {{count}}x",
-    "khafi_sub": "Zikir hati — sync degupan jantung"
+    "khafi_sub": "Zikir hati — sync degupan jantung",
+    "progress_hari_ini": "Progress Hari Ini",
+    "tanpa_had": "∞ Tanpa Had",
+    "tanpa_had_desc": "Counter terus naik tanpa had — sesuai untuk zikir tanpa had bilangan",
+    "tetapan_jahar": "Tetapan Zikir Jahar",
+    "bilangan_zikir": "Bilangan Zikir",
+    "selesai_jahar_btn": "Selesai Zikir →"
   },
   "ajv2": {
     "tajuk": "Audit Jiwa",

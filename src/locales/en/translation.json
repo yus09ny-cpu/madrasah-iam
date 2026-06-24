@@ -696,7 +696,13 @@
     "dashboard_terkumpul": "accumulated", "pilih_amalan": "Choose Practice",
     "jahar_sub": "Opening Recitations, Vocal Zikir, Prayer",
     "jahar_jumlah": "Total: {{count}}x",
-    "khafi_sub": "Heart zikir — syncing with heartbeat"
+    "khafi_sub": "Heart zikir — syncing with heartbeat",
+    "progress_hari_ini": "Today's Progress",
+    "tanpa_had": "∞ Unlimited",
+    "tanpa_had_desc": "Counter keeps rising without limit — for zikir without a set count",
+    "tetapan_jahar": "Zikir Jahar Settings",
+    "bilangan_zikir": "Zikir Count",
+    "selesai_jahar_btn": "Complete Zikir →"
   },
   "ajv2": {
     "tajuk": "Soul Audit",

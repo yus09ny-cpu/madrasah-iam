@@ -696,7 +696,13 @@
     "dashboard_terkumpul": "متراكم", "pilih_amalan": "اختر الأعمال",
     "jahar_sub": "أذكار الافتتاح، الذكر الجهري، الدعاء",
     "jahar_jumlah": "المجموع: {{count}}×",
-    "khafi_sub": "ذكر القلب — متزامن مع دقات القلب"
+    "khafi_sub": "ذكر القلب — متزامن مع دقات القلب",
+    "progress_hari_ini": "تقدم اليوم",
+    "tanpa_had": "∞ بلا حدود",
+    "tanpa_had_desc": "العداد يرتفع بلا توقف — مناسب للذكر دون تحديد عدد",
+    "tetapan_jahar": "إعدادات الذكر الجهري",
+    "bilangan_zikir": "عدد الذكر",
+    "selesai_jahar_btn": "أتمم الذكر →"
   },
   "ajv2": {
     "tajuk": "محاسبة النفس",

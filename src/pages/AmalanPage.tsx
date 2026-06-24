@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  CheckCircle2, ChevronDown, ChevronUp, Flame, Volume2, VolumeX,
+  CheckCircle2, ChevronDown, ChevronUp, Flame, Volume2, VolumeX, Settings, RotateCcw, X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
@@ -162,22 +162,39 @@ function Fasa1({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
 
 // ─── Fasa 2 — Zikir Jahar ─────────────────────────────────────────────────────
 
+const TARGETS_CONFIG = [
+  { value: 165, label: '165x' },
+  { value: 200, label: '200x' },
+  { value: 300, label: '300x' },
+  { value: 500, label: '500x' },
+  { value: Infinity, label: '∞' },
+]
+
+function loadJaharTarget(): number {
+  const raw = localStorage.getItem('amalan_jahar_target')
+  if (raw === 'Infinity') return Infinity
+  const n = parseInt(raw ?? '165')
+  return isNaN(n) ? 165 : n
+}
+
 function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: number, target: number) => void }) {
   const { t } = useTranslation()
-  const TARGETS = [165, 200, 300, 500]
-  const savedTarget = parseInt(localStorage.getItem('amalan_jahar_target') ?? '165') || 165
-  const [target, setTarget] = useState(savedTarget)
+  const [target, setTarget] = useState(loadJaharTarget)
   const [count, setCount] = useState(0)
   const [flash, setFlash] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
   const [audioOn, setAudioOn] = useState(false)
   const [audioAvail, setAudioAvail] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const isDone = count >= target
-  const progress = target > 0 ? Math.min((count / target) * 100, 100) : 0
-  const C = 2 * Math.PI * 80
+  const lastTapRef = useRef<number>(0)
 
-  // Try to load audio
+  const isInfinity = target === Infinity
+  const isDone = !isInfinity && count >= target
+  const progress = isInfinity ? 0 : Math.min((count / target) * 100, 100)
+  const RING_R = 100
+  const C = 2 * Math.PI * RING_R
+
   useEffect(() => {
     supabase.storage.from('madrasah-audio').createSignedUrl('zikir-jahar/pemula.mp3', 3600)
       .then(({ data }) => {
@@ -195,130 +212,225 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
     else audioRef.current.pause()
   }, [audioOn, isDone])
 
-  // Save progress
   useEffect(() => {
     localStorage.setItem('amalan_jahar_count', String(count))
   }, [count])
 
   const handleTap = useCallback(() => {
     if (isDone) return
+    const now = Date.now()
+    if (now - lastTapRef.current < 300) return
+    lastTapRef.current = now
     setCount(c => c + 1)
     setFlash(true)
-    setTimeout(() => setFlash(false), 80)
-    if ('vibrate' in navigator) navigator.vibrate(30)
+    setTimeout(() => setFlash(false), 90)
+    if ('vibrate' in navigator) navigator.vibrate(50)
   }, [isDone])
 
-  function changeTarget(t: number) {
-    setTarget(t)
+  function changeTarget(val: number) {
+    setTarget(val)
     setCount(0)
-    localStorage.setItem('amalan_jahar_target', String(t))
+    localStorage.setItem('amalan_jahar_target', String(val))
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="text-center space-y-1">
-        {item?.arab && (
-          <p className="font-serif text-[#60a5fa] leading-none" style={{ fontSize: 28 }} dir="rtl">{item.arab}</p>
-        )}
-        <p className="text-[#8a7a65] text-sm">{t('amalan.fasa2_sub')}</p>
-      </div>
+  function handleReset() {
+    setCount(0)
+    localStorage.removeItem('amalan_jahar_count')
+  }
 
-      {/* Target */}
-      {!isDone && (
-        <div className="flex gap-2">
-          {TARGETS.map(t => (
-            <button key={t} onClick={() => changeTarget(t)}
-              className={cn('flex-1 py-2 rounded-xl border text-xs font-medium transition-all',
-                target === t ? 'border-[#60a5fa50] bg-[#60a5fa15] text-[#60a5fa]' : 'border-[#1e2d40] text-[#8a7a65] hover:text-[#e8dcc8]')}>
-              {t}x
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Progress Ring */}
-      <div className="flex items-center justify-center py-2">
-        <div className="relative w-44 h-44">
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 176 176">
-            <circle cx="88" cy="88" r="80" strokeWidth="8" stroke="#1e2d40" fill="none" />
-            <circle cx="88" cy="88" r="80" strokeWidth="8" fill="none"
-              stroke={isDone ? '#4ade80' : '#60a5fa'}
-              strokeLinecap="round"
-              strokeDasharray={C}
-              strokeDashoffset={C * (1 - progress / 100)}
-              className="transition-all duration-300" />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <p className={cn('font-serif font-bold transition-all duration-75',
-              flash ? 'scale-125' : 'scale-100',
-              isDone ? 'text-[#4ade80]' : flash ? 'text-[#60a5fa]' : 'text-[#c9a96e]')}
-              style={{ fontSize: 64 }}>
-              {count}
-            </p>
-            <p className="text-[#8a7a65] text-xs">/ {target}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Audio toggle */}
-      <div className="flex items-center justify-between bg-[#0d1821] border border-[#1e2d40] rounded-xl px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          {audioOn ? <Volume2 size={14} className="text-[#60a5fa]" /> : <VolumeX size={14} className="text-[#8a7a65]" />}
-          <p className="text-sm text-[#e8dcc8]">{t('amalan.audio_panduan')}</p>
-        </div>
-        {audioAvail ? (
-          <button onClick={() => setAudioOn(v => !v)}
-            className={cn('w-11 h-6 rounded-full relative transition-all', audioOn ? 'bg-[#60a5fa]' : 'bg-[#1e2d40]')}>
-            <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all', audioOn ? 'left-[22px]' : 'left-0.5')} />
-          </button>
-        ) : (
-          <p className="text-[#8a7a65] text-xs">{t('amalan.belum_tersedia')}</p>
-        )}
-      </div>
-
-      {/* Panduan gerakan */}
-      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-xl overflow-hidden">
-        <button onClick={() => setShowGuide(v => !v)} className="w-full flex items-center justify-between px-4 py-3">
-          <p className="text-[#8a7a65] text-xs">{t('amalan.panduan_gerakan')}</p>
-          {showGuide ? <ChevronUp size={14} className="text-[#8a7a65]" /> : <ChevronDown size={14} className="text-[#8a7a65]" />}
+  // ── Done screen ────────────────────────────────────────────────────
+  if (isDone) {
+    return (
+      <div className="space-y-4 text-center bg-[#0d1821] border border-[#60a5fa30] rounded-2xl p-6">
+        <p className="font-serif text-[#60a5fa] text-2xl">Alhamdulillah ✦</p>
+        <p className="text-[#8a7a65] text-sm">{t('amalan.fasa2_kali_selesai', { count })}</p>
+        <p className="font-serif text-[#c9a96e] text-base leading-loose" dir="rtl">
+          سَيِّدُنَا مُحَمَّدٌ رَّسُوْلُ اللّٰهِ
+        </p>
+        <button onClick={() => onDone(count, target)}
+          className="w-full py-4 bg-[#60a5fa] text-[#060d16] font-semibold rounded-2xl hover:opacity-90 transition-opacity">
+          {t('amalan.fasa2_btn')}
         </button>
-        {showGuide && (
-          <div className="px-4 pb-4 space-y-3">
-            {[
-              { arab: 'لَا', gKey: 'amalan.gerakan_la' },
-              { arab: 'إِلَٰهَ', gKey: 'amalan.gerakan_ilaha' },
-              { arab: 'إِلَّا اللَّهُ', gKey: 'amalan.gerakan_illallah' },
-            ].map(({ arab, gKey }) => (
-              <div key={arab} className="bg-[#060d16] rounded-xl p-3 space-y-1">
-                <p className="font-serif text-[#60a5fa] text-base text-right" dir="rtl">{arab}</p>
-                <p className="text-[#8a7a65] text-xs">{t(gKey as any)}</p>
-              </div>
-            ))}
-          </div>
-        )}
+      </div>
+    )
+  }
+
+  // ── Active counter screen ──────────────────────────────────────────
+  return (
+    <div className="relative flex flex-col" style={{ minHeight: 'calc(100dvh - 260px)' }}>
+
+      {/* Row: Arabic text + Settings icon */}
+      <div className="flex items-start gap-3 mb-3">
+        <div className="flex-1 text-center">
+          <p className="font-serif text-[#60a5fa] leading-loose" style={{ fontSize: 26 }} dir="rtl">
+            {item?.arab ?? 'لَا إِلَٰهَ إِلَّا اللَّهُ'}
+          </p>
+          <p className="text-[#8a7a65] text-xs italic">La ilaha illallah</p>
+        </div>
+        <button
+          onClick={() => setShowSettings(true)}
+          className="mt-1 w-9 h-9 rounded-xl border border-[#1e2d40] flex items-center justify-center text-[#8a7a65] hover:text-[#e8dcc8] hover:border-[#2a3d55] transition-colors flex-shrink-0"
+        >
+          <Settings size={15} />
+        </button>
       </div>
 
-      {/* Done */}
-      {isDone ? (
-        <div className="space-y-4 text-center bg-[#0d1821] border border-[#60a5fa30] rounded-2xl p-6">
-          <p className="font-serif text-[#60a5fa] text-2xl">Alhamdulillah ✦</p>
-          <p className="text-[#8a7a65] text-sm">{t('amalan.fasa2_kali_selesai', { count })}</p>
-          <p className="font-serif text-[#c9a96e] text-base leading-loose" dir="rtl">
-            سَيِّدُنَا مُحَمَّدٌ رَّسُوْلُ اللّٰهِ
-          </p>
-          <button onClick={() => onDone(count, target)}
-            className="w-full py-4 bg-[#60a5fa] text-[#060d16] font-semibold rounded-2xl hover:opacity-90 transition-opacity">
-            {t('amalan.fasa2_btn')}
-          </button>
+      {/* Progress bar (hidden in ∞ mode) */}
+      {!isInfinity ? (
+        <div className="space-y-1.5 mb-4">
+          <div className="flex justify-between text-xs">
+            <span className="text-[#8a7a65]">{t('amalan.progress_hari_ini')}</span>
+            <span className="font-medium text-[#60a5fa]">{count} / {target}</span>
+          </div>
+          <div className="h-2 bg-[#1e2d40] rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-[#60a5fa] transition-all duration-300" style={{ width: `${progress}%` }} />
+          </div>
         </div>
       ) : (
-        <button onClick={handleTap}
-          className={cn('w-full rounded-2xl select-none font-serif text-[#60a5fa] transition-all duration-75',
-            flash ? 'scale-[0.97] bg-[#60a5fa25]' : 'hover:bg-[#60a5fa08] active:scale-[0.97]')}
-          style={{ height: 80, border: '2px solid #60a5fa', fontSize: 24 }}
-          dir="rtl">
-          لَا إِلَٰهَ إِلَّا اللَّهُ
+        <p className="text-center text-[#60a5fa30] text-xs mb-4 tracking-widest">{t('amalan.tanpa_had')}</p>
+      )}
+
+      {/* Big tap area — full remaining height */}
+      <button
+        onClick={handleTap}
+        className="flex-1 flex flex-col items-center justify-center select-none relative"
+        style={{ minHeight: 260 }}
+        aria-label="Tap to zikir"
+      >
+        {/* Pulse ring on flash */}
+        {flash && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-64 h-64 rounded-full border-2 border-[#60a5fa30] animate-ping" style={{ animationDuration: '0.5s' }} />
+          </div>
+        )}
+
+        {/* Circle counter */}
+        <div className={cn('relative transition-transform duration-75', flash ? 'scale-[0.93]' : 'scale-100')}>
+          <svg className="-rotate-90" width="230" height="230" viewBox="0 0 230 230">
+            {/* Background ring */}
+            <circle cx="115" cy="115" r={RING_R} strokeWidth="8" stroke="#1e2d40" fill="none" />
+            {/* Progress ring */}
+            {!isInfinity ? (
+              <circle cx="115" cy="115" r={RING_R} strokeWidth="8" fill="none"
+                stroke={flash ? '#93c5fd' : '#60a5fa'}
+                strokeLinecap="round"
+                strokeDasharray={C}
+                strokeDashoffset={C * (1 - progress / 100)}
+                className="transition-all duration-300"
+              />
+            ) : (
+              <circle cx="115" cy="115" r={RING_R} strokeWidth="3" fill="none"
+                stroke={flash ? '#93c5fd' : '#60a5fa40'}
+                strokeDasharray="10 14"
+              />
+            )}
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span
+              className={cn('font-bold font-serif leading-none transition-colors',
+                flash ? 'text-[#93c5fd]' : 'text-[#e8dcc8]')}
+              style={{ fontSize: 80 }}
+            >
+              {count}
+            </span>
+            {!flash && (
+              <span className="text-[#60a5fa] text-xs tracking-widest uppercase mt-1">
+                {t('zikir.ketuk')}
+              </span>
+            )}
+          </div>
+        </div>
+      </button>
+
+      {/* Bottom buttons */}
+      <div className="flex items-center justify-between pt-4 gap-3">
+        <button onClick={handleReset} disabled={count === 0}
+          className="flex items-center gap-2 px-5 py-2.5 border border-[#1e2d40] rounded-xl text-xs text-[#8a7a65] hover:text-[#e8dcc8] hover:border-[#2a3d55] transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+          <RotateCcw size={13} />
+          {t('zikir.set_semula')}
         </button>
+        {isInfinity && count > 0 && (
+          <button onClick={() => onDone(count, Infinity)}
+            className="flex-1 py-2.5 bg-[#60a5fa15] border border-[#60a5fa40] text-[#60a5fa] text-sm font-medium rounded-xl hover:bg-[#60a5fa25] transition-colors">
+            {t('amalan.selesai_jahar_btn')}
+          </button>
+        )}
+      </div>
+
+      {/* Settings bottom sheet */}
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowSettings(false)}>
+          <div
+            className="bg-[#0d1821] border-t border-x border-[#1e2d40] rounded-t-3xl w-full max-w-md p-6 space-y-5"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <p className="text-[#e8dcc8] font-medium text-sm">⚙️ {t('amalan.tetapan_jahar')}</p>
+              <button onClick={() => setShowSettings(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8a7a65] hover:text-[#e8dcc8] transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Target picker */}
+            <div className="space-y-2.5">
+              <p className="text-[#8a7a65] text-xs uppercase tracking-wider">{t('amalan.bilangan_zikir')}</p>
+              <div className="grid grid-cols-5 gap-2">
+                {TARGETS_CONFIG.map(cfg => (
+                  <button key={cfg.value} onClick={() => { changeTarget(cfg.value); setShowSettings(false) }}
+                    className={cn('py-3 rounded-xl border text-sm font-medium transition-all',
+                      target === cfg.value
+                        ? 'border-[#60a5fa60] bg-[#60a5fa15] text-[#60a5fa]'
+                        : 'border-[#1e2d40] text-[#8a7a65] hover:text-[#e8dcc8]')}>
+                    {cfg.label}
+                  </button>
+                ))}
+              </div>
+              {isInfinity && (
+                <p className="text-[#8a7a65] text-xs leading-relaxed">{t('amalan.tanpa_had_desc')}</p>
+              )}
+            </div>
+
+            {/* Audio toggle */}
+            <div className="flex items-center justify-between bg-[#060d16] border border-[#1e2d40] rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2">
+                {audioOn ? <Volume2 size={14} className="text-[#60a5fa]" /> : <VolumeX size={14} className="text-[#8a7a65]" />}
+                <p className="text-sm text-[#e8dcc8]">{t('amalan.audio_panduan')}</p>
+              </div>
+              {audioAvail ? (
+                <button onClick={() => setAudioOn(v => !v)}
+                  className={cn('w-11 h-6 rounded-full relative transition-all', audioOn ? 'bg-[#60a5fa]' : 'bg-[#1e2d40]')}>
+                  <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all', audioOn ? 'left-[22px]' : 'left-0.5')} />
+                </button>
+              ) : (
+                <p className="text-[#8a7a65] text-xs">{t('amalan.belum_tersedia')}</p>
+              )}
+            </div>
+
+            {/* Movement guide */}
+            <div className="bg-[#060d16] border border-[#1e2d40] rounded-xl overflow-hidden">
+              <button onClick={() => setShowGuide(v => !v)} className="w-full flex items-center justify-between px-4 py-3">
+                <p className="text-[#8a7a65] text-xs">{t('amalan.panduan_gerakan')}</p>
+                {showGuide ? <ChevronUp size={14} className="text-[#8a7a65]" /> : <ChevronDown size={14} className="text-[#8a7a65]" />}
+              </button>
+              {showGuide && (
+                <div className="px-4 pb-4 space-y-3">
+                  {[
+                    { arab: 'لَا', gKey: 'amalan.gerakan_la' },
+                    { arab: 'إِلَٰهَ', gKey: 'amalan.gerakan_ilaha' },
+                    { arab: 'إِلَّا اللَّهُ', gKey: 'amalan.gerakan_illallah' },
+                  ].map(({ arab, gKey }) => (
+                    <div key={arab} className="bg-[#0d1821] rounded-xl p-3 space-y-1">
+                      <p className="font-serif text-[#60a5fa] text-base text-right" dir="rtl">{arab}</p>
+                      <p className="text-[#8a7a65] text-xs">{t(gKey as any)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
