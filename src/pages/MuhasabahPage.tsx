@@ -44,20 +44,7 @@ FORMAT RESPONS (3-4 perenggan pendek):
 
 PENTING: Jangan sebut "AI" — kamu adalah "I AM". Jangan mengarang dalil.`
 
-const DEFAULT_REFLECTION = `Alhamdulillah kerana anda meluangkan masa untuk Audit Jiwa hari ini.
-
-وَلَذِكْرُ اللَّهِ أَكْبَرُ
-"Dan sesungguhnya zikir kepada Allah adalah pekerjaan yang paling agung" — Al-Ankabut: 45
-
-Setiap soalan yang anda jawab adalah langkah untuk mengenal 2 penghalang utama dalam perjalanan anda.
-
-Syaitan dari luar — datang dari depan, belakang, kanan dan kiri. (Al-A'raf: 17)
-
-Nafsu dari dalam — sentiasa mengajak kepada kejahatan. (Yusuf: 53)
-
-Ubat untuk kedua-duanya sudah Allah sediakan — melalui Zikir Jahar dan Zikir Khafi.
-
-Mahu tahu lebih lanjut? Klik tab Zikir Khas.`
+const DEFAULT_REFLECTION_KEY = 'muhasabah.default_reflection'
 
 const TIMEOUT_MS = 8000
 
@@ -258,18 +245,18 @@ export default function MuhasabahPage() {
   // Safety net — keluar dari loading selepas 10s walaupun API gagal
   useEffect(() => {
     if (phase !== 'ai-loading') return
-    const t = setTimeout(() => {
-      setAiResponse(DEFAULT_REFLECTION)
+    const timer = setTimeout(() => {
+      setAiResponse(t(DEFAULT_REFLECTION_KEY))
       setPhase('result')
     }, 10000)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
   }, [phase])
 
   const requestReflection = useCallback(async (context: string) => {
     const tier = user?.tier ?? 'free'
     const controller = new AbortController()
     const timeoutPromise = new Promise<string>(resolve =>
-      setTimeout(() => { controller.abort(); resolve(DEFAULT_REFLECTION) }, TIMEOUT_MS)
+      setTimeout(() => { controller.abort(); resolve(t(DEFAULT_REFLECTION_KEY)) }, TIMEOUT_MS)
     )
     const aiPromise = sendIAMMessage(
       [{ role: 'user', content: `Audit Jiwa saya hari ini:\n\n${context}` }],
@@ -277,7 +264,7 @@ export default function MuhasabahPage() {
       AUDIT_AI_PROMPT,
       controller.signal,
       'muhasabah'
-    ).catch(() => DEFAULT_REFLECTION)
+    ).catch(() => t(DEFAULT_REFLECTION_KEY))
 
     const reply = await Promise.race([aiPromise, timeoutPromise])
     setAiResponse(reply)
@@ -285,7 +272,7 @@ export default function MuhasabahPage() {
   }, [user?.tier])
 
   function useDefaultReflection() {
-    setAiResponse(DEFAULT_REFLECTION)
+    setAiResponse(t(DEFAULT_REFLECTION_KEY))
     setPhase('result')
   }
 
@@ -360,7 +347,7 @@ export default function MuhasabahPage() {
           </div>
           {loadingSeconds >= 3 && (
             <p className="text-[#8a7a65] text-xs text-center leading-relaxed">
-              Mengambil masa sedikit... Terima kasih atas kesabaran anda.
+              {t('ajv2.loading_sabar')}
             </p>
           )}
           {loadingSeconds >= 5 && (
@@ -423,7 +410,7 @@ export default function MuhasabahPage() {
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4">
             <div className="flex justify-between items-center mb-2.5">
               <span className="text-sm text-[#e8dcc8]">{t('audit_jiwa.kemajuan')}</span>
-              <span className="text-sm font-medium text-[#c9a96e]">{filledCount}/{selectedQuestions.length} soalan</span>
+              <span className="text-sm font-medium text-[#c9a96e]">{filledCount}/{selectedQuestions.length} {t('umum.soalan')}</span>
             </div>
             <div className="h-1.5 bg-[#1e2d40] rounded-full overflow-hidden">
               <div className="h-full bg-[#c9a96e] rounded-full transition-all duration-500"

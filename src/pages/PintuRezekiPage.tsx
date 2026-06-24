@@ -30,26 +30,26 @@ type AuditData = Record<string, SifatAuditRecord>
 // ─── Data: Sifat ──────────────────────────────────────────────────────────────
 
 const SIFAT_MAANI = [
-  { id: 'qudrat', arabic: 'اَلْقُدْرَةُ', name: 'QUDRAT', fullName: 'Maha Berkuasa', asma: 'Al-Qadir', color: '#d4a017',
-    cermin: 'Bila usaha anda tidak membuahkan hasil — itu cermin Qudrat Allah yang mengatasi semua kuasa manusia.',
+  { id: 'qudrat', arabic: 'اَلْقُدْرَةُ', name: 'QUDRAT', fullName: 'Maha Berkuasa', fullNameKey: 'pintu.sifat.qudrat_full', asma: 'Al-Qadir', color: '#d4a017',
+    cermin: 'Bila usaha anda tidak membuahkan hasil — itu cermin Qudrat Allah yang mengatasi semua kuasa manusia.', cerminKey: 'pintu.sifat.qudrat_cermin',
     ayat: 'وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', ref: 'Al-Baqarah: 284' },
-  { id: 'iradah', arabic: 'اَلْإِرَادَةُ', name: 'IRADAH', fullName: 'Maha Berkehendak', asma: 'Al-Murid', color: '#a78bfa',
-    cermin: 'Rancangan anda tidak menjadi — bukan tanda anda gagal. Itu tanda Iradah Allah berbeza dan lebih tinggi.',
+  { id: 'iradah', arabic: 'اَلْإِرَادَةُ', name: 'IRADAH', fullName: 'Maha Berkehendak', fullNameKey: 'pintu.sifat.iradah_full', asma: 'Al-Murid', color: '#a78bfa',
+    cermin: 'Rancangan anda tidak menjadi — bukan tanda anda gagal. Itu tanda Iradah Allah berbeza dan lebih tinggi.', cerminKey: 'pintu.sifat.iradah_cermin',
     ayat: 'إِنَّمَا أَمْرُهُ إِذَا أَرَادَ شَيْئًا أَن يَقُولَ لَهُ كُن فَيَكُونُ', ref: 'Yasin: 82' },
-  { id: 'ilmu', arabic: 'اَلْعِلْمُ', name: 'ILMU', fullName: 'Maha Mengetahui', asma: 'Al-Alim', color: '#60a5fa',
-    cermin: 'Allah tahu keperluan anda sebelum anda tahu sendiri. Rezeki yang lambat mungkin kerana Allah tahu masa yang lebih baik.',
+  { id: 'ilmu', arabic: 'اَلْعِلْمُ', name: 'ILMU', fullName: 'Maha Mengetahui', fullNameKey: 'pintu.sifat.ilmu_full', asma: 'Al-Alim', color: '#60a5fa',
+    cermin: 'Allah tahu keperluan anda sebelum anda tahu sendiri. Rezeki yang lambat mungkin kerana Allah tahu masa yang lebih baik.', cerminKey: 'pintu.sifat.ilmu_cermin',
     ayat: 'وَعِندَهُ مَفَاتِحُ الْغَيْبِ لَا يَعْلَمُهَا إِلَّا هُوَ', ref: 'Al-Anam: 59' },
-  { id: 'hayat', arabic: 'اَلْحَيَاةُ', name: 'HAYAT', fullName: 'Maha Hidup', asma: 'Al-Hayy', color: '#4ade80',
-    cermin: 'Selagi ada nafas — ada rezeki. Kerana rezeki mengikut hayat yang Allah pinjamkan.',
+  { id: 'hayat', arabic: 'اَلْحَيَاةُ', name: 'HAYAT', fullName: 'Maha Hidup', fullNameKey: 'pintu.sifat.hayat_full', asma: 'Al-Hayy', color: '#4ade80',
+    cermin: 'Selagi ada nafas — ada rezeki. Kerana rezeki mengikut hayat yang Allah pinjamkan.', cerminKey: 'pintu.sifat.hayat_cermin',
     ayat: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ', ref: 'Al-Baqarah: 255' },
-  { id: 'sama', arabic: 'اَلسَّمْعُ', name: "SAMA'", fullName: 'Maha Mendengar', asma: "As-Sami'", color: '#fbbf24',
-    cermin: 'Setiap doa tentang rezeki yang anda ucapkan — Allah dengar semuanya. Walaupun bisikan hati.',
+  { id: 'sama', arabic: 'اَلسَّمْعُ', name: "SAMA'", fullName: 'Maha Mendengar', fullNameKey: 'pintu.sifat.sama_full', asma: "As-Sami'", color: '#fbbf24',
+    cermin: 'Setiap doa tentang rezeki yang anda ucapkan — Allah dengar semuanya. Walaupun bisikan hati.', cerminKey: 'pintu.sifat.sama_cermin',
     ayat: 'سَمِعْنَا وَأَطَعْنَا', ref: 'Al-Baqarah: 285' },
-  { id: 'basar', arabic: 'اَلْبَصَرُ', name: 'BASAR', fullName: 'Maha Melihat', asma: 'Al-Basir', color: '#2dd4bf',
-    cermin: 'Allah melihat setiap usaha anda — walaupun tidak dilihat manusia. Tidak ada usaha yang sia-sia di sisi-Nya.',
+  { id: 'basar', arabic: 'اَلْبَصَرُ', name: 'BASAR', fullName: 'Maha Melihat', fullNameKey: 'pintu.sifat.basar_full', asma: 'Al-Basir', color: '#2dd4bf',
+    cermin: 'Allah melihat setiap usaha anda — walaupun tidak dilihat manusia. Tidak ada usaha yang sia-sia di sisi-Nya.', cerminKey: 'pintu.sifat.basar_cermin',
     ayat: 'وَاللَّهُ بَصِيرٌ بِمَا تَعْمَلُونَ', ref: 'Al-Baqarah: 265' },
-  { id: 'kalam', arabic: 'اَلْكَلَامُ', name: 'KALAM', fullName: 'Maha Berkata-kata', asma: 'Al-Mutakallim', color: '#f43f5e',
-    cermin: 'Allah telah berkata dalam Al-Quran — Dia AKAN beri rezeki. Kalam Allah tidak pernah berdusta.',
+  { id: 'kalam', arabic: 'اَلْكَلَامُ', name: 'KALAM', fullName: 'Maha Berkata-kata', fullNameKey: 'pintu.sifat.kalam_full', asma: 'Al-Mutakallim', color: '#f43f5e',
+    cermin: 'Allah telah berkata dalam Al-Quran — Dia AKAN beri rezeki. Kalam Allah tidak pernah berdusta.', cerminKey: 'pintu.sifat.kalam_cermin',
     ayat: 'وَمَا مِن دَآبَّةٍ فِى الْأَرْضِ إِلَّا عَلَى اللَّهِ رِزْقُهَا', ref: 'Hud: 6' },
 ]
 
@@ -115,33 +115,33 @@ function getJagaQuestions(sifatName: string): string[] {
   ]
 }
 
-const KEMBALIKAN_INFAK: Record<string, { text: string; placeholder: string }> = {
-  qudrat: { text: 'Gunakan kuasa anda untuk membantu yang lemah. Satu tindakan hari ini.', placeholder: 'Satu tindakan...' },
-  iradah: { text: 'Arahkan kehendak anda untuk kebaikan orang lain. Satu niat hari ini.', placeholder: 'Satu niat...' },
-  ilmu: { text: 'Ajar satu perkara yang anda tahu kepada orang lain. Ilmu yang dikongsi — berkembang.', placeholder: 'Apa yang akan dikongsi...' },
-  hayat: { text: 'Hidupkan orang lain dengan kehadiran anda. Siapa yang perlukan anda hari ini?', placeholder: 'Nama seseorang...' },
-  sama: { text: 'Dengar seseorang yang tidak didengar hari ini. Siapa itu?', placeholder: 'Nama seseorang...' },
-  basar: { text: 'Lihat keperluan yang tidak dilihat orang lain. Apa yang anda nampak?', placeholder: 'Pemerhatian anda...' },
-  kalam: { text: 'Ucapkan kata yang memberi — bukan yang mengambil. Satu kata baik hari ini.', placeholder: 'Kata yang akan anda ucapkan...' },
+const KEMBALIKAN_INFAK: Record<string, { text: string; placeholder: string; textKey: string; placeholderKey: string }> = {
+  qudrat: { text: 'Gunakan kuasa anda untuk membantu yang lemah. Satu tindakan hari ini.', placeholder: 'Satu tindakan...', textKey: 'pintu.kembalikan.qudrat_text', placeholderKey: 'pintu.kembalikan.qudrat_ph' },
+  iradah: { text: 'Arahkan kehendak anda untuk kebaikan orang lain. Satu niat hari ini.', placeholder: 'Satu niat...', textKey: 'pintu.kembalikan.iradah_text', placeholderKey: 'pintu.kembalikan.iradah_ph' },
+  ilmu: { text: 'Ajar satu perkara yang anda tahu kepada orang lain. Ilmu yang dikongsi — berkembang.', placeholder: 'Apa yang akan dikongsi...', textKey: 'pintu.kembalikan.ilmu_text', placeholderKey: 'pintu.kembalikan.ilmu_ph' },
+  hayat: { text: 'Hidupkan orang lain dengan kehadiran anda. Siapa yang perlukan anda hari ini?', placeholder: 'Nama seseorang...', textKey: 'pintu.kembalikan.hayat_text', placeholderKey: 'pintu.kembalikan.hayat_ph' },
+  sama: { text: 'Dengar seseorang yang tidak didengar hari ini. Siapa itu?', placeholder: 'Nama seseorang...', textKey: 'pintu.kembalikan.sama_text', placeholderKey: 'pintu.kembalikan.sama_ph' },
+  basar: { text: 'Lihat keperluan yang tidak dilihat orang lain. Apa yang anda nampak?', placeholder: 'Pemerhatian anda...', textKey: 'pintu.kembalikan.basar_text', placeholderKey: 'pintu.kembalikan.basar_ph' },
+  kalam: { text: 'Ucapkan kata yang memberi — bukan yang mengambil. Satu kata baik hari ini.', placeholder: 'Kata yang akan anda ucapkan...', textKey: 'pintu.kembalikan.kalam_text', placeholderKey: 'pintu.kembalikan.kalam_ph' },
 }
 
 const SITUASI = [
-  { id: 'kewangan', emoji: '💼', label: 'Kewangan', question: 'Beritahu saya lebih lanjut — apa yang paling memberat dalam kewangan anda sekarang?' },
-  { id: 'pekerjaan', emoji: '🏢', label: 'Pekerjaan', question: 'Ceritakan — apakah yang paling menekan dalam situasi pekerjaan anda?' },
-  { id: 'keluarga', emoji: '👨‍👩‍👧', label: 'Keluarga', question: 'Kongsi dengan saya — apakah beban tentang keluarga yang paling berat di hati anda?' },
-  { id: 'hutang', emoji: '😰', label: 'Hutang', question: 'Saya faham hutang itu berat. Boleh cerita — sudah berapa lama anda menanggung beban ini?' },
-  { id: 'perniagaan', emoji: '🌱', label: 'Perniagaan', question: 'Beritahu saya lebih lanjut — apakah cabaran dalam perniagaan yang paling memberat anda?' },
-  { id: 'lain', emoji: '💭', label: 'Lain-lain', question: 'Ceritakan kepada saya — apakah yang paling memberat fikiran anda tentang rezeki sekarang?' },
+  { id: 'kewangan', emoji: '💼', label: 'Kewangan', labelKey: 'pintu.situasi.kewangan', question: 'Beritahu saya lebih lanjut — apa yang paling memberat dalam kewangan anda sekarang?' },
+  { id: 'pekerjaan', emoji: '🏢', label: 'Pekerjaan', labelKey: 'pintu.situasi.pekerjaan', question: 'Ceritakan — apakah yang paling menekan dalam situasi pekerjaan anda?' },
+  { id: 'keluarga', emoji: '👨‍👩‍👧', label: 'Keluarga', labelKey: 'pintu.situasi.keluarga', question: 'Kongsi dengan saya — apakah beban tentang keluarga yang paling berat di hati anda?' },
+  { id: 'hutang', emoji: '😰', label: 'Hutang', labelKey: 'pintu.situasi.hutang', question: 'Saya faham hutang itu berat. Boleh cerita — sudah berapa lama anda menanggung beban ini?' },
+  { id: 'perniagaan', emoji: '🌱', label: 'Perniagaan', labelKey: 'pintu.situasi.perniagaan', question: 'Beritahu saya lebih lanjut — apakah cabaran dalam perniagaan yang paling memberat anda?' },
+  { id: 'lain', emoji: '💭', label: 'Lain-lain', labelKey: 'pintu.situasi.lain', question: 'Ceritakan kepada saya — apakah yang paling memberat fikiran anda tentang rezeki sekarang?' },
 ]
 
 const AMALAN_LIST = [
-  { id: 'ya_razzaq', icon: '✦', label: 'Zikir Ya Razzaq × 100', sub: 'Mengakui kuasa Allah sebagai Pemberi Rezeki', sifat: 'Qudrat', color: '#d4a017' },
-  { id: 'tawakkal', icon: '🤲', label: 'Doa Tawakkal', sub: 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ — Cukuplah Allah', sifat: 'Iradah', color: '#a78bfa' },
-  { id: 'al_waqiah', icon: '📖', label: 'Baca Surah Al-Waqiah', sub: 'Surah yang menarik rezeki — HR Ibnu Masud', sifat: 'Ilmu', color: '#60a5fa' },
-  { id: 'sedekah', icon: '💧', label: 'Sedekah walaupun sedikit', sub: '"Sedekah tidak mengurangi harta" — HR Muslim', sifat: 'Hayat', color: '#4ade80' },
-  { id: 'istighfar', icon: '🙏', label: 'Istighfar × 100', sub: 'Mohon ampun — Allah buka pintu rezeki (Nuh: 10-11)', sifat: "Sama'", color: '#fbbf24' },
-  { id: 'dhuha', icon: '🌅', label: 'Solat Dhuha', sub: 'Solat yang mendatangkan rezeki — HR Abu Hurairah', sifat: 'Basar', color: '#2dd4bf' },
-  { id: 'zikir_pagi', icon: '📿', label: 'Zikir Pagi Petang', sub: '"Rezeki mengikut zikir" — Miftahus Shudur', sifat: 'Kalam', color: '#f43f5e' },
+  { id: 'ya_razzaq', icon: '✦', label: 'Zikir Ya Razzaq × 100', labelKey: 'pintu.amalan.ya_razzaq_label', sub: 'Mengakui kuasa Allah sebagai Pemberi Rezeki', subKey: 'pintu.amalan.ya_razzaq_sub', sifat: 'Qudrat', color: '#d4a017' },
+  { id: 'tawakkal', icon: '🤲', label: 'Doa Tawakkal', labelKey: 'pintu.amalan.tawakkal_label', sub: 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ — Cukuplah Allah', subKey: 'pintu.amalan.tawakkal_sub', sifat: 'Iradah', color: '#a78bfa' },
+  { id: 'al_waqiah', icon: '📖', label: 'Baca Surah Al-Waqiah', labelKey: 'pintu.amalan.al_waqiah_label', sub: 'Surah yang menarik rezeki — HR Ibnu Masud', subKey: 'pintu.amalan.al_waqiah_sub', sifat: 'Ilmu', color: '#60a5fa' },
+  { id: 'sedekah', icon: '💧', label: 'Sedekah walaupun sedikit', labelKey: 'pintu.amalan.sedekah_label', sub: '"Sedekah tidak mengurangi harta" — HR Muslim', subKey: 'pintu.amalan.sedekah_sub', sifat: 'Hayat', color: '#4ade80' },
+  { id: 'istighfar', icon: '🙏', label: 'Istighfar × 100', labelKey: 'pintu.amalan.istighfar_label', sub: 'Mohon ampun — Allah buka pintu rezeki (Nuh: 10-11)', subKey: 'pintu.amalan.istighfar_sub', sifat: "Sama'", color: '#fbbf24' },
+  { id: 'dhuha', icon: '🌅', label: 'Solat Dhuha', labelKey: 'pintu.amalan.dhuha_label', sub: 'Solat yang mendatangkan rezeki — HR Abu Hurairah', subKey: 'pintu.amalan.dhuha_sub', sifat: 'Basar', color: '#2dd4bf' },
+  { id: 'zikir_pagi', icon: '📿', label: 'Zikir Pagi Petang', labelKey: 'pintu.amalan.zikir_pagi_label', sub: '"Rezeki mengikut zikir" — Miftahus Shudur', subKey: 'pintu.amalan.zikir_pagi_sub', sifat: 'Kalam', color: '#f43f5e' },
 ]
 
 // ─── Storage ──────────────────────────────────────────────────────────────────
@@ -183,14 +183,15 @@ function isAllAudited(data: AuditData): boolean {
 const KESADARAN_DELAYS = [2000, 2000, 2000, 2000, 2000, 2000, 3000, 3000, 3000, 2000, 2000, 0]
 
 function KesadaranScreen({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
   const [step, setStep] = useState(0)
 
   useEffect(() => {
     if (step >= KESADARAN_DELAYS.length - 1) return
     const delay = KESADARAN_DELAYS[step]
     if (!delay) return
-    const t = setTimeout(() => setStep(s => s + 1), delay)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setStep(s => s + 1), delay)
+    return () => clearTimeout(timer)
   }, [step])
 
   const sifatNames = ['Qudrat', 'Iradah', 'Ilmu', 'Hayat', "Sama'", 'Basar', 'Kalam']
@@ -210,7 +211,7 @@ function KesadaranScreen({ onClose }: { onClose: () => void }) {
               transform: step >= i ? 'translateY(0)' : 'translateY(8px)',
             }}
           >
-            {name} — bukan milik anda{' '}
+            {name} {t('pintu.kesadaran.bukan_milik')}{' '}
             {step >= i && <span style={{ color: '#4ade80' }}>✓</span>}
           </p>
         ))}
@@ -239,7 +240,7 @@ function KesadaranScreen({ onClose }: { onClose: () => void }) {
           className="text-[#e8dcc8] text-sm leading-relaxed transition-all duration-1000"
           style={{ opacity: step >= 9 ? 1 : 0, transform: step >= 9 ? 'translateY(0)' : 'translateY(8px)' }}
         >
-          Tiada yang ada — hanya tinggal Allah.
+          {t('pintu.kesadaran.tiada')}
         </p>
 
         {/* Al-Baqarah 3 */}
@@ -251,7 +252,7 @@ function KesadaranScreen({ onClose }: { onClose: () => void }) {
             وَمِمَّا رَزَقْنَاهُمْ يُنفِقُونَ
           </p>
           <p className="text-[#8a7a65] text-xs italic">
-            "Dan mereka membelanjakan sebahagian dari rezeki yang Kami berikan" — Al-Baqarah: 3
+            {t('pintu.kesadaran.baqarah3_trans')}
           </p>
         </div>
 
@@ -261,7 +262,7 @@ function KesadaranScreen({ onClose }: { onClose: () => void }) {
           style={{ opacity: step >= 11 ? 1 : 0, transform: step >= 11 ? 'translateY(0)' : 'translateY(8px)' }}
         >
           <p className="text-[#e8dcc8] text-sm leading-relaxed">
-            Kerana mereka sedar — ia bukan milik mereka. InsyaAllah.
+            {t('pintu.kesadaran.sedar')}
           </p>
           <button
             onClick={onClose}
@@ -392,7 +393,7 @@ CARA MENJAWAB:
 
       setScreen('ai-response')
     } catch {
-      setAiResponse('Maaf, berlaku ralat. Sila cuba sekali lagi.')
+      setAiResponse(t('umum.ralat'))
       setScreen('ai-response')
     }
   }
@@ -425,13 +426,13 @@ CARA MENJAWAB:
     return (
       <div className="flex-1 overflow-y-auto px-5 py-6 space-y-5">
         <button onClick={onClose} className="flex items-center gap-2 text-[#8a7a65] hover:text-[#e8dcc8] transition-colors text-sm">
-          <ArrowLeft size={16} /> Kembali
+          <ArrowLeft size={16} /> {t('umum.kembali')}
         </button>
 
         <div className="text-center space-y-4 py-4">
           <p className="font-serif text-4xl" style={{ color: sifat.color }} dir="rtl">{sifat.arabic}</p>
           <p className="font-serif text-[#e8dcc8] text-lg">{sifat.name}</p>
-          <p className="text-[#8a7a65] text-sm">{sifat.asma} — {sifat.fullName}</p>
+          <p className="text-[#8a7a65] text-sm">{sifat.asma} — {t(sifat.fullNameKey as any)}</p>
         </div>
 
         <div className="bg-[#060d16] border rounded-2xl p-4 space-y-3" style={{ borderColor: sifat.color + '30' }}>
@@ -442,13 +443,13 @@ CARA MENJAWAB:
         </div>
 
         <p className="text-[#e8dcc8] text-sm leading-relaxed text-center italic">
-          "{sifat.cermin}"
+          "{t(sifat.cerminKey as any)}"
         </p>
 
         <p className="text-[#8a7a65] text-xs text-center leading-relaxed">
           {isPro
-            ? `Audit ini ada 3 fasa: Sedar, Jaga, Kembalikan. ${maxSedarQ} soalan dalam Fasa Pertama.`
-            : `Audit Hayat — Fasa Sedar. ${maxSedarQ} soalan sahaja.`}
+            ? t('pintu.flow.sedar_desc', { max: maxSedarQ })
+            : t('pintu.flow.hayat_desc', { max: maxSedarQ })}
         </p>
 
         <button
@@ -477,7 +478,7 @@ CARA MENJAWAB:
             </button>
             <div className="flex-1">
               <p className="text-[#8a7a65] text-xs">
-                {isJaga ? 'Fasa 2 — JAGA' : 'Fasa 1 — SEDAR'} · {sifat.name}
+                {isJaga ? t('pintu.flow.fasa2') : t('pintu.flow.fasa1')} · {sifat.name}
               </p>
               <div className="mt-1 h-1 bg-[#1e2d40] rounded-full overflow-hidden">
                 <div
@@ -497,7 +498,7 @@ CARA MENJAWAB:
             ref={textareaRef}
             value={val}
             onChange={e => setVal(e.target.value)}
-            placeholder="Tulis jawapan anda dengan jujur..."
+            placeholder={t('pintu.flow.placeholder')}
             rows={6}
             className="w-full bg-[#060d16] border border-[#1e2d40] focus:border-[#c9a96e40] rounded-2xl px-4 py-3.5 text-sm text-[#e8dcc8] placeholder:text-[#8a7a65] outline-none resize-none transition-colors"
           />
@@ -511,8 +512,8 @@ CARA MENJAWAB:
             style={{ backgroundColor: val.trim() ? sifat.color : '#1e2d40', color: val.trim() ? '#060d16' : '#8a7a65' }}
           >
             {qIndex + 1 === totalQ
-              ? (isJaga ? 'Teruskan →' : 'Lihat Panduan I AM →')
-              : 'Seterusnya →'}
+              ? (isJaga ? t('pintu.flow.btn_teruskan') : t('pintu.flow.btn_lihat_iam'))
+              : t('pintu.flow.btn_seterusnya')}
           </button>
         </div>
       </div>
@@ -524,7 +525,7 @@ CARA MENJAWAB:
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 px-5">
         <Loader2 size={28} className="animate-spin" style={{ color: sifat.color }} />
-        <p className="text-[#8a7a65] text-sm text-center">I AM sedang merenungi jawapan anda...</p>
+        <p className="text-[#8a7a65] text-sm text-center">{t('pintu.flow.ai_loading')}</p>
       </div>
     )
   }
@@ -537,7 +538,7 @@ CARA MENJAWAB:
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: sifat.color + '20' }}>
             <span className="text-sm">🗝️</span>
           </div>
-          <p className="text-sm font-medium" style={{ color: sifat.color }}>Refleksi dari I AM</p>
+          <p className="text-sm font-medium" style={{ color: sifat.color }}>{t('pintu.flow.refleksi_iam')}</p>
         </div>
 
         <div className="markdown-content bg-[#0d1821] border border-[#1e2d40] rounded-2xl px-4 py-4 text-[#e8dcc8] text-sm leading-relaxed">
@@ -552,7 +553,7 @@ CARA MENJAWAB:
                 وَمِمَّا رَزَقْنَاهُمْ يُنفِقُونَ
               </p>
               <p className="text-[#8a7a65] text-xs text-center italic leading-relaxed">
-                Ini hanyalah 1 dari 7 amanah yang Allah pinjamkan. Ada 6 lagi menunggu untuk diaudit.
+                {t('pintu.flow.upsell_desc')}
               </p>
               <div className="space-y-1 pt-1">
                 {['Qudrat', 'Iradah', 'Ilmu', "Sama'", 'Basar', 'Kalam'].map(n => (
@@ -565,10 +566,10 @@ CARA MENJAWAB:
               target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl text-sm font-medium bg-[#c9a96e20] border border-[#c9a96e50] text-[#c9a96e] hover:bg-[#c9a96e30] transition-colors"
             >
-              ✦ Buka Audit Penuh — RM14.90/bulan
+              {t('pintu.flow.upsell_btn')}
             </a>
             <button onClick={onClose} className="w-full text-[#8a7a65] text-xs text-center py-2 hover:text-[#e8dcc8] transition-colors">
-              Atau teruskan dengan Hayat sahaja
+              {t('pintu.flow.teruskan_hayat')}
             </button>
           </div>
         ) : (
@@ -578,7 +579,7 @@ CARA MENJAWAB:
             className="w-full py-3.5 rounded-2xl text-sm font-medium transition-all"
             style={{ backgroundColor: sifat.color + '20', borderWidth: 1, borderColor: sifat.color + '40', color: sifat.color }}
           >
-            Teruskan ke Fasa Jaga →
+            {t('pintu.flow.btn_fasa_jaga')}
           </button>
         )}
       </div>
@@ -591,7 +592,7 @@ CARA MENJAWAB:
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
           <div className="flex items-center gap-2 text-[#8a7a65] text-xs">
-            <span>Fasa 3 — KEMBALIKAN</span>
+            <span>{t('pintu.flow.fasa3')}</span>
             <span>·</span>
             <span style={{ color: sifat.color }}>{sifat.name}</span>
           </div>
@@ -600,18 +601,18 @@ CARA MENJAWAB:
             <p className="font-serif text-[#c9a96e] text-base leading-loose" dir="rtl">
               وَمِمَّا رَزَقْنَاهُمْ يُنفِقُونَ
             </p>
-            <p className="text-[#8a7a65] text-xs italic">"Dan mereka membelanjakan dari rezeki yang Kami berikan" — Al-Baqarah: 3</p>
+            <p className="text-[#8a7a65] text-xs italic">{t('pintu.kesadaran.baqarah3_trans')}</p>
           </div>
 
           <div className="bg-[#060d16] border rounded-2xl p-4 space-y-3" style={{ borderColor: sifat.color + '30' }}>
-            <p className="text-[#8a7a65] text-xs uppercase tracking-wider">Infak {sifat.name}</p>
-            <p className="text-[#e8dcc8] text-sm leading-relaxed">{kembalikanData?.text}</p>
+            <p className="text-[#8a7a65] text-xs uppercase tracking-wider">{t('pintu.flow.infak_label', { name: sifat.name })}</p>
+            <p className="text-[#e8dcc8] text-sm leading-relaxed">{kembalikanData ? t(kembalikanData.textKey as any) : ''}</p>
           </div>
 
           <textarea
             value={infakText}
             onChange={e => setInfakText(e.target.value)}
-            placeholder={kembalikanData?.placeholder ?? 'Tulis komitmen anda...'}
+            placeholder={kembalikanData ? t(kembalikanData.placeholderKey as any) : t('pintu.flow.infak_ph')}
             rows={4}
             className="w-full bg-[#060d16] border border-[#1e2d40] focus:border-[#c9a96e40] rounded-2xl px-4 py-3.5 text-sm text-[#e8dcc8] placeholder:text-[#8a7a65] outline-none resize-none transition-colors"
           />
@@ -624,7 +625,7 @@ CARA MENJAWAB:
             className="w-full py-3.5 rounded-2xl text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ backgroundColor: infakText.trim() ? sifat.color : '#1e2d40', color: infakText.trim() ? '#060d16' : '#8a7a65' }}
           >
-            Selesai Audit {sifat.name} ✓
+            {t('pintu.flow.btn_selesai', { name: sifat.name })}
           </button>
         </div>
       </div>
@@ -639,9 +640,9 @@ CARA MENJAWAB:
           <Check size={28} style={{ color: sifat.color }} strokeWidth={2.5} />
         </div>
         <div className="space-y-2">
-          <p className="font-serif text-[#c9a96e] text-lg">Audit {sifat.name} Selesai</p>
+          <p className="font-serif text-[#c9a96e] text-lg">{t('pintu.flow.complete_tajuk', { name: sifat.name })}</p>
           <p className="text-[#8a7a65] text-sm leading-relaxed">
-            Anda telah menyedari, menjaga, dan berkomitmen untuk mengembalikan pinjaman {sifat.fullName}.
+            {t('pintu.flow.complete_desc', { fullName: t(sifat.fullNameKey as any) })}
           </p>
         </div>
         <div className="bg-[#060d16] border border-[#c9a96e20] rounded-2xl p-4 space-y-1.5 w-full">
@@ -652,7 +653,7 @@ CARA MENJAWAB:
           onClick={onClose}
           className="w-full py-3.5 rounded-2xl bg-[#c9a96e20] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e30] transition-colors"
         >
-          Kembali ke Senarai Sifat
+          {t('pintu.flow.kembali_senarai')}
         </button>
       </div>
     )
@@ -664,6 +665,7 @@ CARA MENJAWAB:
 // ─── Audit Tab ────────────────────────────────────────────────────────────────
 
 function AuditTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void }) {
+  const { t } = useTranslation()
   const [auditData, setAuditData] = useState<AuditData>(loadAuditData)
   const [selected, setSelected] = useState<typeof SIFAT_MAANI[0] | null>(null)
   const [lockedSifat, setLockedSifat] = useState<typeof SIFAT_MAANI[0] | null>(null)
@@ -713,9 +715,9 @@ function AuditTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
     <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
       {/* Header */}
       <div className="text-center space-y-1">
-        <p className="font-serif text-[#c9a96e] font-medium">Audit 7 Amanah Allah</p>
+        <p className="font-serif text-[#c9a96e] font-medium">{t('pintu.audit.tajuk')}</p>
         <p className="text-[#8a7a65] text-xs">
-          {isPro ? `${auditedCount}/7 sifat telah diaudit` : 'Audit percuma: HAYAT sahaja'}
+          {isPro ? t('pintu.audit.auditedCount', { count: auditedCount }) : t('pintu.audit.percuma')}
         </p>
       </div>
 
@@ -761,7 +763,7 @@ function AuditTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
 
               {isUnlocked ? (
                 <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ color: sifat.color, backgroundColor: sifat.color + '15' }}>
-                  {isFullyDone ? '✓ Selesai' : isHayat && !isPro ? '✦ Aktif' : 'Audit →'}
+                  {isFullyDone ? `✓ ${t('umum.selesai')}` : isHayat && !isPro ? t('pintu.audit.aktif') : t('pintu.audit.btn')}
                 </span>
               ) : (
                 <div className="flex items-center gap-1">
@@ -777,9 +779,9 @@ function AuditTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
       {/* Free user note */}
       {!isPro && (
         <p className="text-[#8a7a65] text-xs text-center leading-relaxed">
-          Anda sedang mengaudit 1 dari 7 amanah Allah.{' '}
+          {t('pintu.audit.free_note')}{' '}
           <button onClick={onUpgrade} className="text-[#c9a96e] underline">
-            Buka semua audit dengan Pro.
+            {t('pintu.audit.free_cta')}
           </button>
         </p>
       )}
@@ -804,20 +806,18 @@ function AuditTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
               </p>
             </div>
             <p className="text-[#8a7a65] text-xs leading-relaxed">
-              Audit {lockedSifat.name} menunggu. Setiap audit membawa anda selangkah lebih dekat kepada{' '}
-              <span className="font-serif text-[#c9a96e]">لَا إِلَٰهَ إِلَّا اللَّهُ</span>{' '}
-              yang difahami dengan hati — bukan sekadar di mulut.
+              {t('pintu.audit.locked_desc', { name: lockedSifat.name })}
             </p>
             <div className="space-y-2">
               <button
                 onClick={() => { setLockedSifat(null); onUpgrade() }}
                 className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors flex items-center justify-center gap-2"
               >
-                ✦ Buka Audit Penuh
+                {t('pintu.audit.locked_btn')}
               </button>
               <button onClick={() => setLockedSifat(null)}
                 className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors">
-                Tutup
+                {t('umum.tutup')}
               </button>
             </div>
           </div>
@@ -829,14 +829,14 @@ function AuditTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
 
 // ─── Link CTA Detection ─────────────────────────────────────────────────────
 
-const LINK_CTA_MAP: Record<string, { route: string; label: string }> = {
-  '/zikir': { route: '/zikir', label: 'Buka Tab Zikir Am' },
-  '/zikir-am': { route: '/zikir', label: 'Buka Tab Zikir Am' },
-  '/zikir-khas': { route: '/zikir?tab=khas', label: 'Buka Tab Zikir Khas' },
+const LINK_CTA_MAP: Record<string, { route: string; labelKey: string }> = {
+  '/zikir': { route: '/zikir', labelKey: 'iam.cta.link_zikir_am' },
+  '/zikir-am': { route: '/zikir', labelKey: 'iam.cta.link_zikir_am' },
+  '/zikir-khas': { route: '/zikir?tab=khas', labelKey: 'iam.cta.link_zikir_khas' },
 }
 const LINK_MARKER_REGEX = /\[LINK:(\/[\w-]+)\]/
 
-function getLinkCTA(content: string): { route: string; label: string } | null {
+function getLinkCTA(content: string): { route: string; labelKey: string } | null {
   const match = content.match(LINK_MARKER_REGEX)
   return match ? LINK_CTA_MAP[match[1]] ?? null : null
 }
@@ -854,7 +854,8 @@ function stripMarkers(content: string): string {
   return content.replace(LINK_MARKER_REGEX, '').replace(CHOICE_MARKER_REGEX, '')
 }
 
-function LinkCTACard({ route, label }: { route: string; label: string }) {
+function LinkCTACard({ route, labelKey }: { route: string; labelKey: string }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   return (
@@ -864,7 +865,7 @@ function LinkCTACard({ route, label }: { route: string; label: string }) {
     >
       <div className="flex items-center gap-2.5">
         <span className="text-lg">📿</span>
-        <span className="text-[#e8dcc8] text-sm font-medium">{label}</span>
+        <span className="text-[#e8dcc8] text-sm font-medium">{t(labelKey as any)}</span>
       </div>
       <ExternalLink size={13} className="text-[#8a7a65] group-hover:text-[#c9a96e] transition-colors" />
     </button>
@@ -902,6 +903,7 @@ Saya ingin maklumat lanjut tentang upgrade ke Pro untuk akses penuh Tab Pintu Re
 Terima kasih.`
 
 function UpgradeModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const [loadingPkg, setLoadingPkg] = useState<'pro' | 'pro_plus' | null>(null)
   const [error, setError] = useState('')
@@ -922,10 +924,10 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
         }),
       })
       const data = await res.json()
-      if (!res.ok || !data.url) throw new Error(data?.error?.message ?? 'Gagal mencipta bil')
+      if (!res.ok || !data.url) throw new Error(data?.error?.message ?? t('pintu.upgrade.ralat_bil'))
       window.location.href = data.url
     } catch {
-      setError('Gagal memulakan pembayaran. Sila cuba lagi.')
+      setError(t('pintu.upgrade.ralat_bayar'))
       setLoadingPkg(null)
     }
   }
@@ -935,26 +937,26 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2">
           <Lock size={16} className="text-[#c9a96e]" />
-          <p className="text-[#c9a96e] font-medium text-sm">Kategori Pro</p>
+          <p className="text-[#c9a96e] font-medium text-sm">{t('pintu.upgrade.tajuk')}</p>
         </div>
         <p className="text-[#e8dcc8] text-sm leading-relaxed">
-          Kategori ini khusus untuk pengguna Pro. Upgrade untuk akses Pekerjaan, Keluarga, Hutang, dan Lain-lain.
+          {t('pintu.upgrade.desc')}
         </p>
         {error && <p className="text-red-400 text-xs">{error}</p>}
         <div className="space-y-2">
           <button onClick={() => handleUpgrade('pro')} disabled={loadingPkg !== null}
             className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm text-center font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
             {loadingPkg === 'pro' && <Loader2 size={14} className="animate-spin" />}
-            Upgrade ke Pro — RM19.90/bulan
+            {t('pintu.upgrade.pro')}
           </button>
           <button onClick={() => handleUpgrade('pro_plus')} disabled={loadingPkg !== null}
             className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm text-center font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
             {loadingPkg === 'pro_plus' && <Loader2 size={14} className="animate-spin" />}
-            Upgrade ke Pro Plus — RM29.90/bulan
+            {t('pintu.upgrade.pro_plus')}
           </button>
           <button onClick={onClose} disabled={loadingPkg !== null}
             className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors disabled:opacity-60">
-            Tutup
+            {t('umum.tutup')}
           </button>
         </div>
       </div>
@@ -965,6 +967,7 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 // ─── Pintu Tab (AI Chat) ──────────────────────────────────────────────────────
 
 function PintuTab() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const tier = user?.tier ?? 'free'
   const isPro = tier === 'pro' || tier === 'family'
@@ -1010,7 +1013,7 @@ function PintuTab() {
       const reply = await sendIAMMessage(history, tier, PINTU_REZEKI_SYSTEM_PROMPT, undefined, 'pintu_rezeki_chat')
       setMessages(prev => [...prev, { id: `ai-${Date.now()}`, role: 'assistant', content: reply }])
     } catch {
-      setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: 'Maaf, berlaku ralat. Sila cuba sekali lagi.' }])
+      setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: t('umum.ralat') }])
     } finally { setIsTyping(false) }
   }, [input, isTyping, isMsgLimitReached, messages, selectedSituasi, tier])
 
@@ -1019,16 +1022,16 @@ function PintuTab() {
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
         <div className="text-center py-5 space-y-3 bg-[#0d1821] border border-[#1e2d40] rounded-2xl px-5">
           <p className="font-serif text-[#c9a96e] text-4xl" dir="rtl">اَلرَّزَّاقُ</p>
-          <p className="text-[#8a7a65] text-sm">Ar-Razzaq — Allah Maha Pemberi Rezeki</p>
+          <p className="text-[#8a7a65] text-sm">{t('pintu.chat.ar_razzaq_sub')}</p>
           <div className="bg-[#060d16] rounded-xl p-3.5">
             <p className="font-serif text-[#c9a96e] text-sm leading-loose text-right" dir="rtl">
               وَمَا مِن دَآبَّةٍ فِى الْأَرْضِ إِلَّا عَلَى اللَّهِ رِزْقُهَا
             </p>
-            <p className="text-[#8a7a65] text-xs mt-2 italic">"Tidak ada satu pun makhluk melainkan Allah yang menanggung rezekinya" — Hud: 6</p>
+            <p className="text-[#8a7a65] text-xs mt-2 italic">{t('pintu.chat.hud6_trans')}</p>
           </div>
         </div>
         <div>
-          <p className="text-[#e8dcc8] text-sm font-medium text-center mb-4">Apa yang paling memberat fikiran anda tentang rezeki hari ini?</p>
+          <p className="text-[#e8dcc8] text-sm font-medium text-center mb-4">{t('pintu.chat.soalan_utama')}</p>
           <div className="grid grid-cols-2 gap-3">
             {SITUASI.map(s => {
               const locked = !isPro && !FREE_UNLOCKED_CATEGORIES.includes(s.id)
@@ -1037,7 +1040,7 @@ function PintuTab() {
                   className="relative flex flex-col items-center gap-2 p-4 bg-[#0d1821] border border-[#1e2d40] rounded-2xl hover:border-[#c9a96e40] hover:bg-[#c9a96e08] transition-all">
                   {locked && <Lock size={12} className="absolute top-2.5 right-2.5 text-[#8a7a65]" />}
                   <span className="text-2xl">{s.emoji}</span>
-                  <span className="text-[#8a7a65] text-sm">{s.label}</span>
+                  <span className="text-[#8a7a65] text-sm">{t(s.labelKey as any)}</span>
                 </button>
               )
             })}
@@ -1056,8 +1059,8 @@ function PintuTab() {
             <button onClick={() => { setPhase('select'); setSelectedSituasi(null); setMessages([]) }}
               className="flex items-center gap-2 px-3 py-1.5 bg-[#c9a96e10] border border-[#c9a96e30] rounded-full text-xs text-[#c9a96e] hover:bg-[#c9a96e20] transition-colors">
               <span>{SITUASI.find(s => s.id === selectedSituasi)?.emoji}</span>
-              <span>{SITUASI.find(s => s.id === selectedSituasi)?.label}</span>
-              <span className="text-[#8a7a65]">· tukar</span>
+              <span>{t((SITUASI.find(s => s.id === selectedSituasi)?.labelKey ?? '') as any)}</span>
+              <span className="text-[#8a7a65]">{t('pintu.chat.tukar')}</span>
             </button>
           </div>
         )}
@@ -1080,7 +1083,7 @@ function PintuTab() {
             {/* LinkCTACard — muncul di bawah mesej assistant yang arah ke tab lain */}
             {linkCTA && (
               <div className="pl-9">
-                <LinkCTACard route={linkCTA.route} label={linkCTA.label} />
+                <LinkCTACard route={linkCTA.route} labelKey={linkCTA.labelKey} />
               </div>
             )}
             {/* ChoiceButtons — muncul selepas ajakan Langkah 6 (turning point) */}
@@ -1113,14 +1116,14 @@ function PintuTab() {
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
             <div className="flex items-center gap-2">
               <Lock size={14} className="text-[#c9a96e]" />
-              <p className="text-[#c9a96e] font-medium text-sm">Had 3 mesej percuma selesai</p>
+              <p className="text-[#c9a96e] font-medium text-sm">{t('pintu.chat.had_tajuk')}</p>
             </div>
             <p className="text-[#8a7a65] text-xs leading-relaxed">
-              Anda telah mencapai had 3 mesej percuma untuk Pintu Rezeki. Upgrade ke Pro untuk teruskan perbualan dan akses semua kategori.
+              {t('pintu.chat.had_desc')}
             </p>
             <a href={`https://wa.me/60182119135?text=${encodeURIComponent(UPGRADE_MSG)}`} target="_blank" rel="noopener noreferrer"
               className="block w-full py-2.5 text-center rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors">
-              Upgrade ke Pro
+              {t('pintu.chat.upgrade_btn')}
             </a>
           </div>
         ) : (
@@ -1128,7 +1131,7 @@ function PintuTab() {
             <textarea ref={textareaRef} value={input}
               onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px` }}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-              placeholder="Ceritakan situasi anda..." rows={1}
+              placeholder={t('pintu.chat.placeholder')} rows={1}
               className="flex-1 bg-[#0d1821] border border-[#1e2d40] focus:border-[#c9a96e50] rounded-2xl px-4 py-3 text-sm text-[#e8dcc8] placeholder:text-[#8a7a65] outline-none resize-none transition-colors"
               style={{ maxHeight: '120px' }} />
             <button onClick={() => sendMessage()} disabled={!input.trim() || isTyping}
@@ -1147,6 +1150,7 @@ function PintuTab() {
 // ─── Amalan Tab ───────────────────────────────────────────────────────────────
 
 function AmalanTab() {
+  const { t } = useTranslation()
   const [dayData, setDayData] = useState<DayData>(loadDay())
   const doneCount = Object.values(dayData.amalan).filter(Boolean).length
   const progress = (doneCount / AMALAN_LIST.length) * 100
@@ -1163,14 +1167,14 @@ function AmalanTab() {
     <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[#e8dcc8] text-sm font-medium">Amalan Hari Ini</p>
+          <p className="text-[#e8dcc8] text-sm font-medium">{t('pintu.amalan.tajuk')}</p>
           <p className="text-[#c9a96e] text-sm font-medium">{doneCount}/{AMALAN_LIST.length}</p>
         </div>
         <div className="h-2 bg-[#1e2d40] rounded-full overflow-hidden">
           <div className="h-full bg-[#c9a96e] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
         <p className="text-[#8a7a65] text-xs text-center">
-          {doneCount === 0 ? 'Mulakan amalan hari ini' : doneCount === AMALAN_LIST.length ? '✦ MasyaAllah — semua amalan selesai' : `${AMALAN_LIST.length - doneCount} amalan lagi`}
+          {doneCount === 0 ? t('pintu.amalan.mulakan') : doneCount === AMALAN_LIST.length ? t('pintu.amalan.selesai_semua') : t('pintu.amalan.tinggal', { count: AMALAN_LIST.length - doneCount })}
         </p>
       </div>
       <div className="space-y-2">
@@ -1187,9 +1191,9 @@ function AmalanTab() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-base">{amalan.icon}</span>
-                  <p className={cn('text-sm font-medium', done ? 'text-[#8a7a65] line-through' : 'text-[#e8dcc8]')}>{amalan.label}</p>
+                  <p className={cn('text-sm font-medium', done ? 'text-[#8a7a65] line-through' : 'text-[#e8dcc8]')}>{t(amalan.labelKey as any)}</p>
                 </div>
-                <p className="text-[#8a7a65] text-xs mt-0.5 truncate">{amalan.sub}</p>
+                <p className="text-[#8a7a65] text-xs mt-0.5 truncate">{t(amalan.subKey as any)}</p>
               </div>
               <div className="flex-shrink-0 px-2 py-1 rounded-lg text-xs font-medium"
                 style={{ color: amalan.color, backgroundColor: amalan.color + '15' }}>{amalan.sifat}</div>
@@ -1199,7 +1203,7 @@ function AmalanTab() {
       </div>
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 text-center space-y-2">
         <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا</p>
-        <p className="text-[#8a7a65] text-xs italic">"Allah tidak membebani seseorang melainkan sesuai kesanggupannya" — Al-Baqarah: 286</p>
+        <p className="text-[#8a7a65] text-xs italic">{t('pintu.amalan.baqarah286_trans')}</p>
       </div>
     </div>
   )
@@ -1208,6 +1212,7 @@ function AmalanTab() {
 // ─── Rekod Tab ────────────────────────────────────────────────────────────────
 
 function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void }) {
+  const { t } = useTranslation()
   if (!isPro) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center space-y-5">
@@ -1215,22 +1220,22 @@ function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
           <Lock size={24} className="text-[#c9a96e]" />
         </div>
         <div className="space-y-2">
-          <p className="font-serif text-[#c9a96e] font-medium">Rekod & Analitik</p>
+          <p className="font-serif text-[#c9a96e] font-medium">{t('pintu.rekod.tajuk')}</p>
           <p className="text-[#8a7a65] text-sm leading-relaxed">
-            Jejak perjalanan audit 90 hari, streak, dan semua infak yang telah dilakukan.
+            {t('pintu.rekod.desc')}
           </p>
         </div>
         <div className="bg-[#060d16] border border-[#c9a96e20] rounded-2xl p-4 space-y-2">
           <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">
             لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا
           </p>
-          <p className="text-[#8a7a65] text-xs italic">"Allah tidak membebani melainkan sesuai kesanggupan" — Al-Baqarah: 286</p>
+          <p className="text-[#8a7a65] text-xs italic">{t('pintu.rekod.baqarah286_trans')}</p>
         </div>
         <button
           onClick={onUpgrade}
           className="w-full py-3.5 rounded-2xl text-sm font-medium bg-[#c9a96e20] border border-[#c9a96e50] text-[#c9a96e] hover:bg-[#c9a96e30] transition-colors"
         >
-          ✦ Buka Rekod Penuh — Pro
+          {t('pintu.rekod.btn')}
         </button>
       </div>
     )
@@ -1262,9 +1267,9 @@ function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
     <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
       <div className="grid grid-cols-3 gap-3">
         {[
-          { value: streak, label: 'Hari Berturut' },
-          { value: auditedSifat.length, label: 'Sifat Diaudit' },
-          { value: totalAmalan, label: 'Amalan 7 Hari' },
+          { value: streak, label: t('pintu.rekod.hari_berturut') },
+          { value: auditedSifat.length, label: t('pintu.rekod.sifat_diaudit') },
+          { value: totalAmalan, label: t('pintu.rekod.amalan_7hari') },
         ].map(s => (
           <div key={s.label} className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-3.5 text-center">
             <p className="text-[#c9a96e] text-2xl font-bold">{s.value}</p>
@@ -1274,7 +1279,7 @@ function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
       </div>
 
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
-        <p className="text-[#e8dcc8] text-sm font-medium">Amalan 7 Hari</p>
+        <p className="text-[#e8dcc8] text-sm font-medium">{t('pintu.rekod.amalan_7hari')}</p>
         <div className="flex items-end gap-1.5 h-20">
           {weekData.map((day, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full">
@@ -1289,7 +1294,7 @@ function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
       </div>
 
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
-        <p className="text-[#e8dcc8] text-sm font-medium">Status Audit</p>
+        <p className="text-[#e8dcc8] text-sm font-medium">{t('pintu.rekod.status_audit')}</p>
         <div className="space-y-2">
           {SIFAT_MAANI.map(sifat => {
             const rec = auditData[sifat.id]
@@ -1310,16 +1315,16 @@ function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
 
       {fullyDone.length > 0 && (
         <div className="bg-[#060d16] border border-[#c9a96e20] rounded-2xl p-4 text-center space-y-2">
-          <p className="text-[#c9a96e] text-xs">Sejak bergabung, anda telah mengaudit</p>
+          <p className="text-[#c9a96e] text-xs">{t('pintu.rekod.sejak_bergabung')}</p>
           <p className="text-[#c9a96e] text-2xl font-bold">{fullyDone.length}</p>
-          <p className="text-[#8a7a65] text-xs">amanah Allah secara penuh</p>
+          <p className="text-[#8a7a65] text-xs">{t('pintu.rekod.amanah_penuh')}</p>
         </div>
       )}
 
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 text-center space-y-3">
         <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا</p>
-        <p className="text-[#8a7a65] text-xs italic">"Allah tidak membebani seseorang melainkan sesuai kesanggupannya" — Al-Baqarah: 286</p>
-        <p className="text-[#e8dcc8] text-sm leading-relaxed">Rezeki anda sudah diukur dengan tepat oleh Allah. Tugas anda — mengenal-Nya melalui setiap perjalanan rezeki.</p>
+        <p className="text-[#8a7a65] text-xs italic">{t('pintu.rekod.baqarah286_trans')}</p>
+        <p className="text-[#e8dcc8] text-sm leading-relaxed">{t('pintu.rekod.rezeki_desc')}</p>
       </div>
     </div>
   )
@@ -1327,11 +1332,11 @@ function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-const SUB_TABS: { id: SubTab; label: string }[] = [
-  { id: 'pintu', label: '🗝️ Pintu' },
-  { id: 'audit', label: '📋 Audit' },
-  { id: 'amalan', label: '📿 Amalan' },
-  { id: 'rekod', label: '📊 Rekod' },
+const SUB_TABS: { id: SubTab; labelKey: string }[] = [
+  { id: 'pintu', labelKey: 'pintu.tab.pintu' },
+  { id: 'audit', labelKey: 'pintu.tab.audit' },
+  { id: 'amalan', labelKey: 'pintu.tab.amalan' },
+  { id: 'rekod', labelKey: 'pintu.tab.rekod' },
 ]
 
 export default function PintuRezekiPage() {
@@ -1359,7 +1364,7 @@ export default function PintuRezekiPage() {
           <button key={tab.id} onClick={() => setSubTab(tab.id)}
             className={cn('flex-1 py-2.5 text-xs font-medium transition-all',
               subTab === tab.id ? 'text-[#c9a96e] border-b-2 border-[#c9a96e]' : 'text-[#8a7a65] hover:text-[#e8dcc8]')}>
-            {tab.label}
+            {t(tab.labelKey as any)}
           </button>
         ))}
       </div>

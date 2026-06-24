@@ -16,22 +16,10 @@ import { format } from 'date-fns'
 const DAILY_LIMIT: Record<string, number> = { free: 5, pro: 50, family: 50 }
 
 const OPENING_MSGS = [
-  {
-    arabic: null,
-    text: 'Ada soalan tentang perjalanan rohani? Ada beban yang ingin dikongsi?\n\nSaya di sini.',
-  },
-  {
-    arabic: 'وَمَن يَتَّقِ اللَّهَ يَجْعَل لَّهُ مَخْرَجًا',
-    text: 'Allah akan buka jalan untuk mereka yang mencari.\n\nApa yang membawa anda ke sini hari ini?',
-  },
-  {
-    arabic: null,
-    text: 'Ramai datang ke sini dengan soalan tentang zikir, tentang ketenangan, tentang Allah.\n\nSoalan mana yang ada dalam hati anda hari ini?',
-  },
-  {
-    arabic: null,
-    text: '1400 tahun dahulu, ada sahabat Nabi yang bertanya soalan yang sama seperti anda.\n\nApa soalan anda hari ini?',
-  },
+  { arabic: null, key: 'iam.opening.msg1' },
+  { arabic: 'وَمَن يَتَّقِ اللَّهَ يَجْعَل لَّهُ مَخْرَجًا', key: 'iam.opening.msg2' },
+  { arabic: null, key: 'iam.opening.msg3' },
+  { arabic: null, key: 'iam.opening.msg4' },
 ]
 
 function pickRandomQuestions(count: number): string[] {
@@ -63,14 +51,14 @@ function hasCTA(content: string): boolean {
 
 // ─── Link CTA Detection ─────────────────────────────────────────────────────
 
-const LINK_CTA_MAP: Record<string, { route: string; label: string }> = {
-  '/zikir': { route: '/zikir', label: 'Buka Tab Zikir Am' },
-  '/zikir-am': { route: '/zikir', label: 'Buka Tab Zikir Am' },
-  '/zikir-khas': { route: '/zikir?tab=khas', label: 'Buka Tab Zikir Khas' },
+const LINK_CTA_MAP: Record<string, { route: string; labelKey: string }> = {
+  '/zikir': { route: '/zikir', labelKey: 'iam.cta.link_zikir_am' },
+  '/zikir-am': { route: '/zikir', labelKey: 'iam.cta.link_zikir_am' },
+  '/zikir-khas': { route: '/zikir?tab=khas', labelKey: 'iam.cta.link_zikir_khas' },
 }
 const LINK_MARKER_REGEX = /\[LINK:(\/[\w-]+)\]/
 
-function getLinkCTA(content: string): { route: string; label: string } | null {
+function getLinkCTA(content: string): { route: string; labelKey: string } | null {
   const match = content.match(LINK_MARKER_REGEX)
   return match ? LINK_CTA_MAP[match[1]] ?? null : null
 }
@@ -97,6 +85,7 @@ Saya telah mempelajari tentang Dzikir Jahar dan Dzikir Khafi melalui app ini dan
 Mohon bimbingan. Terima kasih.`
 
 function CTACard() {
+  const { t } = useTranslation()
   const WA_LINK = `https://wa.me/60182119135?text=${encodeURIComponent(TALQIN_MSG)}`
   const TG_LINK = `https://t.me/+7Bisf3e1cd4xYTA9`
   const [copied, setCopied] = useState(false)
@@ -122,7 +111,7 @@ function CTACard() {
       {/* Title */}
       <div className="flex items-center gap-2">
         <span className="font-serif text-[#c9a96e]">✦</span>
-        <p className="text-[#c9a96e] text-sm font-medium">Bersedia untuk melangkah?</p>
+        <p className="text-[#c9a96e] text-sm font-medium">{t('iam.cta.tajuk')}</p>
       </div>
 
       {/* WhatsApp — mesej pra-isi automatik */}
@@ -134,7 +123,7 @@ function CTACard() {
       >
         <div className="flex items-center gap-2.5">
           <span className="text-lg">📱</span>
-          <span className="text-[#e8dcc8] text-sm font-medium">WhatsApp Madrasah I AM</span>
+          <span className="text-[#e8dcc8] text-sm font-medium">{t('iam.cta.whatsapp')}</span>
         </div>
         <ExternalLink size={13} className="text-[#8a7a65] group-hover:text-[#c9a96e] transition-colors" />
       </a>
@@ -149,7 +138,7 @@ function CTACard() {
         >
           <div className="flex items-center gap-2.5">
             <span className="text-lg">💬</span>
-            <span className="text-[#e8dcc8] text-sm font-medium">Telegram Madrasah I AM</span>
+            <span className="text-[#e8dcc8] text-sm font-medium">{t('iam.cta.telegram')}</span>
           </div>
           <ExternalLink size={13} className="text-[#8a7a65] group-hover:text-[#c9a96e] transition-colors" />
         </a>
@@ -162,11 +151,11 @@ function CTACard() {
           <div className="flex items-start gap-2.5 flex-1 min-w-0">
             <span className="text-sm flex-shrink-0 mt-0.5">📋</span>
             <p className="text-[#8a7a65] text-xs leading-relaxed text-left truncate">
-              {copied ? '✓ Mesej disalin — paste dalam Telegram' : 'Salin mesej untuk Telegram'}
+              {copied ? t('iam.cta.salin_label_done') : t('iam.cta.salin_label')}
             </p>
           </div>
           <span className={cn('text-xs flex-shrink-0 ml-2', copied ? 'text-emerald-400' : 'text-[#c9a96e]')}>
-            {copied ? '✓' : 'Salin'}
+            {copied ? '✓' : t('iam.cta.salin')}
           </span>
         </button>
       </div>
@@ -180,7 +169,8 @@ function CTACard() {
 
 // ─── LinkCTACard Component ─────────────────────────────────────────────────────
 
-function LinkCTACard({ route, label }: { route: string; label: string }) {
+function LinkCTACard({ route, labelKey }: { route: string; labelKey: string }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   return (
@@ -190,7 +180,7 @@ function LinkCTACard({ route, label }: { route: string; label: string }) {
     >
       <div className="flex items-center gap-2.5">
         <span className="text-lg">📿</span>
-        <span className="text-[#e8dcc8] text-sm font-medium">{label}</span>
+        <span className="text-[#e8dcc8] text-sm font-medium">{t(labelKey)}</span>
       </div>
       <ExternalLink size={13} className="text-[#8a7a65] group-hover:text-[#c9a96e] transition-colors" />
     </button>
@@ -231,6 +221,7 @@ function RenunganModal({
   onBincang: () => void
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const [mode, setMode] = useState<'pilih' | 'tulis'>('pilih')
   const [teks, setTeks] = useState('')
 
@@ -240,25 +231,25 @@ function RenunganModal({
         className="bg-[#0d1821] border border-[#c9a96e30] rounded-2xl p-5 max-w-md w-full space-y-4"
         onClick={e => e.stopPropagation()}
       >
-        <p className="text-[#c9a96e] text-xs font-serif text-center">✦ Untuk Anda Renungkan</p>
+        <p className="text-[#c9a96e] text-xs font-serif text-center">{t('iam.renungan.tajuk')}</p>
         <p className="text-[#e8dcc8] text-base leading-relaxed text-center font-serif">{soalan}</p>
 
         {mode === 'pilih' ? (
           <div className="space-y-2">
             <p className="text-[#8a7a65] text-xs text-center leading-relaxed">
-              Ambil masa sebentar untuk fikirkan soalan ini. Tiada jawapan betul atau salah.
+              {t('iam.renungan.arahan')}
             </p>
             <button onClick={() => setMode('tulis')}
               className="w-full py-3 bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] rounded-xl text-sm font-medium hover:bg-[#c9a96e25] transition-colors">
-              ✍️ Tulis Renungan Saya
+              {t('iam.renungan.tulis_btn')}
             </button>
             <button onClick={onBincang}
               className="w-full py-3 bg-transparent border border-[#1e2d40] text-[#e8dcc8] rounded-xl text-sm font-medium hover:border-[#c9a96e30] transition-colors">
-              💬 Bincang dengan I AM
+              {t('iam.renungan.bincang_btn')}
             </button>
             <button onClick={onClose}
               className="w-full py-2 text-[#8a7a65] text-xs hover:text-[#c9a96e] transition-colors">
-              Tutup
+              {t('umum.tutup')}
             </button>
           </div>
         ) : (
@@ -266,18 +257,18 @@ function RenunganModal({
             <textarea
               value={teks}
               onChange={e => setTeks(e.target.value)}
-              placeholder="Tulis apa yang terlintas di fikiran anda..."
+              placeholder={t('iam.renungan.placeholder')}
               rows={5}
               autoFocus
               className="w-full bg-[#060d16] border border-[#1e2d40] focus:border-[#c9a96e50] rounded-xl px-4 py-3 text-sm text-[#e8dcc8] placeholder:text-[#8a7a65] outline-none resize-none transition-colors"
             />
             <button onClick={() => onTulis(teks)} disabled={!teks.trim()}
               className="w-full py-3 bg-[#c9a96e] text-[#060d16] rounded-xl text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-              Simpan Renungan
+              {t('iam.renungan.simpan')}
             </button>
             <button onClick={() => setMode('pilih')}
               className="w-full py-2 text-[#8a7a65] text-xs hover:text-[#c9a96e] transition-colors">
-              Kembali
+              {t('umum.kembali')}
             </button>
           </div>
         )}
@@ -416,14 +407,14 @@ export default function IAMChatPage() {
         })
         .catch(() => {})
     } catch (err) {
-      const errDetail = err instanceof Error ? err.message : 'Ralat tidak diketahui'
+      const errDetail = err instanceof Error ? err.message : t('iam.ralat.unknown')
       // Jangan dedahkan ralat dalaman (cth. status bil/kredit Anthropic) kepada
       // pengguna — papar mesej mesra umum dan log butiran sebenar untuk admin.
       const isBillingError = /credit balance|billing|plans & billing/i.test(errDetail)
       if (isBillingError) console.error('[IAM] Billing/credit error (disembunyikan dari user):', errDetail)
       const userMessage = isBillingError
-        ? 'Maaf, perkhidmatan I AM Chat sedang tidak tersedia buat masa ini. Sila cuba sebentar lagi.'
-        : `Maaf, berlaku ralat: ${errDetail}\n\nSila cuba sekali lagi atau hubungi admin.`
+        ? t('iam.ralat.unavail')
+        : t('iam.ralat.umum', { errDetail })
       setMessages(prev => [...prev, {
         id: `err-${Date.now()}`,
         role: 'assistant',
@@ -492,21 +483,21 @@ export default function IAMChatPage() {
               </div>
               <div className="space-y-2 flex-1">
                 <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl rounded-tl-sm px-4 py-3">
-                  <p className="text-[#8a7a65] text-xs mb-2">Assalamualaikum.</p>
+                  <p className="text-[#8a7a65] text-xs mb-2">{t('iam.salam')}</p>
                   {opening.arabic && (
                     <p className="font-serif text-[#c9a96e] text-base leading-loose mb-2" dir="rtl">
                       {opening.arabic}
                     </p>
                   )}
-                  <p className="text-[#e8dcc8] text-sm leading-relaxed whitespace-pre-line">{opening.text}</p>
+                  <p className="text-[#e8dcc8] text-sm leading-relaxed whitespace-pre-line">{t(opening.key)}</p>
                 </div>
               </div>
             </div>
 
             {/* Starter questions */}
             <div className="space-y-2">
-              <p className="text-[#c9a96e] text-xs text-center font-serif">✦ Soalan untuk anda fikirkan:</p>
-              <p className="text-[#8a7a65] text-[11px] text-center">Klik untuk renung soalan ini</p>
+              <p className="text-[#c9a96e] text-xs text-center font-serif">{t('iam.starter.tajuk')}</p>
+              <p className="text-[#8a7a65] text-[11px] text-center">{t('iam.starter.arahan')}</p>
               {starterQuestions.map((q, i) => (
                 <button key={i} onClick={() => setSelectedSoalan(q)}
                   className="w-full text-left px-4 py-3.5 bg-transparent border border-[#c9a96e4d] rounded-xl text-sm text-[#c9a96e] hover:bg-[#c9a96e1a] hover:border-[#c9a96e] transition-all leading-relaxed">
@@ -547,7 +538,7 @@ export default function IAMChatPage() {
             {/* LinkCTACard — muncul di bawah mesej assistant yang arah ke tab lain */}
             {linkCTA && (
               <div className="pl-9">
-                <LinkCTACard route={linkCTA.route} label={linkCTA.label} />
+                <LinkCTACard route={linkCTA.route} labelKey={linkCTA.labelKey} />
               </div>
             )}
             {/* ChoiceButtons — muncul selepas ajakan Langkah 6 (turning point) */}
@@ -587,26 +578,26 @@ export default function IAMChatPage() {
             <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
               <div className="flex items-center gap-2">
                 <Lock size={14} className="text-[#c9a96e]" />
-                <p className="text-[#c9a96e] font-medium text-sm">✦ {limit} perbualan hari ini selesai.</p>
+                <p className="text-[#c9a96e] font-medium text-sm">✦ {t('iam.had_habis', { count: limit })}</p>
               </div>
               <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-3 text-center">
                 <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">
                   أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ
                 </p>
                 <p className="text-[#8a7a65] text-xs mt-1.5 leading-relaxed italic">
-                  Hati yang tenang tidak datang dari perbualan sahaja — ia datang dari amalan.
+                  {t('iam.had.zikir_desc')}
                 </p>
               </div>
               <p className="text-[#8a7a65] text-xs text-center leading-relaxed">
-                Cuba Zikir Am hari ini. Ia percuma dan ia bermula dari langkah pertama yang kecil. Kita sambung esok. InsyaAllah. 🌙
+                {t('iam.had.zikir_sub')}
               </p>
               <button onClick={() => navigate('/zikir')}
                 className="w-full py-3 bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] rounded-xl text-sm font-medium hover:bg-[#c9a96e25] transition-colors">
-                📿 Cuba Zikir Am Sekarang
+                {t('iam.had.zikir_btn')}
               </button>
               {!isPro && (
                 <p className="text-[#8a7a65] text-xs text-center">
-                  Atau dapatkan 50 perbualan/hari dengan Pro ✦
+                  {t('iam.had.pro_cta')}
                 </p>
               )}
             </div>
@@ -644,7 +635,7 @@ export default function IAMChatPage() {
       {/* Toast — renungan disimpan */}
       {renunganSaved && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-[#0d1821] border border-[#c9a96e40] rounded-xl px-4 py-2.5 text-[#c9a96e] text-xs shadow-lg">
-          ✓ Renungan anda telah disimpan
+          {t('iam.renungan.tersimpan')}
         </div>
       )}
 

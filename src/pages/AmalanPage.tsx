@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   CheckCircle2, ChevronDown, ChevronUp, Flame, Volume2, VolumeX,
 } from 'lucide-react'
@@ -39,9 +40,9 @@ const AMALAN_TABS: { id: AmalanTab; label: string; arabic: string; soon?: boolea
 
 
 const AYAT_LIST = [
-  { arab: 'وَلَذِكْرُ اللَّهِ أَكْبَرُ', tr: '"Dan sesungguhnya zikir kepada Allah adalah yang paling agung"', src: 'Al-Ankabut: 45' },
-  { arab: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ', tr: '"Ketahuilah, hanya dengan mengingati Allah hati menjadi tenang"', src: "Ar-Ra'd: 28" },
-  { arab: 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي', tr: '"Ingatlah Aku, nescaya Aku ingat kepadamu"', src: 'Al-Baqarah: 152' },
+  { arab: 'وَلَذِكْرُ اللَّهِ أَكْبَرُ', trKey: 'amalan.ayat_ankabut_trans', src: 'Al-Ankabut: 45' },
+  { arab: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ', trKey: 'amalan.ayat_rad_trans', src: "Ar-Ra'd: 28" },
+  { arab: 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي', trKey: 'amalan.ayat_baqarah_trans', src: 'Al-Baqarah: 152' },
 ]
 
 const REFLEKSI_KHAFI_SYSTEM_PROMPT = `Anda adalah pembimbing rohani Thariqah Qadiriyah Naqsyabandiyah (TQN) yang membantu murid merefleksi pengalaman Zikir Khafi mereka.
@@ -65,10 +66,11 @@ PENTING:
 // ─── Phase Progress Bar ────────────────────────────────────────────────────────
 
 function PhaseBar({ phase }: { phase: SessionPhase }) {
+  const { t } = useTranslation()
   const steps = [
-    { id: 1, label: 'Bacaan', color: '#c9a96e' },
-    { id: 2, label: 'Jahar',  color: '#60a5fa' },
-    { id: 3, label: 'Doa',   color: '#c9a96e' },
+    { id: 1, labelKey: 'amalan.fasa_bacaan', color: '#c9a96e' },
+    { id: 2, labelKey: 'amalan.fasa_jahar',  color: '#60a5fa' },
+    { id: 3, labelKey: 'amalan.fasa_doa',    color: '#c9a96e' },
   ]
   const n = phase === 'done' || phase === 'khafi' ? 4 : typeof phase === 'number' ? phase : 0
 
@@ -85,7 +87,7 @@ function PhaseBar({ phase }: { phase: SessionPhase }) {
               }}>
               {n > s.id ? '✓' : s.id}
             </div>
-            <p className="text-[8px]" style={{ color: n >= s.id ? s.color : '#8a7a65' }}>{s.label}</p>
+            <p className="text-[8px]" style={{ color: n >= s.id ? s.color : '#8a7a65' }}>{t(s.labelKey as any)}</p>
           </div>
           {i < 2 && <div className="w-5 h-px mb-3" style={{ backgroundColor: n > s.id ? '#c9a96e40' : '#1e2d40' }} />}
         </div>
@@ -97,6 +99,7 @@ function PhaseBar({ phase }: { phase: SessionPhase }) {
 // ─── Bacaan Card ───────────────────────────────────────────────────────────────
 
 function BacaanCard({ item, accent = '#c9a96e' }: { item: AmalanItem; accent?: string }) {
+  const { t } = useTranslation()
   return (
     <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
       {item.tajuk && (
@@ -111,7 +114,7 @@ function BacaanCard({ item, accent = '#c9a96e' }: { item: AmalanItem; accent?: s
       {item.rumi && <p className="text-[#8a7a65] text-xs italic">{item.rumi}</p>}
       {item.terjemahan && <p className="text-[#e8dcc8] text-xs leading-relaxed">{item.terjemahan}</p>}
       {item.ulangan && item.ulangan > 1 && (
-        <p className="text-xs" style={{ color: accent + 'cc' }}>Ulangan: {item.ulangan}×</p>
+        <p className="text-xs" style={{ color: accent + 'cc' }}>{t('amalan.ulangan_label', { count: item.ulangan })}</p>
       )}
     </div>
   )
@@ -120,19 +123,19 @@ function BacaanCard({ item, accent = '#c9a96e' }: { item: AmalanItem; accent?: s
 // ─── Fasa 1 — Bacaan Pembuka ───────────────────────────────────────────────────
 
 function Fasa1({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
+  const { t } = useTranslation()
   const [confirmed, setConfirmed] = useState(false)
 
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <p className="font-serif text-[#c9a96e] text-xl">Bacaan Pembuka</p>
-        <p className="text-[#8a7a65] text-sm mt-0.5">Sebelum memulakan Zikir Jahar</p>
+        <p className="font-serif text-[#c9a96e] text-xl">{t('amalan.fasa1_tajuk')}</p>
+        <p className="text-[#8a7a65] text-sm mt-0.5">{t('amalan.fasa1_sub')}</p>
       </div>
 
       {items.length === 0 ? (
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 text-center space-y-2">
-          <p className="text-[#8a7a65] text-sm">Bacaan belum diisi.</p>
-          <p className="text-[#8a7a65] text-xs italic">Nine boleh isi melalui Supabase → amalan_content (jenis: zikir_jahar, urutan 1-4)</p>
+          <p className="text-[#8a7a65] text-sm">{t('amalan.fasa1_empty')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -146,12 +149,12 @@ function Fasa1({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
           confirmed ? 'border-[#c9a96e] bg-[#c9a96e]' : 'border-[#2a3d55]')}>
           {confirmed && <CheckCircle2 size={12} className="text-[#060d16]" />}
         </div>
-        <span className="text-sm text-[#e8dcc8]">Saya telah selesai membaca semua bacaan pembuka</span>
+        <span className="text-sm text-[#e8dcc8]">{t('amalan.fasa1_confirmed')}</span>
       </button>
 
       <button onClick={onDone} disabled={!confirmed}
         className="w-full py-4 bg-[#c9a96e] text-[#060d16] font-semibold rounded-2xl hover:bg-[#e2c89a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-        Mulakan Zikir Jahar →
+        {t('amalan.fasa1_btn')}
       </button>
     </div>
   )
@@ -160,6 +163,7 @@ function Fasa1({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
 // ─── Fasa 2 — Zikir Jahar ─────────────────────────────────────────────────────
 
 function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: number, target: number) => void }) {
+  const { t } = useTranslation()
   const TARGETS = [165, 200, 300, 500]
   const savedTarget = parseInt(localStorage.getItem('amalan_jahar_target') ?? '165') || 165
   const [target, setTarget] = useState(savedTarget)
@@ -216,7 +220,7 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
         {item?.arab && (
           <p className="font-serif text-[#60a5fa] leading-none" style={{ fontSize: 28 }} dir="rtl">{item.arab}</p>
         )}
-        <p className="text-[#8a7a65] text-sm">Zikir Jahar</p>
+        <p className="text-[#8a7a65] text-sm">{t('amalan.fasa2_sub')}</p>
       </div>
 
       {/* Target */}
@@ -260,7 +264,7 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
       <div className="flex items-center justify-between bg-[#0d1821] border border-[#1e2d40] rounded-xl px-4 py-2.5">
         <div className="flex items-center gap-2">
           {audioOn ? <Volume2 size={14} className="text-[#60a5fa]" /> : <VolumeX size={14} className="text-[#8a7a65]" />}
-          <p className="text-sm text-[#e8dcc8]">Audio Panduan</p>
+          <p className="text-sm text-[#e8dcc8]">{t('amalan.audio_panduan')}</p>
         </div>
         {audioAvail ? (
           <button onClick={() => setAudioOn(v => !v)}
@@ -268,26 +272,26 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
             <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all', audioOn ? 'left-[22px]' : 'left-0.5')} />
           </button>
         ) : (
-          <p className="text-[#8a7a65] text-xs">Belum tersedia</p>
+          <p className="text-[#8a7a65] text-xs">{t('amalan.belum_tersedia')}</p>
         )}
       </div>
 
       {/* Panduan gerakan */}
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-xl overflow-hidden">
         <button onClick={() => setShowGuide(v => !v)} className="w-full flex items-center justify-between px-4 py-3">
-          <p className="text-[#8a7a65] text-xs">📖 Panduan Gerakan</p>
+          <p className="text-[#8a7a65] text-xs">{t('amalan.panduan_gerakan')}</p>
           {showGuide ? <ChevronUp size={14} className="text-[#8a7a65]" /> : <ChevronDown size={14} className="text-[#8a7a65]" />}
         </button>
         {showGuide && (
           <div className="px-4 pb-4 space-y-3">
             {[
-              { arab: 'لَا', g: 'Dari bawah pusat naik ke kepala' },
-              { arab: 'إِلَٰهَ', g: 'Dari susu kanan atas ke susu kanan bawah' },
-              { arab: 'إِلَّا اللَّهُ', g: 'Dari susu kiri atas ke jantung dengan hentakan yang menggegarkan' },
-            ].map(({ arab, g }) => (
+              { arab: 'لَا', gKey: 'amalan.gerakan_la' },
+              { arab: 'إِلَٰهَ', gKey: 'amalan.gerakan_ilaha' },
+              { arab: 'إِلَّا اللَّهُ', gKey: 'amalan.gerakan_illallah' },
+            ].map(({ arab, gKey }) => (
               <div key={arab} className="bg-[#060d16] rounded-xl p-3 space-y-1">
                 <p className="font-serif text-[#60a5fa] text-base text-right" dir="rtl">{arab}</p>
-                <p className="text-[#8a7a65] text-xs">{g}</p>
+                <p className="text-[#8a7a65] text-xs">{t(gKey as any)}</p>
               </div>
             ))}
           </div>
@@ -298,13 +302,13 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
       {isDone ? (
         <div className="space-y-4 text-center bg-[#0d1821] border border-[#60a5fa30] rounded-2xl p-6">
           <p className="font-serif text-[#60a5fa] text-2xl">Alhamdulillah ✦</p>
-          <p className="text-[#8a7a65] text-sm">{count} kali selesai</p>
+          <p className="text-[#8a7a65] text-sm">{t('amalan.fasa2_kali_selesai', { count })}</p>
           <p className="font-serif text-[#c9a96e] text-base leading-loose" dir="rtl">
             سَيِّدُنَا مُحَمَّدٌ رَّسُوْلُ اللّٰهِ
           </p>
           <button onClick={() => onDone(count, target)}
             className="w-full py-4 bg-[#60a5fa] text-[#060d16] font-semibold rounded-2xl hover:opacity-90 transition-opacity">
-            Teruskan ke Doa →
+            {t('amalan.fasa2_btn')}
           </button>
         </div>
       ) : (
@@ -323,23 +327,24 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
 // ─── Fasa 3 — Doa ─────────────────────────────────────────────────────────────
 
 function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
+  const { t } = useTranslation()
   const [confirmed, setConfirmed] = useState(false)
 
   return (
     <div className="space-y-5">
       <div className="text-center">
-        <p className="font-serif text-[#c9a96e] text-xl">Doa Selepas Zikir Jahar</p>
+        <p className="font-serif text-[#c9a96e] text-xl">{t('amalan.fasa3_tajuk')}</p>
       </div>
 
       <div className="rounded-2xl p-5 space-y-4"
         style={{ background: 'rgba(201,169,110,0.06)', border: '1px solid rgba(201,169,110,0.25)' }}>
         <div className="flex items-center gap-2">
           <span className="text-lg">🤲</span>
-          <p className="text-[#c9a96e] text-sm font-medium">Doa Penutup Zikir Jahar</p>
+          <p className="text-[#c9a96e] text-sm font-medium">{t('amalan.fasa3_doa_penutup')}</p>
         </div>
 
         {items.length === 0 ? (
-          <p className="text-[#8a7a65] text-xs italic text-center">Doa belum diisi — Nine boleh isi via Supabase (urutan 6-7)</p>
+          <p className="text-[#8a7a65] text-xs italic text-center">{t('amalan.fasa3_empty')}</p>
         ) : (
           items.map((item, i) => (
             <div key={item.id} className={cn('space-y-2', i > 0 && 'border-t border-[#c9a96e20] pt-4')}>
@@ -359,12 +364,12 @@ function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
           confirmed ? 'border-[#c9a96e] bg-[#c9a96e]' : 'border-[#2a3d55]')}>
           {confirmed && <CheckCircle2 size={12} className="text-[#060d16]" />}
         </div>
-        <span className="text-sm text-[#e8dcc8]">Saya telah selesai membaca doa</span>
+        <span className="text-sm text-[#e8dcc8]">{t('amalan.fasa3_confirmed')}</span>
       </button>
 
       <button onClick={onDone} disabled={!confirmed}
         className="w-full py-4 bg-[#c9a96e] text-[#060d16] font-semibold rounded-2xl hover:bg-[#e2c89a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-        Teruskan ke Fatihah →
+        {t('amalan.fasa3_btn')}
       </button>
     </div>
   )
@@ -375,6 +380,7 @@ function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
 function SelesaiScreen({ jaharCount, jaharTarget, khafiMins, onClose }: {
   jaharCount: number; jaharTarget: number; khafiMins: number; onClose: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className="space-y-5"
       style={{ background: 'linear-gradient(180deg, #060d16, #0a1520)', borderRadius: 16, padding: 24 }}>
@@ -394,16 +400,16 @@ function SelesaiScreen({ jaharCount, jaharTarget, khafiMins, onClose }: {
         <p className="font-serif text-[#c9a96e] text-xl leading-loose" dir="rtl">
           وَرِضَاكَ مَطْلُوبِي
         </p>
-        <p className="text-[#8a7a65] text-xs mt-2 italic">"Ya Allah, Engkaulah tujuanku dan keredhaan-Mu yang aku cari"</p>
+        <p className="text-[#8a7a65] text-xs mt-2 italic">"{t('amalan.selesai_tujuanku')}"</p>
       </div>
 
       <div className="space-y-2">
         {[
-          jaharCount > 0 && { label: 'Bacaan Pembuka', value: 'Selesai', color: '#c9a96e' },
-          jaharCount > 0 && { label: 'Zikir Jahar', value: `${jaharCount}x (target: ${jaharTarget})`, color: '#60a5fa' },
-          jaharCount > 0 && { label: 'Doa', value: 'Selesai', color: '#c9a96e' },
-          { label: '3 Fatihah', value: 'Selesai', color: '#4ade80' },
-          { label: 'Zikir Khafi', value: khafiMins > 0 ? `${khafiMins} minit` : 'Selesai', color: '#a78bfa' },
+          jaharCount > 0 && { label: t('amalan.label_bacaan_pembuka'), value: t('amalan.label_selesai_stat'), color: '#c9a96e' },
+          jaharCount > 0 && { label: t('amalan.fasa2_sub'), value: `${jaharCount}x (target: ${jaharTarget})`, color: '#60a5fa' },
+          jaharCount > 0 && { label: t('amalan.label_doa'), value: t('amalan.label_selesai_stat'), color: '#c9a96e' },
+          { label: t('amalan.label_fatihah'), value: t('amalan.label_selesai_stat'), color: '#4ade80' },
+          { label: t('amalan.label_zikir_khafi'), value: khafiMins > 0 ? t('amalan.label_minit', { count: khafiMins }) : t('amalan.label_selesai_stat'), color: '#a78bfa' },
         ].filter(Boolean).map(item => {
           const { label, value, color } = item as { label: string; value: string; color: string }
           return (
@@ -417,14 +423,14 @@ function SelesaiScreen({ jaharCount, jaharTarget, khafiMins, onClose }: {
       </div>
 
       <p className="text-[#8a7a65] text-sm text-center leading-relaxed">
-        Semoga Allah menerima amalan anda hari ini.<br />
+        {t('amalan.selesai_doa')}<br />
         <span className="font-serif text-[#c9a96e] text-lg">Aamiin.</span>
       </p>
 
       <button onClick={onClose}
         className="w-full py-4 font-semibold rounded-2xl text-[#060d16] hover:opacity-90 transition-opacity"
         style={{ background: 'linear-gradient(135deg, #c9a96e, #e2c89a)' }}>
-        ✦ Selesai
+        {t('amalan.selesai_btn')}
       </button>
     </div>
   )
@@ -436,30 +442,33 @@ const REFLEKSI_SOALAN = [
   {
     id: 'fokus',
     soalan: 'Bagaimana tahap fokus anda semasa berzikir tadi?',
+    soalanKey: 'amalan.refleksi.fokus_soalan',
     pilihan: [
-      'Sangat fokus — hati hadir sepenuhnya',
-      'Agak fokus — kadang-kadang menumpang',
-      'Kurang fokus — banyak fikiran lain',
-      'Tidak fokus langsung',
+      { value: 'Sangat fokus — hati hadir sepenuhnya', key: 'amalan.refleksi.fokus_1' },
+      { value: 'Agak fokus — kadang-kadang menumpang', key: 'amalan.refleksi.fokus_2' },
+      { value: 'Kurang fokus — banyak fikiran lain', key: 'amalan.refleksi.fokus_3' },
+      { value: 'Tidak fokus langsung', key: 'amalan.refleksi.fokus_4' },
     ],
   },
   {
     id: 'ganggu',
     soalan: 'Apa yang mengganggu fokus anda semasa berzikir?',
+    soalanKey: 'amalan.refleksi.ganggu_soalan',
     pilihan: [
-      'Fikiran tentang kerja / urusan dunia',
-      'Perasaan tidak tenang atau resah',
-      'Tidak tahu sebabnya',
-      'Tiada gangguan',
+      { value: 'Fikiran tentang kerja / urusan dunia', key: 'amalan.refleksi.ganggu_1' },
+      { value: 'Perasaan tidak tenang atau resah', key: 'amalan.refleksi.ganggu_2' },
+      { value: 'Tidak tahu sebabnya', key: 'amalan.refleksi.ganggu_3' },
+      { value: 'Tiada gangguan', key: 'amalan.refleksi.ganggu_4' },
     ],
   },
   {
     id: 'rasa',
     soalan: 'Bagaimana perasaan anda selepas selesai berzikir?',
+    soalanKey: 'amalan.refleksi.rasa_soalan',
     pilihan: [
-      'Tenang dan damai ✦',
-      'Biasa sahaja',
-      'Masih berasa berat / gelisah',
+      { value: 'Tenang dan damai ✦', key: 'amalan.refleksi.rasa_1' },
+      { value: 'Biasa sahaja', key: 'amalan.refleksi.rasa_2' },
+      { value: 'Masih berasa berat / gelisah', key: 'amalan.refleksi.rasa_3' },
     ],
   },
 ]
@@ -469,6 +478,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
   onBack: () => void
   onComplete: (khafiMins: number) => void
 }) {
+  const { t } = useTranslation()
   const [subPhase, setSubPhase] = useState<'pembuka' | 'berzikir' | 'refleksi' | 'ai_done'>('pembuka')
   const startRef = useRef(Date.now())
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -522,7 +532,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
       setAiReply(reply)
       setSubPhase('ai_done')
     } catch {
-      setAiReply('Maaf, tidak dapat menyambung ke AI. Sila cuba lagi.')
+      setAiReply(t('umum.ralat'))
       setSubPhase('ai_done')
     } finally {
       setLoading(false)
@@ -539,7 +549,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
       {/* Header */}
       <div className="flex items-center justify-between">
         <button onClick={onBack} className="flex items-center gap-2 text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors">
-          &larr; Kembali
+          &larr; {t('umum.kembali')}
         </button>
         <p className="font-serif text-[#a78bfa] text-sm">Zikir Khafi</p>
         <div className="w-16" />
@@ -565,12 +575,12 @@ function KhafiSection({ userTier, onBack, onComplete }: {
               pembConfirmed ? 'border-[#a78bfa] bg-[#a78bfa]' : 'border-[#2a3d55]')}>
               {pembConfirmed && <CheckCircle2 size={12} className="text-[#060d16]" />}
             </div>
-            <span className="text-sm text-[#e8dcc8]">Saya telah membaca dan bersedia untuk berzikir</span>
+            <span className="text-sm text-[#e8dcc8]">{t('amalan.khafi_confirmed')}</span>
           </button>
 
           <button onClick={goToBerzikir} disabled={!pembConfirmed}
             className="w-full py-4 bg-[#a78bfa] text-[#060d16] font-semibold rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
-            Mulakan Zikir Khafi →
+            {t('amalan.khafi_btn')}
           </button>
         </div>
       )}
@@ -593,7 +603,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
       {subPhase === 'berzikir' && (
         <button onClick={() => setShowPenutupModal(true)}
           className="w-full py-3.5 bg-[#a78bfa] text-[#060d16] font-semibold rounded-xl text-sm hover:opacity-90 transition-opacity">
-          ✓ Sudah Berzikir — Teruskan
+          {t('amalan.khafi_sudah_btn')}
         </button>
       )}
 
@@ -603,7 +613,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
           style={{ background: 'rgba(6,13,22,0.92)', backdropFilter: 'blur(6px)' }}>
           <div className="w-full max-w-sm space-y-6">
             <div className="bg-[#0d1821] border border-[#a78bfa30] rounded-3xl p-8 text-center space-y-5">
-              <p className="text-[#a78bfa] text-xs font-medium uppercase tracking-widest">Penutup</p>
+              <p className="text-[#a78bfa] text-xs font-medium uppercase tracking-widest">{t('amalan.khafi_penutup')}</p>
               <p className="font-serif leading-loose text-[#c9a96e]"
                 dir="rtl" style={{ fontSize: 32, lineHeight: 2 }}>
                 سَيِّدُنَا مُحَمَّدٌ ﷺ
@@ -614,7 +624,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
               onClick={() => { setShowPenutupModal(false); goFromBerzikir() }}
               className="w-full py-4 font-semibold rounded-2xl text-[#060d16] hover:opacity-90 transition-opacity"
               style={{ background: 'linear-gradient(135deg, #a78bfa, #c4b5fd)' }}>
-              Teruskan →
+              {t('amalan.khafi_teruskan')}
             </button>
           </div>
         </div>
@@ -624,23 +634,23 @@ function KhafiSection({ userTier, onBack, onComplete }: {
       {subPhase === 'refleksi' && (
         <div className="bg-[#0d1821] border border-[#a78bfa30] rounded-2xl p-5 space-y-5">
           <div>
-            <p className="text-[#a78bfa] font-serif text-base">✦ Refleksi Diri</p>
-            <p className="text-[#8a7a65] text-xs mt-1">Luangkan sejenak untuk muhasabah pengalaman zikir anda.</p>
+            <p className="text-[#a78bfa] font-serif text-base">{t('amalan.khafi_refleksi_tajuk')}</p>
+            <p className="text-[#8a7a65] text-xs mt-1">{t('amalan.khafi_refleksi_sub')}</p>
           </div>
 
           {REFLEKSI_SOALAN.map(s => (
             <div key={s.id} className="space-y-2">
-              <p className="text-[#e8dcc8] text-sm leading-relaxed">{s.soalan}</p>
+              <p className="text-[#e8dcc8] text-sm leading-relaxed">{t(s.soalanKey as any)}</p>
               <div className="space-y-1.5">
                 {s.pilihan.map(p => (
-                  <button key={p} onClick={() => setAnswers(prev => ({ ...prev, [s.id]: p }))}
+                  <button key={p.value} onClick={() => setAnswers(prev => ({ ...prev, [s.id]: p.value }))}
                     className={cn(
                       'w-full text-left px-3 py-2.5 rounded-xl border text-xs transition-all',
-                      answers[s.id] === p
+                      answers[s.id] === p.value
                         ? 'border-[#a78bfa] bg-[#a78bfa15] text-[#a78bfa]'
                         : 'border-[#1e2d40] text-[#8a7a65] hover:border-[#2a3d55] hover:text-[#e8dcc8]'
                     )}>
-                    {p}
+                    {t(p.key as any)}
                   </button>
                 ))}
               </div>
@@ -652,9 +662,9 @@ function KhafiSection({ userTier, onBack, onComplete }: {
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-[#060d16] border-t-transparent rounded-full animate-spin" />
-                Menganalisis...
+                {t('amalan.khafi_menganalisis')}
               </>
-            ) : 'Hantar Refleksi →'}
+            ) : t('amalan.khafi_hantar')}
           </button>
         </div>
       )}
@@ -663,14 +673,14 @@ function KhafiSection({ userTier, onBack, onComplete }: {
       {subPhase === 'ai_done' && (
         <div className="space-y-4">
           <div className="bg-[#0d1821] border border-[#a78bfa30] rounded-2xl p-5 space-y-3">
-            <p className="text-[#a78bfa] text-xs font-medium uppercase tracking-wider">Tindak Balas Pembimbing ✦</p>
+            <p className="text-[#a78bfa] text-xs font-medium uppercase tracking-wider">{t('amalan.khafi_balas_tajuk')}</p>
             <p className="text-[#e8dcc8] text-sm leading-relaxed" style={{ whiteSpace: 'pre-wrap' }}>{aiReply}</p>
           </div>
           <button
             onClick={handleSelesai}
             className="w-full py-4 font-semibold rounded-2xl text-[#060d16] hover:opacity-90 transition-opacity"
             style={{ background: 'linear-gradient(135deg, #a78bfa, #c4b5fd)' }}>
-            ✦ Selesai Sesi Hari Ini
+            {t('amalan.khafi_selesai_btn')}
           </button>
         </div>
       )}
@@ -681,6 +691,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
 // ─── Dashboard ─────────────────────────────────────────────────────────────────
 
 function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => void; onStartKhafi: () => void; user: { id: string } | null }) {
+  const { t } = useTranslation()
   const [stats, setStats] = useState({ todayDone: false, streak: 0, totalJahar: 0, totalKhafiMins: 0 })
   const ayatIdx = new Date().getDate() % AYAT_LIST.length
   const ayat = AYAT_LIST[ayatIdx]
@@ -718,7 +729,7 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
       {/* Ayat */}
       <div className="bg-[#0d1821] border border-[#c9a96e15] rounded-2xl p-5 text-center space-y-2">
         <p className="font-serif text-[#c9a96e] text-base leading-loose" dir="rtl">{ayat.arab}</p>
-        <p className="text-[#8a7a65] text-xs italic">{ayat.tr}</p>
+        <p className="text-[#8a7a65] text-xs italic">{t(ayat.trKey as any)}</p>
         <p className="text-[#c9a96e60] text-xs">— {ayat.src}</p>
       </div>
 
@@ -727,28 +738,28 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
         {[
           {
             icon: stats.todayDone ? '✓' : '○',
-            label: 'Sesi Hari Ini',
-            value: stats.todayDone ? 'Selesai' : 'Belum',
+            label: t('amalan.dashboard_sesi'),
+            value: stats.todayDone ? t('amalan.dashboard_selesai') : t('amalan.dashboard_belum'),
             color: stats.todayDone ? 'text-emerald-400' : 'text-[#8a7a65]',
           },
           {
             icon: <Flame size={16} className="text-[#c9a96e]" />,
-            label: 'Streak',
-            value: `${stats.streak} hari`,
+            label: t('amalan.dashboard_streak'),
+            value: t('amalan.dashboard_hari', { count: stats.streak }),
             color: 'text-[#c9a96e]',
           },
           {
             icon: '✦',
-            label: 'Jumlah Jahar',
+            label: t('amalan.dashboard_jumlah_jahar'),
             value: stats.totalJahar.toLocaleString(),
             color: 'text-[#60a5fa]',
           },
           {
             icon: '💜',
-            label: 'Jumlah Khafi',
+            label: t('amalan.dashboard_jumlah_khafi'),
             value: stats.totalKhafiMins >= 60
-              ? `${Math.floor(stats.totalKhafiMins / 60)}j ${stats.totalKhafiMins % 60}m`
-              : `${stats.totalKhafiMins} min`,
+              ? t('amalan.dashboard_jam_min', { jam: Math.floor(stats.totalKhafiMins / 60), min: stats.totalKhafiMins % 60 })
+              : t('amalan.dashboard_min', { count: stats.totalKhafiMins }),
             color: 'text-[#a78bfa]',
           },
         ].map(({ icon, label, value, color }, i) => (
@@ -766,7 +777,7 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
 
       {/* Two independent entry cards */}
       <div className="space-y-3">
-        <p className="text-xs font-medium text-[#c9a96e] uppercase tracking-wider px-1">Pilih Amalan</p>
+        <p className="text-xs font-medium text-[#c9a96e] uppercase tracking-wider px-1">{t('amalan.pilih_amalan')}</p>
         <button onClick={onStartJahar}
           className="w-full flex items-center gap-4 p-5 rounded-2xl border border-[#60a5fa30] bg-[#60a5fa08] hover:bg-[#60a5fa12] hover:border-[#60a5fa50] transition-all text-left">
           <div className="w-12 h-12 rounded-xl bg-[#60a5fa15] border border-[#60a5fa30] flex items-center justify-center flex-shrink-0">
@@ -774,8 +785,8 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[#60a5fa] font-serif text-base font-medium">Zikir Jahar</p>
-            <p className="text-[#8a7a65] text-xs mt-0.5">Bacaan Pembuka, Zikir Berlafaz, Doa</p>
-            <p className="text-[#60a5fa60] text-xs mt-1">Jumlah: {stats.totalJahar.toLocaleString()}x</p>
+            <p className="text-[#8a7a65] text-xs mt-0.5">{t('amalan.jahar_sub')}</p>
+            <p className="text-[#60a5fa60] text-xs mt-1">{t('amalan.jahar_jumlah', { count: stats.totalJahar.toLocaleString() })}</p>
           </div>
           <span className="text-[#60a5fa] text-lg">›</span>
         </button>
@@ -786,11 +797,11 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[#a78bfa] font-serif text-base font-medium">Zikir Khafi</p>
-            <p className="text-[#8a7a65] text-xs mt-0.5">Zikir hati — sync degupan jantung</p>
+            <p className="text-[#8a7a65] text-xs mt-0.5">{t('amalan.khafi_sub')}</p>
             <p className="text-[#a78bfa60] text-xs mt-1">
               {stats.totalKhafiMins >= 60
-                ? `${Math.floor(stats.totalKhafiMins / 60)}j ${stats.totalKhafiMins % 60}m`
-                : `${stats.totalKhafiMins} min`} terkumpul
+                ? t('amalan.dashboard_jam_min', { jam: Math.floor(stats.totalKhafiMins / 60), min: stats.totalKhafiMins % 60 })
+                : t('amalan.dashboard_min', { count: stats.totalKhafiMins })} {t('amalan.dashboard_terkumpul')}
             </p>
           </div>
           <span className="text-[#a78bfa] text-lg">›</span>
@@ -1114,6 +1125,7 @@ function ZiarahTab() {
 // ─── Main AmalanPage ───────────────────────────────────────────────────────────
 
 export default function AmalanPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const isTalqin = user?.talqin_completed === true
@@ -1225,7 +1237,7 @@ export default function AmalanPage() {
           <p className="font-serif text-[#8a7a65] text-sm mt-1" dir="rtl">الطَّرِيقَة القادرية النقشبندية</p>
         </div>
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 max-w-sm space-y-3">
-          <p className="text-[#e8dcc8] text-sm leading-relaxed">Halaman ini untuk peserta yang telah ditalqin Zikir Jahar oleh guru.</p>
+          <p className="text-[#e8dcc8] text-sm leading-relaxed">{t('amalan.gate_desc')}</p>
           <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-3 text-center">
             <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">فَاسْأَلُوا أَهْلَ الذِّكْرِ إِن كُنتُمْ لَا تَعْلَمُونَ</p>
             <p className="text-[#8a7a65] text-xs mt-1">"Bertanyalah kepada ahli dzikir" — An-Nahl: 43</p>
@@ -1233,7 +1245,7 @@ export default function AmalanPage() {
         </div>
         <button onClick={() => navigate('/zikir')}
           className="w-full max-w-sm py-3.5 bg-[#c9a96e] text-[#060d16] font-semibold rounded-xl text-sm hover:bg-[#e2c89a] transition-colors">
-          ✦ Daftar Sesi Talqin
+          {t('amalan.gate_btn')}
         </button>
       </div>
     )
@@ -1247,8 +1259,8 @@ export default function AmalanPage() {
       <div className="flex items-start justify-between">
         <div>
           <p className="font-serif text-3xl text-[#c9a96e] leading-none">الأَمَل</p>
-          <h1 className="font-serif text-xl text-[#e8dcc8] mt-1">Amalan TQN</h1>
-          <p className="text-[#8a7a65] text-xs">Tazkiyatun Nafs — Penyucian Jiwa</p>
+          <h1 className="font-serif text-xl text-[#e8dcc8] mt-1">{t('amalan.tajuk')}</h1>
+          <p className="text-[#8a7a65] text-xs">{t('amalan.sub')}</p>
         </div>
         {activeTab === 'zikir' && (phase === 1 || phase === 2 || phase === 3) && (
           <PhaseBar phase={phase} />
@@ -1282,7 +1294,7 @@ export default function AmalanPage() {
         {!contentLoaded && phase !== 'dashboard' && (
           <div className="flex items-center gap-2 text-[#8a7a65] text-sm mb-4">
             <div className="w-4 h-4 border-2 border-[#c9a96e] border-t-transparent rounded-full animate-spin" />
-            Memuatkan kandungan dari Supabase...
+            {t('amalan.memuatkan')}
           </div>
         )}
 

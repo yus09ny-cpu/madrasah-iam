@@ -40,20 +40,20 @@ const DEFAULT_PRAYERS: PrayerRecord[] = [
   { name: 'Isyak',   completed: false, on_time: false },
 ]
 
-const CHECKLIST_ITEMS = [
-  'Bangun sebelum azan atau tepat pada waktunya',
-  'Basuh muka dan segar semula',
-  'Sempurnakan wuduk dengan tenang',
-  'Hadirkan hati — solat ini dikira pahalanya',
-  'Niat kerana Allah, bukan kerana kebiasaan',
-]
+const CHECKLIST_KEYS = [
+  'solat.checklist.1',
+  'solat.checklist.2',
+  'solat.checklist.3',
+  'solat.checklist.4',
+  'solat.checklist.5',
+] as const
 
 const QUALITY_OPTIONS = [
-  { value: 1, emoji: '😔', label: 'Lalai' },
-  { value: 2, emoji: '😕', label: 'Kurang' },
-  { value: 3, emoji: '😐', label: 'Sederhana' },
-  { value: 4, emoji: '🙂', label: 'Khusyuk' },
-  { value: 5, emoji: '😊', label: 'Sangat Khusyuk' },
+  { value: 1, emoji: '😔', labelKey: 'solat.kualiti_lalai' },
+  { value: 2, emoji: '😕', labelKey: 'solat.kualiti_kurang' },
+  { value: 3, emoji: '😐', labelKey: 'solat.sederhana' },
+  { value: 4, emoji: '🙂', labelKey: 'solat.khusyuk' },
+  { value: 5, emoji: '😊', labelKey: 'solat.kualiti_sangat_khusyuk' },
 ]
 
 const AYATUL_KURSI = 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ'
@@ -61,16 +61,22 @@ const DOA_SOLAT = 'اللَّهُمَّ أَنْتَ السَّلَامُ وَم
 
 // Free refleksi
 const FREE_MOOD = [
-  { value: 1, emoji: '😔', label: 'Sangat lalai' },
-  { value: 2, emoji: '😐', label: 'Kurang hadir' },
-  { value: 3, emoji: '🙂', label: 'Sederhana' },
-  { value: 4, emoji: '😊', label: 'Cukup hadir' },
-  { value: 5, emoji: '🌟', label: 'Sangat khusyuk' },
+  { value: 1, emoji: '😔', labelKey: 'solat.mood_sangat_lalai' },
+  { value: 2, emoji: '😐', labelKey: 'solat.mood_kurang_hadir' },
+  { value: 3, emoji: '🙂', labelKey: 'solat.sederhana' },
+  { value: 4, emoji: '😊', labelKey: 'solat.mood_cukup_hadir' },
+  { value: 5, emoji: '🌟', labelKey: 'solat.mood_sangat_khusyuk' },
 ]
-const FREE_CHIPS = ['Khusyuk', 'Tergesa', 'Lalai', 'Tenang', 'Berat', 'Bersyukur', 'Mengantuk', 'Hadir']
+const FREE_CHIPS = [
+  'solat.chip_khusyuk', 'solat.chip_tergesa', 'solat.chip_lalai', 'solat.chip_tenang',
+  'solat.chip_berat', 'solat.chip_bersyukur', 'solat.chip_mengantuk', 'solat.chip_hadir',
+] as const
 
 // Pro refleksi
-const PRO_HALANGAN = ['Fikiran melayang', 'Tergesa-gesa', 'Mengantuk', 'Gangguan luar', 'Tidak faham bacaan', 'Tiada halangan']
+const PRO_HALANGAN = [
+  'solat.halangan_fikiran', 'solat.halangan_tergesa', 'solat.halangan_mengantuk',
+  'solat.halangan_gangguan', 'solat.halangan_faham', 'solat.halangan_tiada',
+] as const
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
@@ -203,13 +209,13 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
       <div className="space-y-4 pt-2">
         {isMissedQada && (
           <div className="px-4 py-3 bg-orange-900/15 border border-orange-500/20 rounded-xl text-center space-y-1">
-            <p className="text-xs text-orange-400 font-medium">⚠️ Waktu telah berlalu</p>
-            <p className="text-xs text-[#8a7a65]">Solat walaupun terlambat. Allah Maha Pengampun.</p>
+            <p className="text-xs text-orange-400 font-medium">⚠️ {t('solat.terlajak')}</p>
+            <p className="text-xs text-[#8a7a65]">{t('solat.waktu_berlalu_desc')}</p>
           </div>
         )}
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2.5">
-          <p className="text-xs font-medium text-[#8a7a65] uppercase tracking-wider">Persediaan</p>
-          {CHECKLIST_ITEMS.map((item, i) => (
+          <p className="text-xs font-medium text-[#8a7a65] uppercase tracking-wider">{t('solat.persediaan')}</p>
+          {CHECKLIST_KEYS.map((key, i) => (
             <button key={i} onClick={() => setChecklist(prev => prev.map((v, idx) => idx === i ? !v : v))}
               className="w-full flex items-start gap-3 text-left group">
               <div className={cn(
@@ -219,20 +225,20 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
                 {checklist[i] && <CheckCircle2 size={11} className="text-[#060d16]" />}
               </div>
               <p className={cn('text-sm leading-snug', checklist[i] ? 'text-[#c9a96e] line-through opacity-70' : 'text-[#e8dcc8]')}>
-                {item}
+                {t(key)}
               </p>
             </button>
           ))}
         </div>
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
-          <p className="text-sm text-[#e8dcc8]">Kualiti niat solat ini</p>
+          <p className="text-sm text-[#e8dcc8]">{t('solat.kualiti_niat')}</p>
           <div className="flex gap-2">
             {QUALITY_OPTIONS.map(q => (
               <button key={q.value} onClick={() => setQuality(q.value)}
                 className={cn('flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border transition-all',
                   quality === q.value ? 'border-[#c9a96e] bg-[#c9a96e15]' : 'border-[#1e2d40] hover:border-[#2a3d55]')}>
                 <span className="text-lg">{q.emoji}</span>
-                <span className="text-[9px] text-[#8a7a65]">{q.label}</span>
+                <span className="text-[9px] text-[#8a7a65]">{t(q.labelKey)}</span>
               </button>
             ))}
           </div>
@@ -243,9 +249,9 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
               ? 'bg-[#c9a96e] text-[#060d16] hover:bg-[#e2c89a] disabled:opacity-50 disabled:cursor-not-allowed'
               : 'bg-[#1e2d40] text-[#8a7a65] cursor-not-allowed')}>
           {marking ? <Loader2 size={16} className="animate-spin" /> : null}
-          {isMissedQada ? `✓ Rekod ${prayerName} (Qada)` : `✓ ${t('solat.tandakan')} ${prayerName}`}
+          {isMissedQada ? t('solat.rekod_qada', { prayer: prayerName }) : `✓ ${t('solat.tandakan')} ${prayerName}`}
         </button>
-        {quality === 0 && isActive && <p className="text-center text-[#8a7a65] text-xs -mt-2">Pilih kualiti niat dahulu</p>}
+        {quality === 0 && isActive && <p className="text-center text-[#8a7a65] text-xs -mt-2">{t('solat.pilih_kualiti')}</p>}
       </div>
     )
   }
@@ -259,31 +265,31 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
       return (
         <div className="space-y-4 pt-2">
           <div className="text-center">
-            <p className="font-serif text-[#c9a96e] text-xl">Alhamdulillah ✓</p>
-            <p className="text-[#8a7a65] text-sm mt-1">Audit Jiwa Selepas Solat</p>
-            <p className="text-[#8a7a65] text-xs">Sejenak bersama diri sendiri</p>
+            <p className="font-serif text-[#c9a96e] text-xl">{t('solat.alhamdulillah_selesai')}</p>
+            <p className="text-[#8a7a65] text-sm mt-1">{t('solat.audit_selepas')}</p>
+            <p className="text-[#8a7a65] text-xs">{t('solat.sejenak_diri')}</p>
           </div>
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
-            <p className="text-sm text-[#e8dcc8]">Hati saya hadir bersama Allah dalam solat tadi?</p>
+            <p className="text-sm text-[#e8dcc8]">{t('solat.hadir_soalan')}</p>
             <div className="flex gap-2">
               {FREE_MOOD.map(m => (
                 <button key={m.value} onClick={() => setFreeHadir(m.value)}
                   className={cn('flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border transition-all',
                     freeHadir === m.value ? 'border-[#c9a96e] bg-[#c9a96e15]' : 'border-[#1e2d40] hover:border-[#2a3d55]')}>
                   <span className="text-xl">{m.emoji}</span>
-                  <span className="text-[9px] text-[#8a7a65] text-center leading-tight">{m.label}</span>
+                  <span className="text-[9px] text-[#8a7a65] text-center leading-tight">{t(m.labelKey)}</span>
                 </button>
               ))}
             </div>
           </div>
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2.5">
-            <p className="text-sm text-[#e8dcc8]">Satu perkataan untuk solat tadi:</p>
+            <p className="text-sm text-[#e8dcc8]">{t('solat.perkataan_solat')}</p>
             <div className="flex flex-wrap gap-2">
-              {FREE_CHIPS.map(chip => (
-                <button key={chip} onClick={() => setFreePerkataan(chip)}
+              {FREE_CHIPS.map(key => (
+                <button key={key} onClick={() => setFreePerkataan(key)}
                   className={cn('px-3 py-1.5 rounded-full border text-xs font-medium transition-all',
-                    freePerkataan === chip ? 'border-[#c9a96e] bg-[#c9a96e15] text-[#c9a96e]' : 'border-[#1e2d40] text-[#8a7a65] hover:border-[#2a3d55]')}>
-                  {chip}
+                    freePerkataan === key ? 'border-[#c9a96e] bg-[#c9a96e15] text-[#c9a96e]' : 'border-[#1e2d40] text-[#8a7a65] hover:border-[#2a3d55]')}>
+                  {t(key)}
                 </button>
               ))}
             </div>
@@ -299,15 +305,15 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
     return (
       <div className="space-y-4 pt-2">
         <div className="text-center">
-          <p className="font-serif text-[#c9a96e] text-xl">Alhamdulillah ✓</p>
-          <p className="text-[#8a7a65] text-sm mt-1">6 Dimensi Refleksi Rohani</p>
+          <p className="font-serif text-[#c9a96e] text-xl">{t('solat.alhamdulillah_selesai')}</p>
+          <p className="text-[#8a7a65] text-sm mt-1">{t('solat.6_dimensi')}</p>
         </div>
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
           <div className="flex items-center gap-2">
             <p className="font-serif text-[#c9a96e] text-sm">اَلْحُضُور</p>
-            <p className="text-[#8a7a65] text-xs">— Kehadiran Hati</p>
+            <p className="text-[#8a7a65] text-xs">{t('solat.kehadiran_label')}</p>
           </div>
-          <p className="text-[#e8dcc8] text-sm">Berapa % hati saya benar-benar hadir bersama Allah?</p>
+          <p className="text-[#e8dcc8] text-sm">{t('solat.kehadiran_soalan')}</p>
           <div className="flex items-center gap-4">
             <input type="range" min={10} max={100} step={10} value={khusyuk}
               onChange={e => setKhusyuk(Number(e.target.value))} className="flex-1 accent-[#c9a96e]" />
@@ -317,15 +323,15 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2.5">
           <div className="flex items-center gap-2">
             <p className="font-serif text-[#c9a96e] text-sm">اَلْخُشُوع</p>
-            <p className="text-[#8a7a65] text-xs">— Khusyuk</p>
+            <p className="text-[#8a7a65] text-xs">{t('solat.khusyuk_label')}</p>
           </div>
-          <p className="text-[#e8dcc8] text-sm">Apakah yang menghalang khusyuk saya?</p>
+          <p className="text-[#e8dcc8] text-sm">{t('solat.khusyuk_soalan')}</p>
           <div className="flex flex-wrap gap-2">
-            {PRO_HALANGAN.map(h => (
-              <button key={h} onClick={() => setProHalangan(prev => prev.includes(h) ? prev.filter(x => x !== h) : [...prev, h])}
+            {PRO_HALANGAN.map(key => (
+              <button key={key} onClick={() => setProHalangan(prev => prev.includes(key) ? prev.filter(x => x !== key) : [...prev, key])}
                 className={cn('px-3 py-1.5 rounded-full border text-xs font-medium transition-all',
-                  proHalangan.includes(h) ? 'border-[#c9a96e] bg-[#c9a96e15] text-[#c9a96e]' : 'border-[#1e2d40] text-[#8a7a65] hover:border-[#2a3d55]')}>
-                {h}
+                  proHalangan.includes(key) ? 'border-[#c9a96e] bg-[#c9a96e15] text-[#c9a96e]' : 'border-[#1e2d40] text-[#8a7a65] hover:border-[#2a3d55]')}>
+                {t(key)}
               </button>
             ))}
           </div>
@@ -333,49 +339,49 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2">
           <div className="flex items-center gap-2">
             <p className="font-serif text-[#c9a96e] text-sm">اَلْفَهْم</p>
-            <p className="text-[#8a7a65] text-xs">— Kefahaman</p>
+            <p className="text-[#8a7a65] text-xs">{t('solat.kefahaman_label')}</p>
           </div>
-          <p className="text-[#e8dcc8] text-sm">Ayat atau bacaan yang paling saya hayati:</p>
+          <p className="text-[#e8dcc8] text-sm">{t('solat.kefahaman_soalan')}</p>
           <textarea value={proFahm} onChange={e => setProFahm(e.target.value)}
-            placeholder="Contoh: Surah Al-Fatihah — 'Iyyaka na'budu'..." rows={2} className={taClass} />
+            placeholder={t('solat.kefahaman_placeholder')} rows={2} className={taClass} />
         </div>
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2">
           <div className="flex items-center gap-2">
             <p className="font-serif text-[#c9a96e] text-sm">اَلشُّكْر</p>
-            <p className="text-[#8a7a65] text-xs">— Syukur</p>
+            <p className="text-[#8a7a65] text-xs">{t('solat.syukur_label')}</p>
           </div>
-          <p className="text-[#e8dcc8] text-sm">Satu nikmat Allah yang terlintas dalam solat tadi:</p>
+          <p className="text-[#e8dcc8] text-sm">{t('solat.syukur_soalan')}</p>
           <textarea value={proSyukur} onChange={e => setProSyukur(e.target.value)}
-            placeholder="Nikmat yang anda sedar semasa solat..." rows={2} className={taClass} />
+            placeholder={t('solat.syukur_placeholder')} rows={2} className={taClass} />
         </div>
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2.5">
           <div className="flex items-center gap-2">
             <p className="font-serif text-[#c9a96e] text-sm">اَلتَّوْبَة</p>
-            <p className="text-[#8a7a65] text-xs">— Taubat</p>
+            <p className="text-[#8a7a65] text-xs">{t('solat.taubat_label')}</p>
           </div>
-          <p className="text-[#e8dcc8] text-sm">Adakah ada perkara yang perlu saya betulkan dengan Allah?</p>
+          <p className="text-[#e8dcc8] text-sm">{t('solat.taubat_soalan')}</p>
           <div className="flex gap-2">
-            {[{ id: 'ya', label: 'Ya, ada' }, { id: 'insya', label: 'Insya-Allah baik' }, { id: 'berfikir', label: 'Masih berfikir' }].map(opt => (
+            {[{ id: 'ya', key: 'solat.taubat_ya' }, { id: 'insya', key: 'solat.taubat_insya' }, { id: 'berfikir', key: 'solat.taubat_berfikir' }].map(opt => (
               <button key={opt.id} onClick={() => setProTaubat(opt.id)}
                 className={cn('flex-1 py-2 rounded-xl border text-xs transition-all',
                   proTaubat === opt.id ? 'border-[#c9a96e] bg-[#c9a96e15] text-[#c9a96e]' : 'border-[#1e2d40] text-[#8a7a65] hover:border-[#2a3d55]')}>
-                {opt.label}
+                {t(opt.key)}
               </button>
             ))}
           </div>
           {proTaubat === 'ya' && (
             <textarea value={proTaubatCerita} onChange={e => setProTaubatCerita(e.target.value)}
-              placeholder="Ceritakan dengan jujur kepada Allah..." rows={2} className={taClass} />
+              placeholder={t('solat.taubat_placeholder')} rows={2} className={taClass} />
           )}
         </div>
         <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2">
           <div className="flex items-center gap-2">
             <p className="font-serif text-[#c9a96e] text-sm">اَلْعَزْم</p>
-            <p className="text-[#8a7a65] text-xs">— Azam</p>
+            <p className="text-[#8a7a65] text-xs">{t('solat.azam_label')}</p>
           </div>
-          <p className="text-[#e8dcc8] text-sm">Satu perkara yang akan saya bawa dari solat ini:</p>
+          <p className="text-[#e8dcc8] text-sm">{t('solat.azam_soalan')}</p>
           <textarea value={proAzam} onChange={e => setProAzam(e.target.value)}
-            placeholder="Azam yang konkrit dari solat ini..." rows={2} className={taClass} />
+            placeholder={t('solat.azam_placeholder')} rows={2} className={taClass} />
         </div>
         <button onClick={handleProRefleksi} disabled={marking}
           className="w-full py-3.5 bg-[#c9a96e] text-[#060d16] font-semibold rounded-2xl hover:bg-[#e2c89a] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
@@ -416,11 +422,11 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
                 <div className="h-full bg-[#c9a96e] rounded-full transition-all" style={{ width: `${Math.min((cnt / w.target) * 100, 100)}%` }} />
               </div>
               {done ? (
-                <p className="text-center text-[#c9a96e] text-sm">✓ Selesai</p>
+                <p className="text-center text-[#c9a96e] text-sm">✓ {t('umum.selesai')}</p>
               ) : (
                 <button onClick={() => increment(w.key, w.target)}
                   className="w-full py-3 border border-[#c9a96e30] bg-[#c9a96e10] text-[#c9a96e] rounded-xl text-sm font-medium hover:bg-[#c9a96e20] active:scale-95 transition-all">
-                  Ketuk
+                  {t('zikir.ketuk')}
                 </button>
               )}
             </div>
@@ -457,14 +463,14 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
                 wiridChecked.doa ? 'border-[#c9a96e] bg-[#c9a96e]' : 'border-[#2a3d55]')}>
                 {wiridChecked.doa && <CheckCircle2 size={11} className="text-[#060d16]" />}
               </div>
-              <p className="text-[#e8dcc8] text-sm font-medium">Doa Selepas Solat</p>
+              <p className="text-[#e8dcc8] text-sm font-medium">{t('solat.doa_tajuk')}</p>
             </div>
             {showDoa ? <ChevronUp size={15} className="text-[#8a7a65]" /> : <ChevronDown size={15} className="text-[#8a7a65]" />}
           </button>
           {showDoa && (
             <div className="px-4 pb-4 space-y-3">
               <p className="font-serif text-[#c9a96e] text-sm leading-loose text-right" dir="rtl">{DOA_SOLAT}</p>
-              <p className="text-[#8a7a65] text-xs text-center italic">Ya Allah, Engkaulah As-Salam dan daripada-Mu keselamatan...</p>
+              <p className="text-[#8a7a65] text-xs text-center italic">{t('solat.doa_trans')}</p>
               <button onClick={() => setWiridChecked(p => ({ ...p, doa: !p.doa }))}
                 className="w-full py-2.5 border border-[#c9a96e40] bg-[#c9a96e10] text-[#c9a96e] rounded-xl text-sm hover:bg-[#c9a96e20] transition-colors">
                 {wiridChecked.doa ? t('umum.selesai') : t('solat.tandakan_selesai_baca')}
@@ -489,8 +495,10 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
         <CheckCircle2 size={32} className="text-emerald-400 mx-auto" />
         <p className="font-serif text-emerald-400 text-lg">Alhamdulillah</p>
         <p className="text-[#8a7a65] text-sm">
-          {prayerName} {prayer.wirid_done ? '+ wirid ' : ''}selesai.
-          {prayer.khusyuk_percent ? ` Kehadiran hati: ${prayer.khusyuk_percent}%` : ''}
+          {prayer.wirid_done
+            ? t('solat.done_text_wirid', { prayer: prayerName })
+            : t('solat.done_text', { prayer: prayerName })}
+          {prayer.khusyuk_percent ? ` ${t('solat.kehadiran_hati', { percent: prayer.khusyuk_percent })}` : ''}
         </p>
       </div>
       {!isPro && (
@@ -499,16 +507,16 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
             وَلْتَنظُرْ نَفْسٌ مَّا قَدَّمَتْ لِغَدٍ
           </p>
           <p className="text-[#8a7a65] text-xs italic leading-relaxed">
-            "Hendaklah setiap diri melihat apa yang telah dipersiapkan untuk hari esok"
+            {t('solat.al_hasyr_trans')}
           </p>
           <p className="text-[#c9a96e60] text-xs">— Al-Hasyr: 18</p>
           <div className="h-px bg-[#1e2d40]" />
           <p className="text-[#8a7a65] text-xs leading-relaxed">
-            Anda sudah mengaudit jiwa. Audit Jiwa yang Allah maksudkan adalah lebih mendalam — merangkumi hati, fikiran, lisan dan perbuatan.
+            {t('solat.upsell_desc')}
           </p>
           <button onClick={() => navigate('/muhasabah')}
             className="w-full py-2.5 bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium rounded-xl hover:bg-[#c9a96e25] transition-colors">
-            ✦ Buka Audit Jiwa Penuh
+            {t('solat.upsell_btn')}
           </button>
         </div>
       )}
@@ -519,6 +527,7 @@ function SolatFlow({ prayer, status, prayers, onSave, isSubuh, isPro }: SolatFlo
 // ─── Muhasabah Malam Tab ──────────────────────────────────────────────────────
 
 function MuhasabahMalamTab({ prayers }: { prayers: PrayerRecord[] }) {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const completedCount = prayers.filter(p => p.completed).length
   const [solatRating, setSolatRating] = useState(completedCount)
@@ -553,16 +562,16 @@ function MuhasabahMalamTab({ prayers }: { prayers: PrayerRecord[] }) {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Moon size={18} className="text-[#c9a96e]" />
-        <p className="font-serif text-[#c9a96e] text-lg">Audit Jiwa Malam</p>
+        <p className="font-serif text-[#c9a96e] text-lg">{t('solat.malam_tajuk')}</p>
       </div>
       <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-4 text-center space-y-1">
         <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">
           حَاسِبُوا أَنْفُسَكُمْ قَبْلَ أَنْ تُحَاسَبُوا
         </p>
-        <p className="text-[#8a7a65] text-xs italic">"Hisablah dirimu sebelum kamu dihisab" — Umar al-Khattab r.a.</p>
+        <p className="text-[#8a7a65] text-xs italic">{t('solat.hisab_trans')}</p>
       </div>
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
-        <p className="text-sm text-[#e8dcc8]">1. Berapa waktu solat yang saya tunaikan hari ini?</p>
+        <p className="text-sm text-[#e8dcc8]">{t('solat.malam_q1')}</p>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map(n => (
             <button key={n} onClick={() => setSolatRating(n)}
@@ -572,19 +581,19 @@ function MuhasabahMalamTab({ prayers }: { prayers: PrayerRecord[] }) {
             </button>
           ))}
         </div>
-        <p className="text-[#8a7a65] text-xs text-center">waktu solat</p>
+        <p className="text-[#8a7a65] text-xs text-center">{t('solat.malam_waktu_solat')}</p>
       </div>
       {[
-        { key: 'best' as const, q: '2. Solat terbaik hari ini — mengapa ia lebih baik?', ph: 'Ceritakan pengalaman solat terbaik anda...' },
-        { key: 'weak' as const, q: '3. Apakah titik lemah dalam solat saya hari ini?', ph: 'Jujurlah dengan diri sendiri...' },
-        { key: 'syukur' as const, q: '4. Apa yang saya syukuri hari ini?', ph: 'Nikmat Allah yang anda rasai hari ini...' },
-        { key: 'azam' as const, q: '5. Azam saya untuk solat yang lebih baik esok:', ph: 'Komitmen konkrit untuk esok...' },
-        { key: 'doa' as const, q: '6. Doa malam saya:', ph: 'Apa yang ingin anda pohon kepada Allah malam ini...' },
-      ].map(({ key, q, ph }) => (
+        { key: 'best' as const, qKey: 'solat.malam_q2', phKey: 'solat.malam_q2_ph' },
+        { key: 'weak' as const, qKey: 'solat.malam_q3', phKey: 'solat.malam_q3_ph' },
+        { key: 'syukur' as const, qKey: 'solat.malam_q4', phKey: 'solat.malam_q4_ph' },
+        { key: 'azam' as const, qKey: 'solat.malam_q5', phKey: 'solat.malam_q5_ph' },
+        { key: 'doa' as const, qKey: 'solat.malam_q6', phKey: 'solat.malam_q6_ph' },
+      ].map(({ key, qKey, phKey }) => (
         <div key={key} className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2">
-          <p className="text-sm text-[#e8dcc8]">{q}</p>
+          <p className="text-sm text-[#e8dcc8]">{t(qKey)}</p>
           <textarea value={answers[key]} onChange={e => setAnswers(prev => ({ ...prev, [key]: e.target.value }))}
-            placeholder={ph} rows={2} disabled={saved} className={taClass} />
+            placeholder={t(phKey)} rows={2} disabled={saved} className={taClass} />
         </div>
       ))}
       <div className="bg-[#060d16] border border-[#c9a96e15] rounded-2xl p-4 text-center space-y-2">
@@ -592,20 +601,20 @@ function MuhasabahMalamTab({ prayers }: { prayers: PrayerRecord[] }) {
           رَبِّ اجْعَلْنِي مُقِيمَ الصَّلَاةِ وَمِن ذُرِّيَّتِي ۚ رَبَّنَا وَتَقَبَّلْ دُعَاءِ
         </p>
         <p className="text-[#8a7a65] text-xs italic leading-relaxed">
-          "Ya Tuhanku, jadikanlah aku dan anak cucuku orang-orang yang mendirikan solat. Ya Tuhan kami, perkenankanlah doaku."
+          {t('solat.ibrahim_trans')}
         </p>
         <p className="text-[#c9a96e60] text-xs">— Ibrahim: 40</p>
       </div>
       {saved ? (
         <div className="flex items-center justify-center gap-2 py-4 border border-[#c9a96e30] rounded-2xl">
           <CheckCircle2 size={18} className="text-[#c9a96e]" />
-          <p className="text-[#c9a96e] font-serif text-sm">Audit Jiwa malam tersimpan. Selamat berehat.</p>
+          <p className="text-[#c9a96e] font-serif text-sm">{t('solat.malam_tersimpan')}</p>
         </div>
       ) : (
         <button onClick={handleSave} disabled={saving}
           className="w-full py-4 bg-[#c9a96e] text-[#060d16] font-semibold rounded-2xl hover:bg-[#e2c89a] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
           {saving && <Loader2 size={16} className="animate-spin" />}
-          Simpan Audit Jiwa Malam
+          {t('solat.malam_simpan')}
         </button>
       )}
     </div>
@@ -664,7 +673,7 @@ export default function SolatPage() {
       <div className="flex items-start justify-between">
         <div>
           <p className="font-serif text-3xl text-[#c9a96e] leading-none">الصَّلاة</p>
-          <h1 className="font-serif text-xl text-[#e8dcc8] mt-1">Tracker Solat</h1>
+          <h1 className="font-serif text-xl text-[#e8dcc8] mt-1">{t('solat.tracker_tajuk')}</h1>
         </div>
         {isFetching && <RefreshCw size={15} className="text-[#8a7a65] animate-spin mt-2" />}
       </div>
@@ -674,12 +683,12 @@ export default function SolatPage() {
         <button onClick={() => setMainTab('harian')}
           className={cn('flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1.5',
             mainTab === 'harian' ? 'bg-[#c9a96e] text-[#060d16]' : 'text-[#8a7a65] hover:text-[#e8dcc8]')}>
-          🕌 Solat Harian
+          {t('solat.tab_harian')}
         </button>
         <button onClick={() => setMainTab('dimensi')}
           className={cn('flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1.5',
             mainTab === 'dimensi' ? 'bg-[#c9a96e] text-[#060d16]' : 'text-[#8a7a65] hover:text-[#e8dcc8]')}>
-          📖 Dimensi Solat
+          {t('solat.tab_dimensi')}
         </button>
       </div>
 
@@ -695,15 +704,15 @@ export default function SolatPage() {
       {isPro && (
         <div className="flex gap-1 bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-1 overflow-x-auto">
           {([
-            { id: 'tracker', label: 'Tracker', icon: '🕌' },
-            { id: 'sebelum', label: 'Sebelum', icon: '📋' },
-            { id: 'malam',   label: 'Malam',   icon: '🌙' },
-            { id: 'rekod',   label: 'Rekod',   icon: '📊' },
-          ] as const).map(t => (
-            <button key={t.id} onClick={() => setSolatTab(t.id)}
+            { id: 'tracker', labelKey: 'solat.inner_tracker', icon: '🕌' },
+            { id: 'sebelum', labelKey: 'solat.inner_sebelum', icon: '📋' },
+            { id: 'malam',   labelKey: 'solat.inner_malam',   icon: '🌙' },
+            { id: 'rekod',   labelKey: 'solat.inner_rekod',   icon: '📊' },
+          ] as const).map(tab => (
+            <button key={tab.id} onClick={() => setSolatTab(tab.id)}
               className={cn('flex-1 py-2 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex items-center justify-center gap-1',
-                solatTab === t.id ? 'bg-[#c9a96e] text-[#060d16]' : 'text-[#8a7a65] hover:text-[#e8dcc8]')}>
-              <span>{t.icon}</span>{t.label}
+                solatTab === tab.id ? 'bg-[#c9a96e] text-[#060d16]' : 'text-[#8a7a65] hover:text-[#e8dcc8]')}>
+              <span>{tab.icon}</span>{t(tab.labelKey)}
             </button>
           ))}
         </div>
@@ -714,14 +723,14 @@ export default function SolatPage() {
         <div className="flex items-center gap-1.5 text-xs text-[#8a7a65]">
           <MapPin size={12} />
           <span>{locationLabel}</span>
-          <button onClick={refreshLocation} className="text-[#c9a96e] hover:underline">Kemas kini</button>
+          <button onClick={refreshLocation} className="text-[#c9a96e] hover:underline">{t('solat.kemas_kini')}</button>
         </div>
         <div className="ml-auto">
           {!notifGranted && 'Notification' in window && (
             <button onClick={handleRequestNotif}
               className="flex items-center gap-1.5 text-xs text-[#8a7a65] hover:text-[#c9a96e] transition-colors">
               <Bell size={12} />
-              Aktif notifikasi
+              {t('solat.aktif_notif')}
             </button>
           )}
         </div>
@@ -732,7 +741,7 @@ export default function SolatPage() {
         timesLoading ? (
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 flex items-center gap-3">
             <Loader2 size={18} className="text-[#c9a96e] animate-spin" />
-            <p className="text-[#8a7a65] text-sm">Mendapatkan waktu solat...</p>
+            <p className="text-[#8a7a65] text-sm">{t('solat.mendapat_waktu')}</p>
           </div>
         ) : currentWindow ? (
           <div className="bg-[#0d1821] border border-[#c9a96e40] rounded-2xl p-5 space-y-2">
@@ -749,7 +758,7 @@ export default function SolatPage() {
               </div>
               {nextWindow && (
                 <div className="text-right">
-                  <p className="text-[#8a7a65] text-xs">Seterusnya: {nextWindow.prayer}</p>
+                  <p className="text-[#8a7a65] text-xs">{t('solat.seterusnya_prayer', { prayer: t(`solat.${nextWindow.prayer.toLowerCase()}` as any) })}</p>
                   <p className="font-mono text-[#c9a96e] text-sm">{countdown.h}:{countdown.m}:{countdown.s}</p>
                 </div>
               )}
@@ -766,10 +775,10 @@ export default function SolatPage() {
                 <p className="text-[#c9a96e] text-base">{nextWindow.time12}</p>
               </div>
               <div className="flex items-end gap-2">
-                {[{ val: countdown.h, label: 'jam' }, { val: countdown.m, label: 'min' }, { val: countdown.s, label: 'saat' }].map(({ val, label }) => (
-                  <div key={label} className="text-center">
+                {[{ val: countdown.h, key: 'solat.jam' }, { val: countdown.m, key: 'solat.min' }, { val: countdown.s, key: 'solat.saat' }].map(({ val, key }) => (
+                  <div key={key} className="text-center">
                     <p className="font-mono text-[#c9a96e] text-3xl font-bold leading-none">{val}</p>
-                    <p className="text-[#8a7a65] text-xs mt-1">{label}</p>
+                    <p className="text-[#8a7a65] text-xs mt-1">{t(key as any)}</p>
                   </div>
                 ))}
               </div>
@@ -785,18 +794,18 @@ export default function SolatPage() {
             progress={(completedCount / 5) * 100}
             size={80} strokeWidth={6}
             label={`${completedCount}/5`}
-            sublabel="Waktu"
+            sublabel={t('solat.waktu_sublabel')}
           />
           <div className="flex-1">
             <p className="text-[#e8dcc8] font-medium text-sm">
               {completedCount === 5
                 ? t('solat.semua_selesai')
                 : currentWindow
-                ? `Waktu ${currentWindow.prayer} sekarang. ${completedCount} dari 5 selesai.`
-                : `${completedCount} dari 5 waktu selesai hari ini.`}
+                ? t('solat.sekarang_dan_selesai', { prayer: t(`solat.${currentWindow.prayer.toLowerCase()}` as any), count: completedCount })
+                : t('solat.selesai_dari_5', { count: completedCount })}
             </p>
             {!isPro && (
-              <p className="text-[#8a7a65] text-xs mt-1">Free: Subuh aktif sepenuhnya. Lain memerlukan Pro.</p>
+              <p className="text-[#8a7a65] text-xs mt-1">{t('solat.free_tier_info')}</p>
             )}
             {isPro && (
               <div className="flex gap-1.5 mt-2.5">
@@ -862,7 +871,7 @@ export default function SolatPage() {
                       <StatusBadge status={status} minutesUntil={msUntil > 0 ? Math.floor(msUntil / 60000) : undefined} />
                     </div>
                     {status === 'missed' && !prayer.completed && (
-                      <p className="text-[#8a7a65] text-xs mt-1">Solat walaupun terlambat. Allah Maha Pengampun.</p>
+                      <p className="text-[#8a7a65] text-xs mt-1">{t('solat.waktu_berlalu_desc')}</p>
                     )}
                   </div>
                   {isLocked ? (
@@ -899,15 +908,15 @@ export default function SolatPage() {
       {/* Soft upgrade nudge */}
       {(!isPro || solatTab === 'tracker') && prayers.find(p => p.name === 'Subuh')?.completed && !isPro && (
         <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-5 space-y-3">
-          <p className="text-[#c9a96e] font-medium text-sm text-center">✦ Subuh sudah sempurna hari ini.</p>
+          <p className="text-[#c9a96e] font-medium text-sm text-center">{t('solat.subuh_sempurna')}</p>
           <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-4 text-center">
             <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">
               وَأَقِمِ الصَّلَاةَ إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا
             </p>
-            <p className="text-[#8a7a65] text-xs mt-2 italic">"Solat adalah kewajipan yang ditentukan waktunya" — An-Nisa: 103</p>
+            <p className="text-[#8a7a65] text-xs mt-2 italic">{t('solat.an_nisa_trans')}</p>
           </div>
           <button className="w-full py-3 bg-[#c9a96e] text-[#060d16] font-semibold rounded-xl text-sm hover:bg-[#e2c89a] transition-colors">
-            ✦ Pintu seterusnya menanti anda...
+            {t('solat.pintu_btn')}
           </button>
         </div>
       )}
@@ -916,38 +925,25 @@ export default function SolatPage() {
       {isPro && solatTab === 'sebelum' && (
         <div className="space-y-4">
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
-            <p className="text-sm font-medium text-[#e8dcc8]">📋 Senarai Semak Sebelum Solat</p>
-            {[
-              'Perbaharui niat — untuk Allah semata-mata',
-              'Wuduk sempurna dan sempurna',
-              'Pakaian bersih, aurat tertutup',
-              'Tempat solat bersih',
-              'Arah kiblat betul',
-              'Hadirkan hati — tarik nafas, ucap: "Ya Allah, aku hadir di hadapan-Mu"',
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3">
+            <p className="text-sm font-medium text-[#e8dcc8]">{t('solat.senarai_semak_tajuk')}</p>
+            {(['1','2','3','4','5','6'] as const).map((n, i) => (
+              <div key={n} className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full border-2 border-[#c9a96e30] flex items-center justify-center flex-shrink-0 mt-0.5 bg-[#c9a96e10]">
                   <span className="text-[#c9a96e] text-xs font-bold">{i + 1}</span>
                 </div>
-                <p className="text-[#e8dcc8] text-sm leading-snug">{item}</p>
+                <p className="text-[#e8dcc8] text-sm leading-snug">{t(`solat.sebelum.${n}` as any)}</p>
               </div>
             ))}
           </div>
           <div className="bg-[#0d1821] border border-[#c9a96e20] rounded-2xl p-5 space-y-4">
             <div className="flex items-center gap-2">
               <span className="text-lg">✦</span>
-              <p className="text-[#c9a96e] font-serif text-base">5 Kunci Khusyuk</p>
+              <p className="text-[#c9a96e] font-serif text-base">{t('solat.khusyuk_kunci_tajuk')}</p>
             </div>
-            {[
-              { num: '١', tip: 'Bayangkan ini solat terakhir — setiap rakaat mungkin perpisahan.' },
-              { num: '٢', tip: 'Pandang tempat sujud — jangan benarkan mata mengembara.' },
-              { num: '٣', tip: 'Perlahan dalam setiap pergerakan — tuma\'ninah itu wajib.' },
-              { num: '٤', tip: 'Fahami bacaan — bukan sekadar lafaz, tapi penghayatan.' },
-              { num: '٥', tip: 'Rasa Allah memerhati — sembah Allah seolah-olah kamu melihat-Nya.' },
-            ].map(({ num, tip }) => (
+            {(['١','٢','٣','٤','٥'] as const).map((num, i) => (
               <div key={num} className="flex items-start gap-3">
                 <span className="font-serif text-[#c9a96e] text-base flex-shrink-0 w-5 text-center">{num}</span>
-                <p className="text-[#8a7a65] text-sm leading-relaxed">{tip}</p>
+                <p className="text-[#8a7a65] text-sm leading-relaxed">{t(`solat.khusyuk_tip.${i + 1}` as any)}</p>
               </div>
             ))}
           </div>
@@ -956,7 +952,7 @@ export default function SolatPage() {
               قَدْ أَفْلَحَ الْمُؤْمِنُونَ ۙ الَّذِينَ هُمْ فِي صَلَاتِهِمْ خَاشِعُونَ
             </p>
             <p className="text-[#8a7a65] text-xs mt-2 italic">
-              "Sesungguhnya berjayalah orang-orang yang beriman — yang khusyuk dalam solatnya."
+              {t('solat.mukminun_trans')}
             </p>
             <p className="text-[#c9a96e60] text-xs mt-1">— Al-Mukminun: 1-2</p>
           </div>
@@ -972,13 +968,13 @@ export default function SolatPage() {
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-3">
             <div className="flex items-center gap-2">
               <TrendingUp size={18} className="text-[#c9a96e]" />
-              <p className="text-sm font-medium text-[#e8dcc8]">Statistik Hari Ini</p>
+              <p className="text-sm font-medium text-[#e8dcc8]">{t('solat.stat_tajuk')}</p>
             </div>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Selesai', value: `${completedCount}/5`, color: 'text-[#c9a96e]' },
-                { label: 'Kehadiran', value: prayers.find(p => p.khusyuk_percent)?.khusyuk_percent ? `${prayers.find(p => p.khusyuk_percent)?.khusyuk_percent}%` : '—', color: 'text-emerald-400' },
-                { label: 'Wirid', value: prayers.some(p => p.wirid_done) ? '✓' : '—', color: 'text-violet-400' },
+                { label: t('solat.stat_selesai'), value: `${completedCount}/5`, color: 'text-[#c9a96e]' },
+                { label: t('solat.stat_kehadiran'), value: prayers.find(p => p.khusyuk_percent)?.khusyuk_percent ? `${prayers.find(p => p.khusyuk_percent)?.khusyuk_percent}%` : '—', color: 'text-emerald-400' },
+                { label: t('solat.stat_wirid'), value: prayers.some(p => p.wirid_done) ? '✓' : '—', color: 'text-violet-400' },
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-[#060d16] rounded-xl p-3 text-center">
                   <p className={`font-bold text-xl font-serif ${color}`}>{value}</p>
@@ -990,7 +986,7 @@ export default function SolatPage() {
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-3">
               <Moon size={16} className="text-[#8a7a65]" />
-              <p className="text-sm font-medium text-[#e8dcc8]">Status 5 Waktu</p>
+              <p className="text-sm font-medium text-[#e8dcc8]">{t('solat.status_5_tajuk')}</p>
             </div>
             <div className="space-y-2">
               {prayers.map(p => (
@@ -999,15 +995,15 @@ export default function SolatPage() {
                   <p className="text-sm text-[#e8dcc8] flex-1">{p.name}</p>
                   <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full',
                     p.completed ? 'bg-emerald-900/20 text-emerald-400' : 'bg-[#1e2d40] text-[#8a7a65]')}>
-                    {p.completed ? '✓ Selesai' : '—'}
+                    {p.completed ? `✓ ${t('solat.stat_selesai')}` : '—'}
                   </span>
                 </div>
               ))}
             </div>
           </div>
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 text-center space-y-2">
-            <p className="text-[#8a7a65] text-xs">Analitik rekod 90 hari akan hadir</p>
-            <p className="text-[#c9a96e] text-xs">InsyaAllah — sedang disiapkan</p>
+            <p className="text-[#8a7a65] text-xs">{t('solat.akan_hadir')}</p>
+            <p className="text-[#c9a96e] text-xs">{t('solat.insyaallah_siap')}</p>
           </div>
         </div>
       )}
@@ -1021,27 +1017,27 @@ export default function SolatPage() {
             <button onClick={() => setShowUpgradeFor(null)} className="absolute top-4 right-4 text-[#8a7a65] hover:text-[#e8dcc8]">
               <X size={18} />
             </button>
-            {currentWindow && (
+            {showUpgradeFor && (
               <p className="text-[#e8dcc8] text-sm text-center">
-                {PRAYER_META[currentWindow.prayer]?.emoji} Waktu {showUpgradeFor} telah/akan tiba.
+                {PRAYER_META[showUpgradeFor]?.emoji} {t('solat.modal_waktu_tiba', { prayer: t(`solat.${showUpgradeFor.toLowerCase()}` as any) })}
               </p>
             )}
             <div className="bg-[#060d16] border border-[#c9a96e15] rounded-xl p-4 text-center">
               <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">
                 وَأَقِمِ الصَّلَاةَ إِنَّ الصَّلَاةَ كَانَتْ عَلَى الْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا
               </p>
-              <p className="text-[#8a7a65] text-xs mt-2 italic">"Solat adalah kewajipan yang ditentukan waktunya ke atas orang-orang beriman" — An-Nisa: 103</p>
+              <p className="text-[#8a7a65] text-xs mt-2 italic">{t('solat.an_nisa_trans')}</p>
             </div>
             <p className="text-[#8a7a65] text-sm text-center leading-relaxed">
-              Jangan biarkan waktu ini berlalu. Lengkapkan 5 waktu anda.
+              {t('solat.jangan_biarkan')}
             </p>
             <div className="space-y-2">
               <button className="w-full py-3 bg-[#c9a96e] text-[#060d16] font-semibold rounded-xl text-sm hover:bg-[#e2c89a] transition-colors">
-                ✦ Pintu seterusnya menanti anda...
+                {t('solat.pintu_btn')}
               </button>
               <button onClick={() => setShowUpgradeFor(null)}
                 className="w-full py-2.5 text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors">
-                Teruskan dengan Subuh sahaja
+                {t('solat.teruskan_subuh')}
               </button>
             </div>
           </div>

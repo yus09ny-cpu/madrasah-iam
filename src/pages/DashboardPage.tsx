@@ -31,7 +31,7 @@ export default function DashboardPage() {
 
   const isPro = user?.tier === 'pro' || user?.tier === 'family'
   const hasTalqin = user?.talqin_completed === true
-  const displayName = user?.nickname ?? user?.name?.split(' ')[0] ?? 'Sahabat'
+  const displayName = user?.nickname ?? user?.name?.split(' ')[0] ?? t('umum.sahabat')
   const today = format(new Date(), 'EEEE, d MMMM yyyy', { locale: ms })
 
   const solatPrayers = Array.isArray((todaySolat as { prayers?: unknown })?.prayers)

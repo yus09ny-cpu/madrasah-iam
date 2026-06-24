@@ -473,7 +473,7 @@ function OpeningScreen({
 }) {
   const { t } = useTranslation()
   const lang = (localStorage.getItem('madrasah_language') ?? 'bm') as AppLanguage
-  const displayName = user.nickname ?? user.name ?? 'Sahabat'
+  const displayName = user.nickname ?? user.name ?? t('umum.sahabat')
 
   const backgrounds = (user.religious_background ?? '')
     .split('|')
@@ -994,7 +994,7 @@ function RecommendationScreen({ text, isPro, onUpgrade, onReset }: { text: strin
           <div className="w-7 h-7 rounded-xl bg-[#c9a96e15] border border-[#c9a96e30] flex items-center justify-center flex-shrink-0">
             <span className="font-serif text-[#c9a96e] text-sm">✦</span>
           </div>
-          <p className="text-[#c9a96e] text-sm font-medium">Madrasah I AM — Sekolah Jiwa</p>
+          <p className="text-[#c9a96e] text-sm font-medium">{t('ajv2.madrasah_label', 'Madrasah I AM')}</p>
         </div>
         <div className="h-px bg-[#1e2d40]" />
         <div className="markdown-content text-[#e8dcc8] text-sm leading-relaxed">
@@ -1223,6 +1223,7 @@ function DoneScreen({ session, onReset }: { session: SavedSession; onReset: () =
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 function AuditUpgradeModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const [loadingPkg, setLoadingPkg] = useState<'pro' | 'pro_plus' | null>(null)
   const [error, setError] = useState('')
@@ -1238,10 +1239,10 @@ function AuditUpgradeModal({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({ user_id: user.id, email: user.email, nama: user.name ?? user.email, package: pkg }),
       })
       const data = await res.json()
-      if (!res.ok || !data.url) throw new Error(data?.error?.message ?? 'Gagal mencipta bil')
+      if (!res.ok || !data.url) throw new Error(data?.error?.message ?? t('ajv2.upgrade.ralat_bil'))
       window.location.href = data.url
     } catch {
-      setError('Gagal memulakan pembayaran. Sila cuba lagi.')
+      setError(t('ajv2.upgrade.ralat_bayar'))
       setLoadingPkg(null)
     }
   }
@@ -1251,26 +1252,26 @@ function AuditUpgradeModal({ onClose }: { onClose: () => void }) {
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2">
           <Lock size={16} className="text-[#c9a96e]" />
-          <p className="text-[#c9a96e] font-medium text-sm">Audit Jiwa Pro</p>
+          <p className="text-[#c9a96e] font-medium text-sm">{t('ajv2.upgrade.tajuk')}</p>
         </div>
         <p className="text-[#e8dcc8] text-sm leading-relaxed">
-          Dapatkan audit penuh 30 soalan, analisis mendalam setiap dimensi, dan preskripsi rohani yang lebih terperinci.
+          {t('ajv2.upgrade.desc')}
         </p>
         {error && <p className="text-red-400 text-xs">{error}</p>}
         <div className="space-y-2">
           <button onClick={() => handleUpgrade('pro')} disabled={loadingPkg !== null}
             className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
             {loadingPkg === 'pro' && <Loader2 size={14} className="animate-spin" />}
-            Upgrade ke Pro — RM19.90/bulan
+            {t('ajv2.upgrade.pro')}
           </button>
           <button onClick={() => handleUpgrade('pro_plus')} disabled={loadingPkg !== null}
             className="w-full py-2.5 rounded-xl bg-[#c9a96e15] border border-[#c9a96e40] text-[#c9a96e] text-sm font-medium hover:bg-[#c9a96e25] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
             {loadingPkg === 'pro_plus' && <Loader2 size={14} className="animate-spin" />}
-            Upgrade ke Pro Plus — RM29.90/bulan
+            {t('ajv2.upgrade.pro_plus')}
           </button>
           <button onClick={onClose} disabled={loadingPkg !== null}
             className="w-full py-2.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] text-sm hover:text-[#e8dcc8] transition-colors disabled:opacity-60">
-            Tutup
+            {t('umum.tutup')}
           </button>
         </div>
       </div>

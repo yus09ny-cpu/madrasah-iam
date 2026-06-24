@@ -18,12 +18,12 @@ export default function Sidebar() {
     ? [...MAIN_NAV_ITEMS, AMALAN_ITEM]
     : MAIN_NAV_ITEMS
 
-  const displayName = user?.nickname ?? user?.name ?? 'Sahabat'
+  const displayName = user?.nickname ?? user?.name ?? t('umum.sahabat')
   const initial = displayName.charAt(0).toUpperCase()
   const tierLabel =
     user?.tier === 'pro' ? '✦ Pro' :
-    user?.tier === 'family' ? '✦ Keluarga' :
-    'Percuma'
+    user?.tier === 'family' ? `✦ ${t('iam.keluarga')}` :
+    t('iam.percuma')
 
   async function handleLogout() {
     await signOut()
@@ -35,7 +35,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-6 border-b border-[#1e2d40]">
         <h1 className="font-serif text-xl font-semibold text-[#c9a96e]">Madrasah I AM</h1>
-        <p className="text-xs text-[#8a7a65] mt-1">Perjalanan Rohani</p>
+        <p className="text-xs text-[#8a7a65] mt-1">{t('nav.perjalanan_rohani')}</p>
       </div>
 
       {/* Main Nav */}
