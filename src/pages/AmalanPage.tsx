@@ -436,6 +436,16 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
   )
 }
 
+// ─── Doa Zikir Jahar (hardcoded — teks ibadah, tidak dalam locale) ────────────
+
+const DOA_ZIKIR_JAHAR = {
+  pembukaan: 'Sayyidunā Muhammadur Rasūlullāhi ﷺ',
+  arab: 'بِسْـمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ اَللّٰهُـمَّ صَلِّ عَلٰى سَيِّدِنَا مُحَمَّدٍ وَعَلٰى اٰلِ سَيِّدِنَا مُحَمَّدٍ صَلَاةً تُنْجِيْنَا بِـهَا مِنْ جَمِيْعِ الْأَهْوَالِ وَالْاٰفَاتِ وَتَـقْضٖى لَنَا بِـهَا جَمِيْعَ الْحَاجَاتِ وَتُطَهِّرُنَا بِـهَا مِنْ جَمِيْعِ السَّـيِّاٰتِ وَتَرْفَعُنَا بِـهَا عِنْدَكَ أَعْلَى الدَّرَجَاتِ وَتُبَلِّغُنَا بِـهَا أَقْصَى الْغَـايَاتِ مِنْ جَمِيْعِ الْخَيْرَاتِ فِى الْحَيَاةِ وَبَعْدَ الْمَمَاتِ إِنَّ الَّذِيْنَ يُبَايِعُوْنَكَ إِنَّمَا يُبَايِعُوْنَ اللّٰهَ يَدُ اللّٰهِ فَوْقَ أَيْدِيْهِمْ فَمَنْ نَكَثَ فَإِنَّمَا يَنْكُثُ عَلٰى نَفْسِهٖ ۖوَمَنْ أَوْفٰى بِمَا عَـاهَدَ عَلَيْهُ اللّٰهَ فَسَيُؤْتِيْهِ أَجْرًاعَظِيْمًا',
+  rumi: 'Bismillāhir Rahmānir Rahīm. Allāhumma shalli \'alā sayyidinā Muhammadin wa \'alā āli sayyidinā Muhammad shalātan tunjīnā bihā min jamī\'il ahwali wal āfāt wataqdhī lanā bihā jamī\'al hājāt wa tuthahhiru nā bihā min jamī\'is sayyi-āt wa tar fa\'unā bihā \'indaka a\'lad darajāt wa tuballighunā bihā aqshal ghā yā ti min jamī\'il khayrāti filhayāti wa ba\'dal mamāt innalladzīna yubā yi \'ū naka innamā yubā yi \'ū nallāh yadullāhi fawqa aydīhim faman nakatsa fainnamā yangkutsu \'alā nafsih waman aw fā bimā \'ā hada \'alayhullāha fasayu\' tīhi ajran \'azhīmā',
+  terjemahan: 'Dengan menyebut nama Allah yang Maha Pemurah lagi Maha Penyayang. Ya Allah, limpahkanlah rahmat kepada junjungan kami Nabi Muhammad dan kepada keluarganya, yang dengan rahmat itu Engkau akan menyelamatkan kami dari semua keadaan yang mendebarkan dan dari semua cobaan, yang dengan rahmat itu Engkau akan membersihkan kami dari semua keburukan dan kesalahan, yang dengan rahmat itu Engkau akan mengangkat kami kepada setinggi-tingginya derajat, yang dengan rahmat itu pula Engkau akan menyampaikan kepada kami semua maksud yang termulia dari semua kebaikan pada waktu hidup dan setelah mati. Bahawasanya orang-orang yang berjanji setia kepada kamu sesungguhnya mereka berjanji setia kepada Allah. Tangan Allah di atas tangan mereka, maka barang siapa yang melanggar janjinya nescaya akibat ia melanggar janji itu akan menimpa dirinya sendiri dan barang siapa menepati janjinya kepada Allah maka Allah akan memberinya pahala yang besar.',
+  nota: '(boleh ditambah doa peribadi)',
+}
+
 // ─── Fasa 3 — Doa ─────────────────────────────────────────────────────────────
 
 function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
@@ -456,7 +466,35 @@ function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
         </div>
 
         {items.length === 0 ? (
-          <p className="text-[#8a7a65] text-xs italic text-center">{t('amalan.fasa3_empty')}</p>
+          /* Doa penuh hardcoded — papar bila tiada data Supabase */
+          <div className="space-y-4">
+            {/* Pembukaan */}
+            <p className="text-[#c9a96e80] text-xs text-center italic leading-relaxed">
+              {DOA_ZIKIR_JAHAR.pembukaan}
+            </p>
+            {/* Teks Arab */}
+            <p
+              className="font-serif text-[#c9a96e] leading-[2.4] text-right"
+              dir="rtl"
+              style={{ fontSize: 17 }}
+            >
+              {DOA_ZIKIR_JAHAR.arab}
+            </p>
+            {/* Transliterasi */}
+            <p className="text-[#8a7a65] text-[11px] italic leading-relaxed">
+              {DOA_ZIKIR_JAHAR.rumi}
+            </p>
+            {/* Terjemahan BM */}
+            <div className="border-t border-[#c9a96e15] pt-3">
+              <p className="text-[#e8dcc8] text-xs leading-relaxed">
+                {DOA_ZIKIR_JAHAR.terjemahan}
+              </p>
+            </div>
+            {/* Nota peribadi */}
+            <p className="text-[#c9a96e60] text-[11px] text-center italic">
+              {DOA_ZIKIR_JAHAR.nota}
+            </p>
+          </div>
         ) : (
           items.map((item, i) => (
             <div key={item.id} className={cn('space-y-2', i > 0 && 'border-t border-[#c9a96e20] pt-4')}>
