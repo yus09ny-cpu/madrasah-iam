@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import ZikirKhafiPlayer, { type KhafiSessionResult } from '@/components/zikir/ZikirKhafiPlayer'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
@@ -612,14 +613,15 @@ function KhafiSection({ userTier, onBack, onComplete }: {
   onComplete: (khafiMins: number) => void
 }) {
   const { t } = useTranslation()
+  const { user } = useAuthStore()
   const [subPhase, setSubPhase] = useState<'pembuka' | 'berzikir' | 'refleksi' | 'ai_done'>('pembuka')
-  const startRef = useRef(Date.now())
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [aiReply, setAiReply] = useState<string | null>(null)
   const [pembukaan, setPembukaan] = useState<AmalanItem[]>([])
   const [pembConfirmed, setPembConfirmed] = useState(false)
   const [showPenutupModal, setShowPenutupModal] = useState(false)
+  const sessionResultRef = useRef<KhafiSessionResult | null>(null)
 
   const allAnswered = REFLEKSI_SOALAN.every(s => answers[s.id])
   const tier = userTier === 'pro' || userTier === 'pro_plus' ? 'pro' : 'free'
@@ -640,8 +642,30 @@ function KhafiSection({ userTier, onBack, onComplete }: {
   }, [])
 
   function goToBerzikir() {
-    startRef.current = Date.now()
     setSubPhase('berzikir')
+  }
+
+  async function handlePlayerDone(result: KhafiSessionResult) {
+    sessionResultRef.current = result
+    // Save to Supabase
+    if (user) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('zikir_khafi_sessions') as any).insert({
+          user_id: user.id,
+          session_date: format(new Date(), 'yyyy-MM-dd'),
+          duration_min: result.durationMin,
+          actual_sec: result.actualSec,
+          pre_bpm: result.preBpm,
+          post_bpm: result.postBpm,
+          avg_bpm: result.avgBpm,
+          beat_count: result.beatCount,
+          coherence: result.coherence,
+          consistency: result.consistency,
+        })
+      } catch { /* table may not exist yet */ }
+    }
+    setShowPenutupModal(true)
   }
 
   function goFromBerzikir() {
@@ -673,7 +697,8 @@ function KhafiSection({ userTier, onBack, onComplete }: {
   }
 
   function handleSelesai() {
-    const khafiMins = Math.round((Date.now() - startRef.current) / 60000)
+    const actualSec = sessionResultRef.current?.actualSec
+    const khafiMins = actualSec ? Math.max(1, Math.round(actualSec / 60)) : 1
     onComplete(khafiMins)
   }
 
@@ -718,26 +743,12 @@ function KhafiSection({ userTier, onBack, onComplete }: {
         </div>
       )}
 
-      {/* Iframe — tunjuk semasa berzikir sahaja */}
+      {/* ZikirKhafiPlayer — gantikan iframe */}
       {subPhase === 'berzikir' && (
-        <div className="rounded-2xl overflow-hidden border border-[#a78bfa30]"
-          style={{ height: 'calc(100dvh - 300px)', minHeight: '400px' }}>
-          <iframe
-            src="https://zikirkhafi.lovable.app"
-            title="Zikir Khafi"
-            className="w-full h-full border-0"
-            allow="vibrate; autoplay"
-            loading="lazy"
-          />
-        </div>
-      )}
-
-      {/* Sub-phase: berzikir */}
-      {subPhase === 'berzikir' && (
-        <button onClick={() => setShowPenutupModal(true)}
-          className="w-full py-3.5 bg-[#a78bfa] text-[#060d16] font-semibold rounded-xl text-sm hover:opacity-90 transition-opacity">
-          {t('amalan.khafi_sudah_btn')}
-        </button>
+        <ZikirKhafiPlayer
+          onSessionDone={handlePlayerDone}
+          onCancel={onBack}
+        />
       )}
 
       {/* Modal Penutup — Sayyiduna Muhammad ﷺ */}
