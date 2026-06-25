@@ -448,7 +448,7 @@ const DOA_ZIKIR_JAHAR = {
 
 // ─── Fasa 3 — Doa ─────────────────────────────────────────────────────────────
 
-function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
+function Fasa3({ onDone }: { items?: AmalanItem[]; onDone: () => void }) {
   const { t } = useTranslation()
   const [confirmed, setConfirmed] = useState(false)
 
