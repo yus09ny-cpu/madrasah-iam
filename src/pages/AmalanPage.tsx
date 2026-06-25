@@ -465,47 +465,30 @@ function Fasa3({ items, onDone }: { items: AmalanItem[]; onDone: () => void }) {
           <p className="text-[#c9a96e] text-sm font-medium">{t('amalan.fasa3_doa_penutup')}</p>
         </div>
 
-        {items.length === 0 ? (
-          /* Doa penuh hardcoded — papar bila tiada data Supabase */
-          <div className="space-y-4">
-            {/* Pembukaan */}
-            <p className="text-[#c9a96e80] text-xs text-center italic leading-relaxed">
-              {DOA_ZIKIR_JAHAR.pembukaan}
-            </p>
-            {/* Teks Arab */}
-            <p
-              className="font-serif text-[#c9a96e] leading-[2.4] text-right"
-              dir="rtl"
-              style={{ fontSize: 17 }}
-            >
-              {DOA_ZIKIR_JAHAR.arab}
-            </p>
-            {/* Transliterasi */}
-            <p className="text-[#8a7a65] text-[11px] italic leading-relaxed">
-              {DOA_ZIKIR_JAHAR.rumi}
-            </p>
-            {/* Terjemahan BM */}
-            <div className="border-t border-[#c9a96e15] pt-3">
-              <p className="text-[#e8dcc8] text-xs leading-relaxed">
-                {DOA_ZIKIR_JAHAR.terjemahan}
-              </p>
-            </div>
-            {/* Nota peribadi */}
-            <p className="text-[#c9a96e60] text-[11px] text-center italic">
-              {DOA_ZIKIR_JAHAR.nota}
+        {/* Doa penuh — selalu papar versi ini */}
+        <div className="space-y-4">
+          <p className="text-[#c9a96e80] text-xs text-center italic leading-relaxed">
+            {DOA_ZIKIR_JAHAR.pembukaan}
+          </p>
+          <p
+            className="font-serif text-[#c9a96e] leading-[2.4] text-right"
+            dir="rtl"
+            style={{ fontSize: 17 }}
+          >
+            {DOA_ZIKIR_JAHAR.arab}
+          </p>
+          <p className="text-[#8a7a65] text-[11px] italic leading-relaxed">
+            {DOA_ZIKIR_JAHAR.rumi}
+          </p>
+          <div className="border-t border-[#c9a96e15] pt-3">
+            <p className="text-[#e8dcc8] text-xs leading-relaxed">
+              {DOA_ZIKIR_JAHAR.terjemahan}
             </p>
           </div>
-        ) : (
-          items.map((item, i) => (
-            <div key={item.id} className={cn('space-y-2', i > 0 && 'border-t border-[#c9a96e20] pt-4')}>
-              {item.tajuk && <p className="text-[#c9a96e] text-xs font-medium">{item.tajuk}</p>}
-              {item.arab && <p className="font-serif text-[#c9a96e] text-base leading-loose text-right" dir="rtl">{item.arab}</p>}
-              {item.rumi && <p className="text-[#8a7a65] text-xs italic">{item.rumi}</p>}
-              {item.terjemahan && <p className="text-[#e8dcc8] text-xs leading-relaxed">{item.terjemahan}</p>}
-              {item.ulangan && item.ulangan > 1 && <p className="text-[#c9a96e80] text-xs">× {item.ulangan}</p>}
-            </div>
-          ))
-        )}
+          <p className="text-[#c9a96e60] text-[11px] text-center italic">
+            {DOA_ZIKIR_JAHAR.nota}
+          </p>
+        </div>
       </div>
 
       <button onClick={() => setConfirmed(v => !v)}
