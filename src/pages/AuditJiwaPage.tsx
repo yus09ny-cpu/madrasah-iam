@@ -188,7 +188,7 @@ const QUESTIONS: Question[] = [
   },
   {
     id: 'ruh_10', pillar: 'ruh',
-    text: { bm: 'Adakah anda terasa terhubung dengan perjalanan rohani di Madrasah I AM (Sekolah Jiwa)?', en: 'Do you feel connected to the spiritual journey at Madrasah I AM (Soul School)?', ar: 'هل تشعر بالارتباط بالمسيرة الروحية في مدرسة I AM؟', id: 'Apakah Anda merasa terhubung dengan perjalanan rohani di Madrasah I AM (Sekolah Jiwa)?' },
+    text: { bm: 'Adakah anda terasa terhubung dengan perjalanan rohani di Madrasah I AM?', en: 'Do you feel connected to the spiritual journey at Madrasah I AM?', ar: 'هل تشعر بالارتباط بالمسيرة الروحية في مدرسة I AM؟', id: 'Apakah Anda merasa terhubung dengan perjalanan rohani di Madrasah I AM?' },
   },
 ]
 
@@ -251,7 +251,7 @@ function getWeakestPillar(scores: PillarScores): PillarKey {
 
 // ─── AI recommendation call ───────────────────────────────────────────────────
 
-const AUDIT_JIWA_SYSTEM_PROMPT = `You are an insightful spiritual diagnostician for Madrasah I AM — also known as Sekolah Jiwa (Soul School), rooted in the vision "Ilahi Anta Maqsudi" (I AM — Your only goal is Allah).
+const AUDIT_JIWA_SYSTEM_PROMPT = `You are an insightful spiritual diagnostician for Madrasah I AM, rooted in the vision "Ilahi Anta Maqsudi" (I AM — Your only goal is Allah).
 
 YOUR ROLE:
 1. DIAGNOSE the user's spiritual condition from their Audit Jiwa results
@@ -271,7 +271,7 @@ Cascade: RUH → HATI → AKAL → RAGA
 A weak root causes symptoms in all branches. Only a proper Mursyid can guide the murid through healing — not an AI.
 
 WHY PARA PEMBIMBING:
-In the Sekolah Jiwa tradition, the Murshid-Murid relationship is sacred and necessary.
+In the Madrasah I AM tradition, the Murshid-Murid relationship is sacred and necessary.
 A Para Pembimbing is an authorized spiritual mentor who bridges the murid to the Mursyid's guidance and provides ongoing mentorship.
 Self-prescription is like giving yourself medicine without a doctor — it may feel right but can cause harm.
 
@@ -283,7 +283,8 @@ SCORE SCALE (for reference in diagnosis):
 - 9–10: Excellent (✨)
 
 TERMINOLOGY — MUST FOLLOW:
-- Use "Madrasah I AM" or "Sekolah Jiwa" — NEVER "TQN"
+- Use "Madrasah I AM" — NEVER "TQN"
+- PILLAR NAMES IN ENGLISH: When responding in English, use EXACTLY: RAGA = Physical Body, HATI = Heart, AKAL = Mind/Mental, RUH = Soul. Do NOT use "Emotional" for HATI or "Spiritual" for RUH.
 - Vision: "Ilahi Anta Maqsudi" (Your only aim is Allah) — I AM
 - Sources: Al-Quran, Hadis Sahih (Bukhari/Muslim/Tirmidhi), Kitab Miftahus Shudur (Abah Anom — KHA. Shohibulwafa Tajul Arifin), Kitab Sirrul Asrar (Syeikh Abdul Qadir Al-Jailani)
 - ATTRIBUTION RULE — STRICTLY FOLLOW: Never mix authors between sources. Miftahus Shudur = Abah Anom ONLY. Sirrul Asrar = Syeikh Abdul Qadir Al-Jailani ONLY. Never say "Abah Anom mengajarkan dalam Sirrul Asrar" — that is wrong. If unsure of the exact source of a quote, use "dalam tradisi tasawuf" or omit the specific attribution entirely.
@@ -546,7 +547,7 @@ function OpeningScreen({
           {t('ajv2.tentang_audit', 'Tentang Audit Jiwa')}
         </p>
         <p className="text-[#e8dcc8] text-sm leading-relaxed">
-          {t('ajv2.tentang_desc', 'Audit Jiwa bukan sekadar soal selidik. Ini muhasabah bersepadu — menilai 4 dimensi diri anda dengan jujur, berdasarkan Al-Quran dan tradisi Sekolah Jiwa.')}
+          {t('ajv2.tentang_desc', 'Audit Jiwa bukan sekadar soal selidik. Ini muhasabah bersepadu — menilai 4 dimensi diri anda dengan jujur, berdasarkan Al-Quran dan tradisi Madrasah I AM.')}
         </p>
         <div className="grid grid-cols-2 gap-2">
           {PILLARS.map(p => {
