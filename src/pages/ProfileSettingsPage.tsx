@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, Loader2, User } from 'lucide-react'
+import { CheckCircle2, Loader2, User, Shield } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
@@ -266,6 +266,21 @@ export default function ProfileSettingsPage() {
           ← {t('umum.kembali')}
         </button>
       </div>
+
+      {/* Admin section — only for master_admin / super_admin / wakil_talkin */}
+      {(user?.role === 'master_admin' || user?.role === 'super_admin' || user?.role === 'wakil_talkin') && (
+        <div className="space-y-2 pt-2">
+          <p className="text-[#8a7a65] text-[10px] uppercase tracking-widest px-1">Pentadbir</p>
+          <button
+            onClick={() => navigate('/admin')}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-[#1e2d40] text-[#8a7a65] hover:text-[#c9a96e] hover:border-[#c9a96e30] hover:bg-[#c9a96e08] transition-all text-sm"
+          >
+            <Shield size={16} className="text-[#c9a96e]" />
+            <span>Panel Admin</span>
+            <span className="ml-auto text-[#8a7a65] text-xs">→</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

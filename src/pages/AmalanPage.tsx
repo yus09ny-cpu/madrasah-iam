@@ -1328,16 +1328,19 @@ export default function AmalanPage() {
   const zikirJaharItem = content.find(d => d.jenis === 'zikir_jahar' && d.urutan === 5) ?? null
   const doaItems = content.filter(d => d.jenis === 'zikir_jahar' && d.urutan >= 6)
 
-  async function saveSession(data: Record<string, unknown>) {
+  async function upsertSession(data: Record<string, unknown>) {
     if (!user) return
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('amalan_sessions') as any).insert({
-        user_id: user.id,
-        session_date: format(new Date(), 'yyyy-MM-dd'),
-        ...data,
-      })
-    } catch { /* table not yet created */ }
+      await (supabase.from('amalan_sessions') as any).upsert(
+        {
+          user_id: user.id,
+          session_date: format(new Date(), 'yyyy-MM-dd'),
+          ...data,
+        },
+        { onConflict: 'user_id,session_date' }
+      )
+    } catch { /* ignore */ }
   }
 
   function handleJaharDone(count: number, target: number) {
@@ -1346,13 +1349,22 @@ export default function AmalanPage() {
   }
 
   function handleDoaDone() {
-    // Selesai Jahar — auto-navigate terus ke Zikir Khafi sebagai sambungan amalan
+    // Simpan Jahar segera — tidak tunggu Khafi selesai
+    upsertSession({
+      bacaan_pembuka: true,
+      jahar_kiraan: jaharCount,
+      jahar_target: jaharTarget,
+      jahar_selesai: true,
+      doa_selesai: true,
+      sesi_lengkap: false,
+    })
     setPhase('khafi')
   }
 
   function handleKhafiComplete(mins: number) {
     setKhafiMins(mins)
-    saveSession({
+    // Upsert — kemaskini rekod hari yang sama (Jahar mungkin sudah tersimpan lebih awal)
+    upsertSession({
       ...(jaharCount > 0 ? {
         bacaan_pembuka: true,
         jahar_kiraan: jaharCount, jahar_target: jaharTarget, jahar_selesai: true,

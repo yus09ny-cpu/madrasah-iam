@@ -16,6 +16,8 @@ export interface Database {
           religious_background: string | null
           language: 'bm' | 'en' | null
           tier: 'free' | 'pro' | 'family'
+          role: 'master_admin' | 'super_admin' | 'wakil_talkin' | 'user' | null
+          talqin_completed: boolean | null
           subscription_tier: 'free' | 'pro' | 'pro_plus' | null
           subscription_expiry: string | null
           last_reminder_sent: string | null
@@ -34,6 +36,8 @@ export interface Database {
           religious_background?: string | null
           language?: 'bm' | 'en' | null
           tier?: 'free' | 'pro' | 'family'
+          role?: 'master_admin' | 'super_admin' | 'wakil_talkin' | 'user' | null
+          talqin_completed?: boolean | null
           subscription_tier?: 'free' | 'pro' | 'pro_plus' | null
           subscription_expiry?: string | null
           last_reminder_sent?: string | null

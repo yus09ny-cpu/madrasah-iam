@@ -12,6 +12,7 @@ type ProfileRow = {
   role: AdminRole | null
   talqin_completed: boolean | null
   created_at: string
+  _no_profile?: boolean
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
@@ -50,12 +51,19 @@ export default function UserManagement() {
     setLoading(true)
     setError('')
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error: err } = await (supabase.from('profiles') as any)
-        .select('id, name, tier, role, talqin_completed, created_at')
-        .order('created_at', { ascending: false })
-      if (err) throw err
-      setProfiles(data ?? [])
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      if (!token) throw new Error('Sesi tidak sah — sila log masuk semula')
+
+      const res = await fetch('/api/admin-users', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        const msg = await res.text()
+        throw new Error(msg || `Ralat ${res.status}`)
+      }
+      const data: ProfileRow[] = await res.json()
+      setProfiles(data)
     } catch (e: unknown) {
       setError((e as Error)?.message ?? 'Gagal memuatkan pengguna')
     } finally {
@@ -246,9 +254,10 @@ export default function UserManagement() {
           {filtered.map(p => {
             const isSelf = p.id === currentUser?.id
             const isMaster = p.role === 'master_admin'
-            const canChangeRole = isMasterAdmin && !isSelf && !isMaster
-            const canChangeTier = isMasterAdmin || !isSelf
-            const canToggleTalqin = isMasterAdmin || (currentUser?.role === 'super_admin' && !isMaster)
+            const hasProfile = !p._no_profile
+            const canChangeRole = isMasterAdmin && !isSelf && !isMaster && hasProfile
+            const canChangeTier = (isMasterAdmin || !isSelf) && hasProfile
+            const canToggleTalqin = (isMasterAdmin || (currentUser?.role === 'super_admin' && !isMaster)) && hasProfile
 
             return (
               <div key={p.id} className={cn(
@@ -262,6 +271,7 @@ export default function UserManagement() {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-[#e8dcc8] text-sm font-medium truncate">{p.name ?? '—'}</p>
                         {isSelf && <span className="text-[10px] text-[#c9a96e] border border-[#c9a96e30] px-1 rounded">Anda</span>}
+                        {p._no_profile && <span className="text-[10px] text-orange-400 border border-orange-500/30 px-1.5 py-0.5 rounded-md bg-orange-900/10">Profil belum wujud</span>}
                         {p.talqin_completed && (
                           <span className="text-[10px] text-[#c9a96e] border border-[#c9a96e30] px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
                             <Star size={8} className="fill-[#c9a96e]" /> TQN
