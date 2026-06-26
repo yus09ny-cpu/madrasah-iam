@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/authStore'
 import { supabase } from '@/lib/supabase'
 import { FREE_SYSTEM_PROMPT, PRO_SYSTEM_PROMPT } from '@/lib/systemPrompts'
 import { sendIAMMessage } from '@/lib/iam-chat'
-import { IAM_QUESTIONS } from '@/data/iam-questions'
+import { IAM_QUESTIONS_BY_LANG } from '@/data/iam-questions'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 
@@ -22,8 +22,9 @@ const OPENING_MSGS = [
   { arabic: null, key: 'iam.opening.msg4' },
 ]
 
-function pickRandomQuestions(count: number): string[] {
-  return [...IAM_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, count)
+function pickRandomQuestions(count: number, lang: string): string[] {
+  const pool = IAM_QUESTIONS_BY_LANG[lang] ?? IAM_QUESTIONS_BY_LANG['bm']
+  return [...pool].sort(() => Math.random() - 0.5).slice(0, count)
 }
 
 // ─── API Call ─────────────────────────────────────────────────────────────────
@@ -280,7 +281,7 @@ function RenunganModal({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function IAMChatPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const tier = user?.tier ?? 'free'
@@ -292,7 +293,7 @@ export default function IAMChatPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [usedToday, setUsedToday] = useState(0)
   const [openingIdx] = useState(() => Math.floor(Math.random() * OPENING_MSGS.length))
-  const [starterQuestions] = useState(() => pickRandomQuestions(5))
+  const [starterQuestions] = useState(() => pickRandomQuestions(5, i18n.language))
   const [selectedSoalan, setSelectedSoalan] = useState<string | null>(null)
   const [renunganSaved, setRenunganSaved] = useState(false)
 
