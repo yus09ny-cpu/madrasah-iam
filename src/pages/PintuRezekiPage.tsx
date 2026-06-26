@@ -972,8 +972,13 @@ function PintuTab() {
   const tier = user?.tier ?? 'free'
   const isPro = tier === 'pro' || tier === 'family'
   const userLang = user?.language ?? i18n.language ?? 'bm'
-  const langLabel: Record<string, string> = { bm: 'Bahasa Melayu', en: 'English', id: 'Bahasa Indonesia', ar: 'Arabic' }
-  const pintuSystemPrompt = `${PINTU_REZEKI_SYSTEM_PROMPT}\n\nNOTA: Bahasa pilihan pengguna dalam profil: ${langLabel[userLang] ?? 'Bahasa Melayu'}. Jika bahasa mesej tidak jelas, gunakan bahasa ini sebagai default.`
+  const LANG_OVERRIDE: Record<string, string> = {
+    en: 'CRITICAL: You MUST respond in English ONLY. Every word must be in English. Do NOT use Bahasa Melayu or Bahasa Indonesia.',
+    bm: 'KRITIKAL: Jawab dalam Bahasa Melayu Malaysia SAHAJA. ELAK perkataan Indonesia: butuh, gimana, banget, nggak, udah, aja, sih, dong.',
+    id: 'KRITIKAL: Jawab dalam Bahasa Indonesia SAHAJA.',
+    ar: 'تعليمات: يجب عليك الإجابة باللغة العربية فقط.',
+  }
+  const pintuSystemPrompt = `${LANG_OVERRIDE[userLang] ?? LANG_OVERRIDE.bm}\n\n${PINTU_REZEKI_SYSTEM_PROMPT}`
   const [selectedSituasi, setSelectedSituasi] = useState<string | null>(null)
   const [phase, setPhase] = useState<'select' | 'chat'>('select')
   const [messages, setMessages] = useState<ChatMsg[]>([])

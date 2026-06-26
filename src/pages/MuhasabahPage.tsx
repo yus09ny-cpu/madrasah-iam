@@ -181,7 +181,7 @@ function ResultScreen({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function MuhasabahPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const { data: existing, isFetching } = useTodayMuhasabah()
@@ -254,6 +254,14 @@ export default function MuhasabahPage() {
 
   const requestReflection = useCallback(async (context: string) => {
     const tier = user?.tier ?? 'free'
+    const userLang = user?.language ?? i18n.language ?? 'bm'
+    const LANG_OVERRIDE: Record<string, string> = {
+      en: 'CRITICAL: You MUST respond in English ONLY. Every word must be in English.',
+      bm: 'KRITIKAL: Jawab dalam Bahasa Melayu Malaysia SAHAJA.',
+      id: 'KRITIKAL: Jawab dalam Bahasa Indonesia SAHAJA.',
+      ar: 'تعليمات: يجب عليك الإجابة باللغة العربية فقط.',
+    }
+    const auditPrompt = `${LANG_OVERRIDE[userLang] ?? LANG_OVERRIDE.bm}\n\n${AUDIT_AI_PROMPT}`
     const controller = new AbortController()
     const timeoutPromise = new Promise<string>(resolve =>
       setTimeout(() => { controller.abort(); resolve(t(DEFAULT_REFLECTION_KEY)) }, TIMEOUT_MS)
@@ -261,7 +269,7 @@ export default function MuhasabahPage() {
     const aiPromise = sendIAMMessage(
       [{ role: 'user', content: `Audit Jiwa saya hari ini:\n\n${context}` }],
       tier,
-      AUDIT_AI_PROMPT,
+      auditPrompt,
       controller.signal,
       'muhasabah'
     ).catch(() => t(DEFAULT_REFLECTION_KEY))
@@ -269,7 +277,7 @@ export default function MuhasabahPage() {
     const reply = await Promise.race([aiPromise, timeoutPromise])
     setAiResponse(reply)
     setPhase('result')
-  }, [user?.tier])
+  }, [user?.tier, user?.language, i18n.language])
 
   function useDefaultReflection() {
     setAiResponse(t(DEFAULT_REFLECTION_KEY))

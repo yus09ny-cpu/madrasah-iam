@@ -301,9 +301,14 @@ export default function IAMChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const userLang = user?.language ?? i18n.language ?? 'bm'
-  const langLabel: Record<string, string> = { bm: 'Bahasa Melayu', en: 'English', id: 'Bahasa Indonesia', ar: 'Arabic' }
+  const LANG_OVERRIDE: Record<string, string> = {
+    en: 'CRITICAL: You MUST respond in English ONLY. Every word must be in English. Do NOT use Bahasa Melayu or Bahasa Indonesia.',
+    bm: 'KRITIKAL: Jawab dalam Bahasa Melayu Malaysia SAHAJA. ELAK perkataan Indonesia: butuh, gimana, banget, nggak, udah, aja, sih, dong.',
+    id: 'KRITIKAL: Jawab dalam Bahasa Indonesia SAHAJA.',
+    ar: 'تعليمات: يجب عليك الإجابة باللغة العربية فقط.',
+  }
   const basePrompt = isPro ? PRO_SYSTEM_PROMPT : FREE_SYSTEM_PROMPT
-  const systemPrompt = `${basePrompt}\n\nNOTA: Bahasa pilihan pengguna dalam profil: ${langLabel[userLang] ?? 'Bahasa Melayu'}. Jika bahasa mesej tidak jelas, gunakan bahasa ini sebagai default.`
+  const systemPrompt = `${LANG_OVERRIDE[userLang] ?? LANG_OVERRIDE.bm}\n\n${basePrompt}`
   const remaining = Math.max(0, limit - usedToday)
   const isLimitReached = usedToday >= limit
   const opening = OPENING_MSGS[openingIdx]
