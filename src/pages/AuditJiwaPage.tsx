@@ -312,7 +312,13 @@ Explain WHY they specifically need a Para Pembimbing based on their condition. B
 **PENUTUP**
 Warm, encouraging closing in the spirit of "Ilahi Anta Maqsudi." Remind them that Allah's mercy is vast and this audit is the beginning of their journey, not a verdict.
 
-LANGUAGE: Respond ONLY in the language specified by the user (bm/en/ar/id). Never mix languages except for Arabic Quranic quotes.`
+LANGUAGE: Respond ONLY in the language specified by the user (bm/en/ar/id). Never mix languages except for Arabic Quranic quotes.
+When responding in English, translate ALL section headers:
+- "SOUL DIAGNOSIS" (not "DIAGNOSIS JIWA")
+- "QUR'AN & HADITH FOUNDATION" (not "ASAS QURAN & HADIS")
+- "WHY THIS MATTERS" (not "MENGAPA INI PENTING")
+- "NEXT STEPS — CONNECT WITH PARA PEMBIMBING" (not "LANGKAH SETERUSNYA — HUBUNGI PARA PEMBIMBING")
+- "CLOSING" (not "PENUTUP")`
 
 async function sendAuditRecommendation(
   userMessage: string,
