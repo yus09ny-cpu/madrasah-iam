@@ -126,12 +126,12 @@ const KEMBALIKAN_INFAK: Record<string, { text: string; placeholder: string; text
 }
 
 const SITUASI = [
-  { id: 'kewangan', emoji: '💼', label: 'Kewangan', labelKey: 'pintu.situasi.kewangan', question: 'Beritahu saya lebih lanjut — apa yang paling memberat dalam kewangan anda sekarang?' },
-  { id: 'pekerjaan', emoji: '🏢', label: 'Pekerjaan', labelKey: 'pintu.situasi.pekerjaan', question: 'Ceritakan — apakah yang paling menekan dalam situasi pekerjaan anda?' },
-  { id: 'keluarga', emoji: '👨‍👩‍👧', label: 'Keluarga', labelKey: 'pintu.situasi.keluarga', question: 'Kongsi dengan saya — apakah beban tentang keluarga yang paling berat di hati anda?' },
-  { id: 'hutang', emoji: '😰', label: 'Hutang', labelKey: 'pintu.situasi.hutang', question: 'Saya faham hutang itu berat. Boleh cerita — sudah berapa lama anda menanggung beban ini?' },
-  { id: 'perniagaan', emoji: '🌱', label: 'Perniagaan', labelKey: 'pintu.situasi.perniagaan', question: 'Beritahu saya lebih lanjut — apakah cabaran dalam perniagaan yang paling memberat anda?' },
-  { id: 'lain', emoji: '💭', label: 'Lain-lain', labelKey: 'pintu.situasi.lain', question: 'Ceritakan kepada saya — apakah yang paling memberat fikiran anda tentang rezeki sekarang?' },
+  { id: 'kewangan', emoji: '💼', label: 'Kewangan', labelKey: 'pintu.situasi.kewangan', questionKey: 'pintu.situasi.kewangan_q' },
+  { id: 'pekerjaan', emoji: '🏢', label: 'Pekerjaan', labelKey: 'pintu.situasi.pekerjaan', questionKey: 'pintu.situasi.pekerjaan_q' },
+  { id: 'keluarga', emoji: '👨‍👩‍👧', label: 'Keluarga', labelKey: 'pintu.situasi.keluarga', questionKey: 'pintu.situasi.keluarga_q' },
+  { id: 'hutang', emoji: '😰', label: 'Hutang', labelKey: 'pintu.situasi.hutang', questionKey: 'pintu.situasi.hutang_q' },
+  { id: 'perniagaan', emoji: '🌱', label: 'Perniagaan', labelKey: 'pintu.situasi.perniagaan', questionKey: 'pintu.situasi.perniagaan_q' },
+  { id: 'lain', emoji: '💭', label: 'Lain-lain', labelKey: 'pintu.situasi.lain', questionKey: 'pintu.situasi.lain_q' },
 ]
 
 const AMALAN_LIST = [
@@ -997,7 +997,7 @@ function PintuTab() {
     }
     const s = SITUASI.find(s => s.id === id)!
     setSelectedSituasi(id)
-    setMessages([{ id: 'ai-open', role: 'assistant', content: s.question }])
+    setMessages([{ id: 'ai-open', role: 'assistant', content: t(s.questionKey as any) }])
     setPhase('chat')
   }
 

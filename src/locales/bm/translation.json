@@ -509,7 +509,13 @@
     },
     "situasi": {
       "kewangan": "Kewangan", "pekerjaan": "Pekerjaan", "keluarga": "Keluarga",
-      "hutang": "Hutang", "perniagaan": "Perniagaan", "lain": "Lain-lain"
+      "hutang": "Hutang", "perniagaan": "Perniagaan", "lain": "Lain-lain",
+      "kewangan_q": "Beritahu saya lebih lanjut — apa yang paling memberat dalam kewangan anda sekarang?",
+      "pekerjaan_q": "Ceritakan — apakah yang paling menekan dalam situasi pekerjaan anda?",
+      "keluarga_q": "Kongsi dengan saya — apakah beban tentang keluarga yang paling berat di hati anda?",
+      "hutang_q": "Saya faham hutang itu berat. Boleh cerita — sudah berapa lama anda menanggung beban ini?",
+      "perniagaan_q": "Beritahu saya lebih lanjut — apakah cabaran dalam perniagaan yang paling memberat anda?",
+      "lain_q": "Ceritakan kepada saya — apakah yang paling memberat fikiran anda tentang rezeki sekarang?"
     },
     "amalan": {
       "tajuk": "Amalan Hari Ini",

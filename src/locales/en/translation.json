@@ -509,7 +509,13 @@
     },
     "situasi": {
       "kewangan": "Finance", "pekerjaan": "Work", "keluarga": "Family",
-      "hutang": "Debt", "perniagaan": "Business", "lain": "Other"
+      "hutang": "Debt", "perniagaan": "Business", "lain": "Other",
+      "kewangan_q": "Tell me more — what weighs on you most financially right now?",
+      "pekerjaan_q": "Share with me — what is most pressing in your work situation right now?",
+      "keluarga_q": "Share with me — what burden about family weighs heaviest on your heart?",
+      "hutang_q": "I understand debt is heavy. Tell me — how long have you been carrying this burden?",
+      "perniagaan_q": "Tell me more — what challenge in your business weighs on you most?",
+      "lain_q": "Share with me — what is weighing most on your mind about provision right now?"
     },
     "amalan": {
       "tajuk": "Today's Practice",
