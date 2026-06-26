@@ -647,13 +647,15 @@ function KhafiSection({ userTier, onBack, onComplete }: {
 
   async function handlePlayerDone(result: KhafiSessionResult) {
     sessionResultRef.current = result
-    // Save to Supabase
     if (user) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('zikir_khafi_sessions') as any).insert({
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const khafiMins = result.actualSec ? Math.max(1, Math.round(result.actualSec / 60)) : 1
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await Promise.allSettled([
+        // Biometric data
+        (supabase.from('zikir_khafi_sessions') as any).insert({
           user_id: user.id,
-          session_date: format(new Date(), 'yyyy-MM-dd'),
+          session_date: today,
           duration_min: result.durationMin,
           actual_sec: result.actualSec,
           pre_bpm: result.preBpm,
@@ -662,8 +664,13 @@ function KhafiSection({ userTier, onBack, onComplete }: {
           beat_count: result.beatCount,
           coherence: result.coherence,
           consistency: result.consistency,
-        })
-      } catch { /* table may not exist yet */ }
+        }),
+        // Save khafi_minit immediately — tidak tunggu user tap Selesai
+        (supabase.from('amalan_sessions') as any).upsert(
+          { user_id: user.id, session_date: today, khafi_minit: khafiMins, khafi_selesai: true, sesi_lengkap: true },
+          { onConflict: 'user_id,session_date' }
+        ),
+      ])
     }
     setShowPenutupModal(true)
   }
