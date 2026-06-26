@@ -651,26 +651,27 @@ function KhafiSection({ userTier, onBack, onComplete }: {
       const today = format(new Date(), 'yyyy-MM-dd')
       const khafiMins = result.actualSec ? Math.max(1, Math.round(result.actualSec / 60)) : 1
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await Promise.allSettled([
-        // Biometric data
-        (supabase.from('zikir_khafi_sessions') as any).insert({
-          user_id: user.id,
-          session_date: today,
-          duration_min: result.durationMin,
-          actual_sec: result.actualSec,
-          pre_bpm: result.preBpm,
-          post_bpm: result.postBpm,
-          avg_bpm: result.avgBpm,
-          beat_count: result.beatCount,
-          coherence: result.coherence,
-          consistency: result.consistency,
-        }),
-        // Save khafi_minit immediately — tidak tunggu user tap Selesai
-        (supabase.from('amalan_sessions') as any).upsert(
-          { user_id: user.id, session_date: today, khafi_minit: khafiMins, khafi_selesai: true, sesi_lengkap: true },
-          { onConflict: 'user_id,session_date' }
-        ),
-      ])
+      const db = supabase as any
+
+      // Biometric data
+      await db.from('zikir_khafi_sessions').insert({
+        user_id: user.id, session_date: today,
+        duration_min: result.durationMin, actual_sec: result.actualSec,
+        pre_bpm: result.preBpm, post_bpm: result.postBpm, avg_bpm: result.avgBpm,
+        beat_count: result.beatCount, coherence: result.coherence, consistency: result.consistency,
+      }).catch(() => {})
+
+      // INSERT khafi_minit — kalau row dah ada (conflict), fallback ke UPDATE
+      const { error: insertErr } = await db.from('amalan_sessions').insert({
+        user_id: user.id, session_date: today,
+        khafi_minit: khafiMins, khafi_selesai: true, sesi_lengkap: true,
+      })
+      if (insertErr) {
+        await db.from('amalan_sessions')
+          .update({ khafi_minit: khafiMins, khafi_selesai: true, sesi_lengkap: true })
+          .eq('user_id', user.id)
+          .eq('session_date', today)
+      }
     }
     setShowPenutupModal(true)
   }
@@ -1337,17 +1338,19 @@ export default function AmalanPage() {
 
   async function upsertSession(data: Record<string, unknown>) {
     if (!user) return
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('amalan_sessions') as any).upsert(
-        {
-          user_id: user.id,
-          session_date: format(new Date(), 'yyyy-MM-dd'),
-          ...data,
-        },
-        { onConflict: 'user_id,session_date' }
-      )
-    } catch { /* ignore */ }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const payload = { user_id: user.id, session_date: today, ...data }
+    const { error: insertErr } = await db.from('amalan_sessions').insert(payload)
+    if (insertErr) {
+      // Row already exists for today — update sahaja
+      const { user_id, session_date, ...updates } = payload
+      await db.from('amalan_sessions')
+        .update(updates)
+        .eq('user_id', user_id)
+        .eq('session_date', session_date)
+    }
   }
 
   function handleJaharDone(count: number, target: number) {
