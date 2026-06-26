@@ -967,10 +967,13 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
 // ─── Pintu Tab (AI Chat) ──────────────────────────────────────────────────────
 
 function PintuTab() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { user } = useAuthStore()
   const tier = user?.tier ?? 'free'
   const isPro = tier === 'pro' || tier === 'family'
+  const userLang = user?.language ?? i18n.language ?? 'bm'
+  const langLabel: Record<string, string> = { bm: 'Bahasa Melayu', en: 'English', id: 'Bahasa Indonesia', ar: 'Arabic' }
+  const pintuSystemPrompt = `${PINTU_REZEKI_SYSTEM_PROMPT}\n\nNOTA: Bahasa pilihan pengguna dalam profil: ${langLabel[userLang] ?? 'Bahasa Melayu'}. Jika bahasa mesej tidak jelas, gunakan bahasa ini sebagai default.`
   const [selectedSituasi, setSelectedSituasi] = useState<string | null>(null)
   const [phase, setPhase] = useState<'select' | 'chat'>('select')
   const [messages, setMessages] = useState<ChatMsg[]>([])
@@ -1010,7 +1013,7 @@ function PintuTab() {
       const history = [...messages, { ...userMsg, content: isFirst ? `[Situasi: ${situasiLabel}] ${content}` : content }]
         .filter(m => m.id !== 'ai-open').slice(-8)
         .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
-      const reply = await sendIAMMessage(history, tier, PINTU_REZEKI_SYSTEM_PROMPT, undefined, 'pintu_rezeki_chat')
+      const reply = await sendIAMMessage(history, tier, pintuSystemPrompt, undefined, 'pintu_rezeki_chat')
       setMessages(prev => [...prev, { id: `ai-${Date.now()}`, role: 'assistant', content: reply }])
     } catch {
       setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', content: t('umum.ralat') }])

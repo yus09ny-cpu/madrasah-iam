@@ -300,7 +300,10 @@ export default function IAMChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const systemPrompt = isPro ? PRO_SYSTEM_PROMPT : FREE_SYSTEM_PROMPT
+  const userLang = user?.language ?? i18n.language ?? 'bm'
+  const langLabel: Record<string, string> = { bm: 'Bahasa Melayu', en: 'English', id: 'Bahasa Indonesia', ar: 'Arabic' }
+  const basePrompt = isPro ? PRO_SYSTEM_PROMPT : FREE_SYSTEM_PROMPT
+  const systemPrompt = `${basePrompt}\n\nNOTA: Bahasa pilihan pengguna dalam profil: ${langLabel[userLang] ?? 'Bahasa Melayu'}. Jika bahasa mesej tidak jelas, gunakan bahasa ini sebagai default.`
   const remaining = Math.max(0, limit - usedToday)
   const isLimitReached = usedToday >= limit
   const opening = OPENING_MSGS[openingIdx]
