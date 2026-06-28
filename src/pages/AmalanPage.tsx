@@ -645,35 +645,39 @@ function KhafiSection({ userTier, onBack, onComplete }: {
     setSubPhase('berzikir')
   }
 
-  async function handlePlayerDone(result: KhafiSessionResult) {
+  async function handlePlayerDone(result: KhafiSessionResult): Promise<void> {
     sessionResultRef.current = result
-    if (user) {
-      const today = format(new Date(), 'yyyy-MM-dd')
-      const khafiMins = result.actualSec ? Math.max(1, Math.round(result.actualSec / 60)) : 1
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = supabase as any
+    try {
+      if (user) {
+        const today = format(new Date(), 'yyyy-MM-dd')
+        const khafiMins = result.actualSec ? Math.max(1, Math.round(result.actualSec / 60)) : 1
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const db = supabase as any
 
-      // Biometric data
-      await db.from('zikir_khafi_sessions').insert({
-        user_id: user.id, session_date: today,
-        duration_min: result.durationMin, actual_sec: result.actualSec,
-        pre_bpm: result.preBpm, post_bpm: result.postBpm, avg_bpm: result.avgBpm,
-        beat_count: result.beatCount, coherence: result.coherence, consistency: result.consistency,
-      }).catch(() => {})
+        // Biometric data — silently ignore if table belum wujud
+        await db.from('zikir_khafi_sessions').insert({
+          user_id: user.id, session_date: today,
+          duration_min: result.durationMin, actual_sec: result.actualSec,
+          pre_bpm: result.preBpm, post_bpm: result.postBpm, avg_bpm: result.avgBpm,
+          beat_count: result.beatCount, coherence: result.coherence, consistency: result.consistency,
+        }).catch(() => {})
 
-      // INSERT khafi_minit — kalau row dah ada (conflict), fallback ke UPDATE
-      const { error: insertErr } = await db.from('amalan_sessions').insert({
-        user_id: user.id, session_date: today,
-        khafi_minit: khafiMins, khafi_selesai: true, sesi_lengkap: true,
-      })
-      if (insertErr) {
-        await db.from('amalan_sessions')
-          .update({ khafi_minit: khafiMins, khafi_selesai: true, sesi_lengkap: true })
-          .eq('user_id', user.id)
-          .eq('session_date', today)
+        // INSERT khafi_minit — kalau row dah ada (conflict), fallback ke UPDATE
+        const { error: insertErr } = await db.from('amalan_sessions').insert({
+          user_id: user.id, session_date: today,
+          khafi_minit: khafiMins, khafi_selesai: true, sesi_lengkap: true,
+        })
+        if (insertErr) {
+          await db.from('amalan_sessions')
+            .update({ khafi_minit: khafiMins, khafi_selesai: true, sesi_lengkap: true })
+            .eq('user_id', user.id)
+            .eq('session_date', today)
+        }
       }
+    } catch { /* swallow — modal tetap perlu muncul */ }
+    finally {
+      setShowPenutupModal(true)
     }
-    setShowPenutupModal(true)
   }
 
   function goFromBerzikir() {

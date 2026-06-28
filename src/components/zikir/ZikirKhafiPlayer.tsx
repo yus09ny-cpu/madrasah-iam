@@ -16,7 +16,7 @@ export interface KhafiSessionResult {
 }
 
 interface Props {
-  onSessionDone: (result: KhafiSessionResult) => void
+  onSessionDone: (result: KhafiSessionResult) => Promise<void>
   onCancel: () => void
 }
 
@@ -118,6 +118,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const [preBpm, setPreBpm] = useState<number | null>(null)
   const [postBpm, setPostBpm] = useState<number | null>(null)
   const [coherence, setCoherence] = useState(0)
+  const [selesaiLoading, setSelesaiLoading] = useState(false)
 
   const tapsRef = useRef<number[]>([])
   const phaseRef = useRef<'Allah' | 'Hu'>('Allah')
@@ -255,18 +256,24 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setPhase('summary')
   }
 
-  function handleSelesai() {
+  async function handleSelesai() {
+    if (selesaiLoading) return
     const avg = bpmSamplesRef.current > 0 ? bpmSumRef.current / bpmSamplesRef.current : bpm
-    onSessionDone({
-      durationMin: sessionMin,
-      actualSec: Math.round(elapsed),
-      preBpm,
-      postBpm,
-      avgBpm: Number(avg.toFixed(1)),
-      beatCount,
-      coherence,
-      consistency,
-    })
+    setSelesaiLoading(true)
+    try {
+      await onSessionDone({
+        durationMin: sessionMin,
+        actualSec: Math.round(elapsed),
+        preBpm,
+        postBpm,
+        avgBpm: Number(avg.toFixed(1)),
+        beatCount,
+        coherence,
+        consistency,
+      })
+    } finally {
+      setSelesaiLoading(false)
+    }
   }
 
   function repeatSession() {
@@ -573,10 +580,18 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
       <div className="flex flex-col items-center gap-3 w-full mt-2">
         <button
           onClick={handleSelesai}
-          className="w-full py-3.5 rounded-2xl font-semibold text-sm text-[#060d16] hover:opacity-90 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #a78bfa, #c4b5fd)' }}
+          disabled={selesaiLoading}
+          className="w-full py-3.5 rounded-2xl font-semibold text-sm text-[#060d16] hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+          style={{ background: 'linear-gradient(135deg, #a78bfa, #c4b5fd)', minHeight: 52 }}
         >
-          {t('amalan.khafi_player.selesai_btn')}
+          {selesaiLoading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-[#060d16] border-t-transparent rounded-full animate-spin" />
+              <span>Menyimpan...</span>
+            </>
+          ) : (
+            t('amalan.khafi_player.selesai_btn')
+          )}
         </button>
         <button onClick={repeatSession}
           className="px-6 py-2.5 rounded-full border border-[#a78bfa40] text-xs tracking-[0.2em] uppercase text-[#a78bfa] hover:bg-[#a78bfa10] transition-colors">
