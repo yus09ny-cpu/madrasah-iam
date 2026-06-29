@@ -603,6 +603,10 @@
       "baqarah3_trans": "\"Dan mereka membelanjakan sebagian dari rezeki yang Kami berikan\" — Al-Baqarah: 3",
       "sedar": "Karena mereka sadar — itu bukan milik mereka. InsyaAllah."
     },
+    "choice": {
+      "yes": "Ya, saya siap",
+      "not_yet": "Belum siap"
+    },
     "upgrade": {
       "tajuk": "Kategori Pro",
       "desc": "Kategori ini khusus untuk pengguna Pro. Tingkatkan untuk akses Pekerjaan, Keluarga, Hutang, dan lainnya.",

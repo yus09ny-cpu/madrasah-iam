@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
 import { sendIAMMessage } from '@/lib/iam-chat'
-import { PINTU_REZEKI_SYSTEM_PROMPT, FORMAT_CONTROL } from '@/lib/systemPrompts'
+import { buildPintuRezekiSystemPrompt, FORMAT_CONTROL } from '@/lib/systemPrompts'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
 
@@ -802,7 +802,7 @@ function AuditTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
                 وَمِمَّا رَزَقْنَاهُمْ يُنفِقُونَ
               </p>
               <p className="text-[#8a7a65] text-xs mt-1 italic">
-                "Dan mereka membelanjakan sebahagian dari rezeki yang Kami berikan" — Al-Baqarah: 3
+                {t('pintu.kesadaran.baqarah3_trans')}
               </p>
             </div>
             <p className="text-[#8a7a65] text-xs leading-relaxed">
@@ -978,7 +978,9 @@ function PintuTab() {
     id: 'KRITIKAL: Jawab dalam Bahasa Indonesia SAHAJA.',
     ar: 'تعليمات: يجب عليك الإجابة باللغة العربية فقط.',
   }
-  const pintuSystemPrompt = `${LANG_OVERRIDE[userLang] ?? LANG_OVERRIDE.bm}\n\n${PINTU_REZEKI_SYSTEM_PROMPT}`
+  const choiceYes = t('pintu.choice.yes')
+  const choiceNo = t('pintu.choice.not_yet')
+  const pintuSystemPrompt = `${LANG_OVERRIDE[userLang] ?? LANG_OVERRIDE.bm}\n\n${buildPintuRezekiSystemPrompt(choiceYes, choiceNo)}`
   const [selectedSituasi, setSelectedSituasi] = useState<string | null>(null)
   const [phase, setPhase] = useState<'select' | 'chat'>('select')
   const [messages, setMessages] = useState<ChatMsg[]>([])

@@ -339,6 +339,18 @@ terbuka."
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `
 
+// Replaces hardcoded BM choice text with locale-specific strings for multi-language support.
+export function buildTurningPointPrinciple(
+  yesText = 'Ya, saya bersedia',
+  noText = 'Belum lagi'
+): string {
+  if (yesText === 'Ya, saya bersedia' && noText === 'Belum lagi') return TURNING_POINT_PRINCIPLE
+  return TURNING_POINT_PRINCIPLE
+    .replaceAll('[CHOICE:Ya, saya bersedia|Belum lagi]', `[CHOICE:${yesText}|${noText}]`)
+    .replaceAll('"Ya, saya bersedia"', `"${yesText}"`)
+    .replaceAll('"Belum lagi"', `"${noText}"`)
+}
+
 // ─── KONTEKS SOALAN RENUNGAN — WAJIB DIPATUHI ───────────────────────────────
 const RENUNGAN_CONTEXT_RULE = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1246,3 +1258,15 @@ LARANGAN KERAS:
 ❌ Jangan sebut "AI" — kamu adalah "I AM"
 
 `
+
+// Builds PINTU_REZEKI_SYSTEM_PROMPT with locale-aware choice button text.
+export function buildPintuRezekiSystemPrompt(
+  yesText = 'Ya, saya bersedia',
+  noText = 'Belum lagi'
+): string {
+  if (yesText === 'Ya, saya bersedia' && noText === 'Belum lagi') return PINTU_REZEKI_SYSTEM_PROMPT
+  return PINTU_REZEKI_SYSTEM_PROMPT
+    .replaceAll('[CHOICE:Ya, saya bersedia|Belum lagi]', `[CHOICE:${yesText}|${noText}]`)
+    .replaceAll('"Ya, saya bersedia"', `"${yesText}"`)
+    .replaceAll('"Belum lagi"', `"${noText}"`)
+}

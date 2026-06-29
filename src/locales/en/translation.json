@@ -603,6 +603,10 @@
       "baqarah3_trans": "\"And they spend from what We have provided for them\" — Al-Baqarah: 3",
       "sedar": "Because they knew — it was never truly theirs. InshaAllah."
     },
+    "choice": {
+      "yes": "Yes, I'm ready",
+      "not_yet": "Not yet"
+    },
     "upgrade": {
       "tajuk": "Pro Category",
       "desc": "This category is for Pro users. Upgrade to access Work, Family, Debt, and more.",
