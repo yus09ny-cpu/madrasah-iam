@@ -346,9 +346,9 @@ export function buildTurningPointPrinciple(
 ): string {
   if (yesText === 'Ya, saya bersedia' && noText === 'Belum lagi') return TURNING_POINT_PRINCIPLE
   return TURNING_POINT_PRINCIPLE
-    .replaceAll('[CHOICE:Ya, saya bersedia|Belum lagi]', `[CHOICE:${yesText}|${noText}]`)
-    .replaceAll('"Ya, saya bersedia"', `"${yesText}"`)
-    .replaceAll('"Belum lagi"', `"${noText}"`)
+    .split('[CHOICE:Ya, saya bersedia|Belum lagi]').join(`[CHOICE:${yesText}|${noText}]`)
+    .split('"Ya, saya bersedia"').join(`"${yesText}"`)
+    .split('"Belum lagi"').join(`"${noText}"`)
 }
 
 // ─── KONTEKS SOALAN RENUNGAN — WAJIB DIPATUHI ───────────────────────────────
@@ -1266,7 +1266,7 @@ export function buildPintuRezekiSystemPrompt(
 ): string {
   if (yesText === 'Ya, saya bersedia' && noText === 'Belum lagi') return PINTU_REZEKI_SYSTEM_PROMPT
   return PINTU_REZEKI_SYSTEM_PROMPT
-    .replaceAll('[CHOICE:Ya, saya bersedia|Belum lagi]', `[CHOICE:${yesText}|${noText}]`)
-    .replaceAll('"Ya, saya bersedia"', `"${yesText}"`)
-    .replaceAll('"Belum lagi"', `"${noText}"`)
+    .split('[CHOICE:Ya, saya bersedia|Belum lagi]').join(`[CHOICE:${yesText}|${noText}]`)
+    .split('"Ya, saya bersedia"').join(`"${yesText}"`)
+    .split('"Belum lagi"').join(`"${noText}"`)
 }
