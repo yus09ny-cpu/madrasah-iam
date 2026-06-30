@@ -848,7 +848,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
 
 function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => void; onStartKhafi: () => void; user: { id: string } | null }) {
   const { t } = useTranslation()
-  const [stats, setStats] = useState({ todayDone: false, streak: 0, totalJahar: 0, totalKhafiMins: 0 })
+  const [stats, setStats] = useState({ todayDone: false, streak: 0, totalJahar: 0, totalKhafiMins: 0, todayKhafiMins: 0 })
   const ayatIdx = new Date().getDate() % AYAT_LIST.length
   const ayat = AYAT_LIST[ayatIdx]
 
@@ -857,16 +857,27 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
     if (!user) return
     const today = format(new Date(), 'yyyy-MM-dd')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Promise.resolve((supabase.from('amalan_sessions') as any)
-      .select('session_date, jahar_kiraan, khafi_minit, sesi_lengkap')
-      .eq('user_id', user.id)
-      .order('session_date', { ascending: false })
-      .limit(365)
-    ).then(({ data }: { data: any[] | null }) => {
+    Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Promise.resolve((supabase.from('amalan_sessions') as any)
+        .select('session_date, jahar_kiraan, sesi_lengkap')
+        .eq('user_id', user.id)
+        .order('session_date', { ascending: false })
+        .limit(365)
+      ),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Promise.resolve((supabase.from('zikir_khafi_sessions') as any)
+        .select('session_date, duration_min')
+        .eq('user_id', user.id)
+      ),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ]).then(([{ data }, { data: khafiData }]: [{ data: any[] | null }, { data: any[] | null }]) => {
       if (!data) return
-      const todayDone = data.some(d => d.session_date === today && d.sesi_lengkap)
+      const todayDone = data.some((d: any) => d.session_date === today && d.sesi_lengkap)
       const totalJahar = data.reduce((s: number, d: any) => s + (d.jahar_kiraan ?? 0), 0)
-      const totalKhafiMins = data.reduce((s: number, d: any) => s + (d.khafi_minit ?? 0), 0)
+      const kd: any[] = khafiData ?? []
+      const totalKhafiMins = kd.reduce((s: number, d: any) => s + (d.duration_min ?? 0), 0)
+      const todayKhafiMins = kd.filter((d: any) => d.session_date === today).reduce((s: number, d: any) => s + (d.duration_min ?? 0), 0)
 
       // Streak
       const dates = [...new Set(data.map((d: any) => d.session_date as string))].sort((a, b) => a > b ? -1 : 1)
@@ -876,7 +887,7 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
         if (dates[i] === expected) streak++
         else break
       }
-      setStats({ todayDone, streak, totalJahar, totalKhafiMins })
+      setStats({ todayDone, streak, totalJahar, totalKhafiMins, todayKhafiMins })
     }).catch(() => {})
   }, [user?.id])
 
@@ -913,9 +924,9 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
           {
             icon: '💜',
             label: t('amalan.dashboard_jumlah_khafi'),
-            value: stats.totalKhafiMins >= 60
-              ? t('amalan.dashboard_jam_min', { jam: Math.floor(stats.totalKhafiMins / 60), min: stats.totalKhafiMins % 60 })
-              : t('amalan.dashboard_min', { count: stats.totalKhafiMins }),
+            value: stats.todayKhafiMins >= 60
+              ? t('amalan.dashboard_jam_min', { jam: Math.floor(stats.todayKhafiMins / 60), min: stats.todayKhafiMins % 60 })
+              : t('amalan.dashboard_min', { count: stats.todayKhafiMins }),
             color: 'text-[#a78bfa]',
           },
         ].map(({ icon, label, value, color }, i) => (

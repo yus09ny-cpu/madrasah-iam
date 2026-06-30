@@ -4,6 +4,7 @@ import { Send, Loader2, Check, Lock, ArrowLeft, ExternalLink } from 'lucide-reac
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
+import { supabase } from '@/lib/supabase'
 import { sendIAMMessage } from '@/lib/iam-chat'
 import { buildPintuRezekiSystemPrompt, FORMAT_CONTROL } from '@/lib/systemPrompts'
 import { cn } from '@/lib/utils'
@@ -26,6 +27,18 @@ interface SifatAuditRecord {
   kembalikan?: { infak: string; completedAt: string }
 }
 type AuditData = Record<string, SifatAuditRecord>
+
+interface KhafiSession {
+  session_date: string
+  duration_min: number
+  actual_sec: number
+  pre_bpm: number | null
+  post_bpm: number | null
+  avg_bpm: number
+  coherence: number
+  consistency: number
+  created_at: string
+}
 
 // ─── Data: Sifat ──────────────────────────────────────────────────────────────
 
@@ -1223,6 +1236,26 @@ function AmalanTab() {
 
 function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void }) {
   const { t } = useTranslation()
+  const { user } = useAuthStore()
+  const [khafiSessions, setKhafiSessions] = useState<KhafiSession[]>([])
+  const [khafiLoading, setKhafiLoading] = useState(false)
+
+  useEffect(() => {
+    if (!user || !isPro) return
+    setKhafiLoading(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(supabase.from('zikir_khafi_sessions') as any)
+      .select('session_date, duration_min, actual_sec, pre_bpm, post_bpm, avg_bpm, coherence, consistency, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(({ data }: { data: KhafiSession[] | null }) => {
+        setKhafiSessions(data ?? [])
+        setKhafiLoading(false)
+      })
+      .catch(() => setKhafiLoading(false))
+  }, [user?.id, isPro])
+
   if (!isPro) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center space-y-5">
@@ -1330,6 +1363,42 @@ function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
           <p className="text-[#8a7a65] text-xs">{t('pintu.rekod.amanah_penuh')}</p>
         </div>
       )}
+
+      <div className="bg-[#0d1821] border border-[#a78bfa30] rounded-2xl p-4 space-y-3">
+        <p className="text-[#e8dcc8] text-sm font-medium">{t('pintu.rekod.khafi_tajuk')}</p>
+        {khafiLoading ? (
+          <p className="text-[#8a7a65] text-xs text-center py-3 animate-pulse">···</p>
+        ) : khafiSessions.length === 0 ? (
+          <p className="text-[#8a7a65] text-xs text-center py-3">{t('pintu.rekod.khafi_tiada')}</p>
+        ) : (
+          <div>
+            {khafiSessions.map((s, i) => {
+              const [yr, mo, dy] = s.session_date.split('-')
+              const displayDate = `${dy}/${mo}/${yr.slice(2)}`
+              const mins = s.actual_sec ? Math.max(1, Math.round(s.actual_sec / 60)) : (s.duration_min || 1)
+              const bpmDelta = s.pre_bpm !== null && s.post_bpm !== null ? s.post_bpm - s.pre_bpm : null
+              return (
+                <div key={i} className="flex items-center justify-between py-2.5 border-b border-[#1e2d40] last:border-0">
+                  <div className="space-y-0.5">
+                    <p className="text-[#e8dcc8] text-xs font-medium">{displayDate}</p>
+                    <p className="text-[#8a7a65] text-[10px]">
+                      {mins} min · {t('amalan.khafi_player.koheren')} {(s.coherence * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                  <div className="text-right space-y-0.5">
+                    <p className="text-[#a78bfa] text-xs">{s.avg_bpm.toFixed(0)} bpm</p>
+                    {bpmDelta !== null && (
+                      <p className={cn('text-[10px]', bpmDelta < 0 ? 'text-[#4ade80]' : 'text-[#8a7a65]')}>
+                        {bpmDelta < 0 ? `↓ ${Math.abs(bpmDelta)}` : `↑ ${bpmDelta}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 text-center space-y-3">
         <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا</p>
