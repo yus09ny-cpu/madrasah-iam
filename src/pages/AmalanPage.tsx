@@ -846,9 +846,9 @@ function KhafiSection({ userTier, onBack, onComplete }: {
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────────
 
-function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => void; onStartKhafi: () => void; user: { id: string } | null }) {
+function Dashboard({ onStartJahar, onStartKhafi, user, refreshKey }: { onStartJahar: () => void; onStartKhafi: () => void; user: { id: string } | null; refreshKey: number }) {
   const { t } = useTranslation()
-  const [stats, setStats] = useState({ todayDone: false, streak: 0, totalJahar: 0, totalKhafiMins: 0, todayKhafiMins: 0 })
+  const [stats, setStats] = useState({ todayDone: false, streak: 0, totalJahar: 0, totalKhafiMins: 0 })
   const ayatIdx = new Date().getDate() % AYAT_LIST.length
   const ayat = AYAT_LIST[ayatIdx]
 
@@ -873,11 +873,13 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ]).then(([{ data }, { data: khafiData }]: [{ data: any[] | null }, { data: any[] | null }]) => {
       if (!data) return
-      const todayDone = data.some((d: any) => d.session_date === today && d.sesi_lengkap)
-      const totalJahar = data.reduce((s: number, d: any) => s + (d.jahar_kiraan ?? 0), 0)
       const kd: any[] = khafiData ?? []
-      const totalKhafiMins = kd.reduce((s: number, d: any) => s + (d.duration_min ?? 0), 0)
-      const todayKhafiMins = kd.filter((d: any) => d.session_date === today).reduce((s: number, d: any) => s + (d.duration_min ?? 0), 0)
+      // todayDone: check amalan_sessions OR zikir_khafi_sessions for today (duration_min > 0)
+      const todayDone = data.some((d: any) => d.session_date === today && d.sesi_lengkap)
+        || kd.some((d: any) => d.session_date === today && (d.duration_min ?? 0) > 0)
+      const totalJahar = data.reduce((s: number, d: any) => s + (d.jahar_kiraan ?? 0), 0)
+      // all-time total, exclude duration_min=0 (infinity sessions)
+      const totalKhafiMins = kd.filter((d: any) => (d.duration_min ?? 0) > 0).reduce((s: number, d: any) => s + d.duration_min, 0)
 
       // Streak
       const dates = [...new Set(data.map((d: any) => d.session_date as string))].sort((a, b) => a > b ? -1 : 1)
@@ -887,9 +889,9 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
         if (dates[i] === expected) streak++
         else break
       }
-      setStats({ todayDone, streak, totalJahar, totalKhafiMins, todayKhafiMins })
+      setStats({ todayDone, streak, totalJahar, totalKhafiMins })
     }).catch(() => {})
-  }, [user?.id])
+  }, [user?.id, refreshKey])
 
   return (
     <div className="space-y-5">
@@ -924,9 +926,9 @@ function Dashboard({ onStartJahar, onStartKhafi, user }: { onStartJahar: () => v
           {
             icon: '💜',
             label: t('amalan.dashboard_jumlah_khafi'),
-            value: stats.todayKhafiMins >= 60
-              ? t('amalan.dashboard_jam_min', { jam: Math.floor(stats.todayKhafiMins / 60), min: stats.todayKhafiMins % 60 })
-              : t('amalan.dashboard_min', { count: stats.todayKhafiMins }),
+            value: stats.totalKhafiMins >= 60
+              ? t('amalan.dashboard_jam_min', { jam: Math.floor(stats.totalKhafiMins / 60), min: stats.totalKhafiMins % 60 })
+              : t('amalan.dashboard_min', { count: stats.totalKhafiMins }),
             color: 'text-[#a78bfa]',
           },
         ].map(({ icon, label, value, color }, i) => (
@@ -1299,6 +1301,7 @@ export default function AmalanPage() {
 
   const [activeTab, setActiveTab] = useState<AmalanTab>('zikir')
   const [phase, setPhase] = useState<SessionPhase>('dashboard')
+  const [dashRefreshKey, setDashRefreshKey] = useState(0)
   const [content, setContent] = useState<AmalanItem[]>([])
   const [contentLoaded, setContentLoaded] = useState(false)
   const [jaharCount, setJaharCount] = useState(0)
@@ -1404,6 +1407,7 @@ export default function AmalanPage() {
     setPhase('dashboard')
     setJaharCount(0); setJaharTarget(165); setKhafiMins(0)
     localStorage.removeItem('amalan_jahar_count')
+    setDashRefreshKey(k => k + 1)
   }
 
   // ── Gate ───────────────────────────────────────────────────────────
@@ -1481,7 +1485,7 @@ export default function AmalanPage() {
 
 
         {phase === 'dashboard' && (
-          <Dashboard onStartJahar={() => setPhase(1)} onStartKhafi={() => setPhase('khafi')} user={user} />
+          <Dashboard onStartJahar={() => setPhase(1)} onStartKhafi={() => setPhase('khafi')} user={user} refreshKey={dashRefreshKey} />
         )}
         {phase === 1 && <Fasa1 items={bacaanPembuka} onDone={() => setPhase(2)} />}
         {phase === 2 && <Fasa2 item={zikirJaharItem} onDone={handleJaharDone} />}
