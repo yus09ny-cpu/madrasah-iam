@@ -3,7 +3,8 @@
  *
  * - Tap detection: sebenar (timestamp-based)
  * - Progressive pacing: sebenar (scheduleNext + linear BPM decay)
- * - BLE hex log: emulasi GATT 0x2A37 (bukan sensor sebenar)
+ * - Web Bluetooth (Magene H64 / GATT heart_rate): sebenar, via useHeartRateMonitor
+ * - BLE hex log: reka bentuk semula GATT 0x2A37 dari bpmRef/rrRef (tap ATAU peranti sebenar)
  * - BpmSmoother + computeCoherence: diadaptasi dari Sahamhalal/zikirkhafi
  * - fireAllah/fireHu + scheduleNext: diadaptasi dari Sahamhalal/zikirkhafi
  *
@@ -17,6 +18,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Shield, ArrowLeft, FlaskConical, RotateCcw, Play, Square } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRateMonitor'
 
 // ---------------------------------------------------------------------------
 // BpmSmoother — median window 5 + adaptive EMA (zikirkhafi)
@@ -146,8 +148,34 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const pacerOuterRef = useRef<HTMLDivElement>(null)
   const pacerOuterLabelRef = useRef<HTMLSpanElement>(null)
 
+  // ---------------------------------------------------------------------------
+  // Heart rate monitor (Web Bluetooth) — Magene H64 or any GATT heart_rate device
+  // ---------------------------------------------------------------------------
+  const handleHrReading = useCallback((reading: HeartRateReading) => {
+    const smoothed = Math.round(smootherRef.current.add(reading.bpm))
+    setTapBpm(reading.bpm)
+    setBpm(smoothed)
+    bpmRef.current = smoothed
+
+    if (reading.rrIntervalsMs.length) {
+      intervalsRef.current = [...intervalsRef.current, ...reading.rrIntervalsMs].slice(-7)
+      const rr = Math.round(reading.rrIntervalsMs[reading.rrIntervalsMs.length - 1])
+      rrRef.current = rr
+      setCurrentRr(rr)
+      const coh = Math.round(computeCoherence(intervalsRef.current) * 100)
+      coherenceRef.current = coh
+      setCoherence(coh)
+    } else {
+      const rr = Math.round(60000 / smoothed)
+      rrRef.current = rr
+      setCurrentRr(rr)
+    }
+  }, [])
+
+  const hr = useHeartRateMonitor({ onReading: handleHrReading })
+
   const inZikirRange = tapBpm !== null && tapBpm >= 40 && tapBpm <= 60
-  const canStart = tapCount >= 3
+  const canStart = tapCount >= 3 || hr.state === 'connected'
 
   // Keep sessionPhaseRef in sync for use inside closures
   useEffect(() => { sessionPhaseRef.current = sessionPhase }, [sessionPhase])
@@ -463,18 +491,45 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
           <div className="zk-glass rounded-2xl p-6 zk-gold-glow flex flex-col items-center gap-5">
             <div className="w-full text-left">
               <h2 className="text-lg font-medium text-amber-300 mb-1">
-                {isRunning ? 'Sesi Aktif' : 'Tap With Your Pulse'}
+                {isRunning ? 'Sesi Aktif' : hr.state === 'connected' ? 'Peranti BPM Disambung' : 'Tap With Your Pulse'}
               </h2>
               <p className="text-sm text-gray-400 leading-relaxed">
                 {isRunning
                   ? <>Pacing turun perlahan dari <span className="text-amber-300">{startBpmRef.current} BPM</span> → <span className="text-emerald-400">50 BPM</span> dalam {sessionMin} minit.</>
+                  : hr.state === 'connected'
+                  ? <>Menerima BPM &amp; R-R interval sebenar dari <span className="text-emerald-400">{hr.deviceName}</span>.</>
                   : <>Tap ikut detik nadi anda. Sasaran: <span className="text-emerald-400 font-semibold">40–60 BPM</span> untuk Zikir Khafi.</>
                 }
               </p>
             </div>
 
-            {/* Tap circle + +/- (sembunyikan semasa sesi berjalan) */}
-            {!isRunning && (
+            {/* Connect Magene H64 (Web Bluetooth) — sembunyikan semasa sesi berjalan */}
+            {!isRunning && hr.state !== 'unsupported' && (
+              <div className="w-full space-y-2">
+                {hr.state === 'connected' ? (
+                  <div className="flex items-center justify-between gap-3 py-2.5 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10">
+                    <span className="text-xs text-emerald-300">🫀 {hr.deviceName} — {hr.bpm ?? '—'} BPM</span>
+                    <button onClick={hr.disconnect} className="text-[10px] uppercase tracking-widest text-gray-500 hover:text-gray-300 transition-colors">
+                      Putus
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={hr.connect}
+                    disabled={hr.state === 'connecting'}
+                    className="w-full py-2.5 rounded-xl border border-emerald-600/40 text-xs tracking-widest uppercase text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-50 transition-colors"
+                  >
+                    {hr.state === 'connecting' ? 'Mencari peranti...' : '🫀 Sambung Peranti BPM'}
+                  </button>
+                )}
+                <p className="text-[10px] text-gray-600 leading-relaxed">
+                  Web Bluetooth hanya berfungsi dalam Chrome browser. Untuk iOS, gunakan app pihak ketiga.
+                </p>
+              </div>
+            )}
+
+            {/* Tap circle + +/- (sembunyikan semasa sesi berjalan atau bila peranti disambung) */}
+            {!isRunning && hr.state !== 'connected' && (
               <>
                 <div className="flex items-center gap-4">
                   <button onClick={() => adjustBpm(-1)} className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white transition text-xl select-none tap-btn" aria-label="Kurang BPM">−</button>

@@ -660,6 +660,8 @@ function KhafiSection({ userTier, onBack, onComplete }: {
           duration_min: result.durationMin, actual_sec: result.actualSec,
           pre_bpm: result.preBpm, post_bpm: result.postBpm, avg_bpm: result.avgBpm,
           beat_count: result.beatCount, coherence: result.coherence, consistency: result.consistency,
+          min_bpm: result.minBpm, max_bpm: result.maxBpm, hrv_rmssd: result.hrvRmssd,
+          device_name: result.deviceName,
         }).catch(() => {})
 
         // INSERT khafi_minit — kalau row dah ada (conflict), fallback ke UPDATE

@@ -740,7 +740,14 @@
       "purata_bpm": "متوسط BPM",
       "konsistensi": "الاتساق",
       "ulangi": "أعِد",
-      "selesai_btn": "أتمم وتابع →"
+      "selesai_btn": "أتمم وتابع →",
+      "ble_connect": "🫀 وصّل جهاز النبض",
+      "ble_connecting": "جارٍ البحث عن جهاز...",
+      "ble_disconnect": "قطع الاتصال",
+      "ble_note": "يعمل Web Bluetooth فقط في متصفح Chrome. لأجهزة iOS، استخدم تطبيقاً من جهة أخرى.",
+      "ble_error": "فشل الاتصال. تأكد من ارتداء Magene H64 وتفعيله.",
+      "ble_retry": "حاول مرة أخرى",
+      "ble_device_lost": "انقطع الاتصال بالجهاز"
     }
   },
   "ajv2": {

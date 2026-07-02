@@ -740,7 +740,14 @@
       "purata_bpm": "Avg BPM",
       "konsistensi": "Consistency",
       "ulangi": "Repeat Again",
-      "selesai_btn": "Complete & Continue →"
+      "selesai_btn": "Complete & Continue →",
+      "ble_connect": "🫀 Connect BPM Device",
+      "ble_connecting": "Searching for device...",
+      "ble_disconnect": "Disconnect",
+      "ble_note": "Web Bluetooth only works in the Chrome browser. On iOS, use a third-party app.",
+      "ble_error": "Couldn't connect. Make sure the Magene H64 is worn and active.",
+      "ble_retry": "Try Again",
+      "ble_device_lost": "Device disconnected"
     }
   },
   "ajv2": {

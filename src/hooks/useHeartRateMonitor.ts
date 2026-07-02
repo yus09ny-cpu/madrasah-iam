@@ -1,0 +1,185 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+// ─── Minimal ambient Web Bluetooth types ──────────────────────────────────
+// Not exhaustive — only the heart_rate GATT surface this hook touches.
+
+interface BluetoothRemoteGATTCharacteristic extends EventTarget {
+  readonly value: DataView | undefined
+  startNotifications(): Promise<BluetoothRemoteGATTCharacteristic>
+  stopNotifications(): Promise<BluetoothRemoteGATTCharacteristic>
+}
+
+interface BluetoothRemoteGATTService {
+  getCharacteristic(characteristic: string): Promise<BluetoothRemoteGATTCharacteristic>
+}
+
+interface BluetoothRemoteGATTServer {
+  readonly connected: boolean
+  connect(): Promise<BluetoothRemoteGATTServer>
+  disconnect(): void
+  getPrimaryService(service: string): Promise<BluetoothRemoteGATTService>
+}
+
+interface BluetoothDevice extends EventTarget {
+  readonly name?: string
+  readonly gatt?: BluetoothRemoteGATTServer
+}
+
+interface NavigatorBluetooth {
+  requestDevice(options: {
+    filters?: Array<{ services?: string[]; name?: string; namePrefix?: string }>
+    optionalServices?: string[]
+  }): Promise<BluetoothDevice>
+}
+
+// ─── Public types ──────────────────────────────────────────────────────────
+
+export type HeartRateMonitorState = 'unsupported' | 'disconnected' | 'connecting' | 'connected'
+
+export interface HeartRateReading {
+  bpm: number
+  rrIntervalsMs: number[]
+  timestamp: number
+}
+
+interface UseHeartRateMonitorOptions {
+  onReading?: (reading: HeartRateReading) => void
+  // Fired when the GATT connection drops without disconnect() being called
+  // (e.g. strap removed, out of range) — never fired for a manual disconnect.
+  onUnexpectedDisconnect?: () => void
+}
+
+function getBluetooth(): NavigatorBluetooth | undefined {
+  if (typeof navigator === 'undefined') return undefined
+  return (navigator as Navigator & { bluetooth?: NavigatorBluetooth }).bluetooth
+}
+
+// ─── Parse heart_rate_measurement (GATT 0x2A37) ────────────────────────────
+// Flags byte: bit0 HR format, bit1-2 sensor contact, bit3 energy expended present, bit4 RR-interval present.
+
+function parseHeartRateMeasurement(value: DataView): { bpm: number; rrIntervalsMs: number[] } {
+  const flags = value.getUint8(0)
+  let index = 1
+  let bpm: number
+  if (flags & 0x1) {
+    bpm = value.getUint16(index, true)
+    index += 2
+  } else {
+    bpm = value.getUint8(index)
+    index += 1
+  }
+  if ((flags >> 3) & 0x1) index += 2 // energy expended (UINT16), unused
+
+  const rrIntervalsMs: number[] = []
+  if ((flags >> 4) & 0x1) {
+    while (index + 1 < value.byteLength) {
+      const rawRrUnits = value.getUint16(index, true)
+      rrIntervalsMs.push((rawRrUnits / 1024) * 1000)
+      index += 2
+    }
+  }
+  return { bpm, rrIntervalsMs }
+}
+
+// ─── Hook ────────────────────────────────────────────────────────────────
+
+export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
+  const [state, setState] = useState<HeartRateMonitorState>(getBluetooth() ? 'disconnected' : 'unsupported')
+  const [deviceName, setDeviceName] = useState<string | null>(null)
+  const [bpm, setBpm] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const deviceRef = useRef<BluetoothDevice | null>(null)
+  const characteristicRef = useRef<BluetoothRemoteGATTCharacteristic | null>(null)
+  const onReadingRef = useRef(options?.onReading)
+  onReadingRef.current = options?.onReading
+  const onUnexpectedDisconnectRef = useRef(options?.onUnexpectedDisconnect)
+  onUnexpectedDisconnectRef.current = options?.onUnexpectedDisconnect
+
+  const handleValueChanged = useCallback((event: Event) => {
+    const characteristic = event.target as BluetoothRemoteGATTCharacteristic
+    if (!characteristic.value) return
+    const { bpm: heartRate, rrIntervalsMs } = parseHeartRateMeasurement(characteristic.value)
+    setBpm(heartRate)
+    onReadingRef.current?.({ bpm: heartRate, rrIntervalsMs, timestamp: performance.now() })
+  }, [])
+
+  const handleGattDisconnected = useCallback(() => {
+    // disconnect() strips this listener before calling gatt.disconnect(), so
+    // reaching here always means an out-of-band drop (strap off, out of range).
+    setState(getBluetooth() ? 'disconnected' : 'unsupported')
+    setBpm(null)
+    setDeviceName(null)
+    deviceRef.current = null
+    characteristicRef.current = null
+    onUnexpectedDisconnectRef.current?.()
+  }, [])
+
+  const connect = useCallback(async () => {
+    const bluetooth = getBluetooth()
+    if (!bluetooth) {
+      setState('unsupported')
+      return
+    }
+    setError(null)
+    setState('connecting')
+    try {
+      const device = await bluetooth.requestDevice({ filters: [{ services: ['heart_rate'] }] })
+      deviceRef.current = device
+      setDeviceName(device.name ?? 'Peranti BPM')
+      device.addEventListener('gattserverdisconnected', handleGattDisconnected)
+
+      const server = await device.gatt!.connect()
+      const service = await server.getPrimaryService('heart_rate')
+      const characteristic = await service.getCharacteristic('heart_rate_measurement')
+      characteristicRef.current = characteristic
+      characteristic.addEventListener('characteristicvaluechanged', handleValueChanged)
+      await characteristic.startNotifications()
+      setState('connected')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const userCancelled = /cancel/i.test(message)
+      setError(userCancelled ? null : message)
+      setState(getBluetooth() ? 'disconnected' : 'unsupported')
+      deviceRef.current = null
+      characteristicRef.current = null
+    }
+  }, [handleValueChanged, handleGattDisconnected])
+
+  const disconnect = useCallback(() => {
+    const characteristic = characteristicRef.current
+    if (characteristic) {
+      characteristic.removeEventListener('characteristicvaluechanged', handleValueChanged)
+      characteristic.stopNotifications().catch(() => {})
+    }
+    const device = deviceRef.current
+    if (device) {
+      device.removeEventListener('gattserverdisconnected', handleGattDisconnected)
+      if (device.gatt?.connected) device.gatt.disconnect()
+    }
+    deviceRef.current = null
+    characteristicRef.current = null
+    setState(getBluetooth() ? 'disconnected' : 'unsupported')
+    setBpm(null)
+    setDeviceName(null)
+    setError(null)
+  }, [handleValueChanged, handleGattDisconnected])
+
+  // Disconnect the GATT server on unmount so we don't leak a dangling BLE connection.
+  useEffect(() => {
+    return () => {
+      const characteristic = characteristicRef.current
+      if (characteristic) {
+        characteristic.removeEventListener('characteristicvaluechanged', handleValueChanged)
+        characteristic.stopNotifications().catch(() => {})
+      }
+      const device = deviceRef.current
+      if (device) {
+        device.removeEventListener('gattserverdisconnected', handleGattDisconnected)
+        if (device.gatt?.connected) device.gatt.disconnect()
+      }
+    }
+  }, [handleValueChanged, handleGattDisconnected])
+
+  return { state, deviceName, bpm, error, connect, disconnect }
+}

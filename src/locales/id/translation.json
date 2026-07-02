@@ -740,7 +740,14 @@
       "purata_bpm": "Rata-rata BPM",
       "konsistensi": "Konsistensi",
       "ulangi": "Ulangi Lagi",
-      "selesai_btn": "Selesai & Lanjutkan →"
+      "selesai_btn": "Selesai & Lanjutkan →",
+      "ble_connect": "🫀 Sambungkan Perangkat BPM",
+      "ble_connecting": "Mencari perangkat...",
+      "ble_disconnect": "Putuskan sambungan",
+      "ble_note": "Web Bluetooth hanya berfungsi di browser Chrome. Untuk iOS, gunakan aplikasi pihak ketiga.",
+      "ble_error": "Gagal terhubung. Pastikan Magene H64 dipakai dan aktif.",
+      "ble_retry": "Coba Lagi",
+      "ble_device_lost": "Perangkat terputus"
     }
   },
   "ajv2": {
