@@ -148,10 +148,22 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const pacerOuterRef = useRef<HTMLDivElement>(null)
   const pacerOuterLabelRef = useRef<HTMLSpanElement>(null)
 
+  // ── Signal quality (dry electrode detection) ──
+  const [noSignal, setNoSignal] = useState(false)
+  const lastValidReadingRef = useRef<number>(0)
+
   // ---------------------------------------------------------------------------
   // Heart rate monitor (Web Bluetooth) — Magene H64 or any GATT heart_rate device
   // ---------------------------------------------------------------------------
   const handleHrReading = useCallback((reading: HeartRateReading) => {
+    console.log('[H64] reading:', reading)
+    if (reading.bpm < 30 || reading.bpm > 220) {
+      console.warn('[H64] ignoring out-of-range BPM (likely dry electrode / poor contact):', reading.bpm)
+      return
+    }
+    lastValidReadingRef.current = performance.now()
+    setNoSignal(false)
+
     const smoothed = Math.round(smootherRef.current.add(reading.bpm))
     setTapBpm(reading.bpm)
     setBpm(smoothed)
@@ -177,6 +189,19 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   }, [])
 
   const hr = useHeartRateMonitor({ onReading: handleHrReading })
+
+  // Reset the signal-quality clock on a fresh connect, then poll for silence.
+  useEffect(() => {
+    if (hr.state !== 'connected') { setNoSignal(false); return }
+    lastValidReadingRef.current = performance.now()
+    const id = window.setInterval(() => {
+      if (performance.now() - lastValidReadingRef.current > 6000) {
+        setNoSignal(true)
+        console.warn('[H64] no valid reading for 6s — check electrode contact')
+      }
+    }, 2000)
+    return () => window.clearInterval(id)
+  }, [hr.state])
 
   const inZikirRange = tapBpm !== null && tapBpm >= 40 && tapBpm <= 60
   const canStart = tapCount >= 3 || hr.state === 'connected'
@@ -517,7 +542,13 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                       Putus
                     </button>
                   </div>
-                ) : (
+                ) : null}
+                {hr.state === 'connected' && noSignal && (
+                  <div className="py-2 px-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-[11px] text-amber-300 text-center">
+                    ⚠️ Tiada isyarat — pastikan elektrod lembap &amp; rapat ke kulit
+                  </div>
+                )}
+                {hr.state !== 'connected' && (
                   <button
                     onClick={hr.connect}
                     disabled={hr.state === 'connecting'}
