@@ -158,18 +158,22 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     bpmRef.current = smoothed
 
     if (reading.rrIntervalsMs.length) {
+      // Device sends real R-R intervals — use them for RMSSD coherence.
       intervalsRef.current = [...intervalsRef.current, ...reading.rrIntervalsMs].slice(-7)
       const rr = Math.round(reading.rrIntervalsMs[reading.rrIntervalsMs.length - 1])
       rrRef.current = rr
       setCurrentRr(rr)
-      const coh = Math.round(computeCoherence(intervalsRef.current) * 100)
-      coherenceRef.current = coh
-      setCoherence(coh)
     } else {
+      // No R-R from the device (common on budget straps) — fall back to a
+      // BPM-derived pseudo-interval so the waveform still animates.
       const rr = Math.round(60000 / smoothed)
+      intervalsRef.current = [...intervalsRef.current, rr].slice(-7)
       rrRef.current = rr
       setCurrentRr(rr)
     }
+    const coh = Math.round(computeCoherence(intervalsRef.current) * 100)
+    coherenceRef.current = coh
+    setCoherence(coh)
   }, [])
 
   const hr = useHeartRateMonitor({ onReading: handleHrReading })
