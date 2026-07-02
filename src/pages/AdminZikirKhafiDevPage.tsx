@@ -188,7 +188,13 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     setCoherence(coh)
   }, [])
 
-  const hr = useHeartRateMonitor({ onReading: handleHrReading })
+  const [showDisconnectWarning, setShowDisconnectWarning] = useState(false)
+  const handleUnexpectedDisconnect = useCallback(() => {
+    console.warn('[H64] gattserverdisconnected — unexpected drop, showing warning banner')
+    setShowDisconnectWarning(true)
+  }, [])
+
+  const hr = useHeartRateMonitor({ onReading: handleHrReading, onUnexpectedDisconnect: handleUnexpectedDisconnect })
 
   // Reset the signal-quality clock on a fresh connect, then poll for silence.
   useEffect(() => {
@@ -511,6 +517,31 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         </div>
       </header>
 
+      {/* Prominent BLE disconnect warning — visible regardless of running state */}
+      {showDisconnectWarning && (
+        <div className="border-b border-red-800/50 bg-red-950/40 px-6 py-3">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-sm text-red-300 text-center sm:text-left">
+              ⚠️ Magene H64 terputus! Data BPM sekarang dari tap-tempo (bukan sebenar)
+            </p>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => { setShowDisconnectWarning(false); hr.connect() }}
+                className="px-4 py-1.5 rounded-lg text-xs font-medium border border-red-400/50 text-red-200 hover:bg-red-500/10 transition-colors whitespace-nowrap"
+              >
+                🔄 Sambung Semula
+              </button>
+              <button
+                onClick={() => setShowDisconnectWarning(false)}
+                className="text-[11px] text-red-400/70 hover:text-red-300 transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="flex-grow max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         {/* ── KIRI: Tap calibration + pacing orb + BLE log ── */}
@@ -749,14 +780,18 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
             <div className="zk-glass rounded-2xl p-4 text-center">
               <span className="text-xs text-gray-400 block mb-1">Heart BPM</span>
               <span className={`text-3xl font-bold ${tapBpm ? 'text-white' : 'text-gray-600'}`}>{tapBpm ?? '—'}</span>
-              <span className="text-[10px] text-gray-500 block mt-1">{isRunning ? `Pacing: ${pacingBpm}` : 'Dari tap'}</span>
+              <span className={`text-[10px] block mt-1 font-medium ${hr.state === 'connected' ? 'text-emerald-400' : 'text-gray-500'}`}>
+                {isRunning
+                  ? `Pacing: ${pacingBpm}`
+                  : hr.state === 'connected' ? `🫀 BLE sebenar — ${hr.deviceName}` : '⌨️ Tap-tempo (simulasi)'}
+              </span>
             </div>
             <div className="zk-glass rounded-2xl p-4 text-center border-l-2 border-l-emerald-500">
               <span className="text-xs text-gray-400 block mb-1">Coherence Score</span>
               <span className={`text-3xl font-bold ${coherence >= 71 ? 'text-emerald-400' : coherence > 0 ? 'text-blue-400' : 'text-gray-600'}`}>
                 {coherence > 0 ? `${coherence}%` : '—'}
               </span>
-              <span className="text-[10px] text-gray-500 block mt-1">RMSSD sebenar</span>
+              <span className="text-[10px] text-gray-500 block mt-1">{hr.state === 'connected' ? 'RMSSD sebenar' : 'Simulasi'}</span>
             </div>
             <div className="zk-glass rounded-2xl p-4 text-center">
               <span className="text-xs text-gray-400 block mb-1">R-R Interval</span>
