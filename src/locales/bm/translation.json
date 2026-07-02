@@ -740,14 +740,7 @@
       "purata_bpm": "Purata BPM",
       "konsistensi": "Konsistensi",
       "ulangi": "Ulangi",
-      "selesai_btn": "Selesai & Teruskan →",
-      "ble_connect": "🫀 Sambung Peranti BPM",
-      "ble_connecting": "Mencari peranti...",
-      "ble_disconnect": "Putuskan sambungan",
-      "ble_note": "Web Bluetooth hanya berfungsi dalam Chrome browser. Untuk iOS, gunakan app pihak ketiga.",
-      "ble_error": "Gagal sambung. Pastikan Magene H64 dipakai dan aktif.",
-      "ble_retry": "Cuba Semula",
-      "ble_device_lost": "Peranti terputus"
+      "selesai_btn": "Selesai & Teruskan →"
     }
   },
   "ajv2": {

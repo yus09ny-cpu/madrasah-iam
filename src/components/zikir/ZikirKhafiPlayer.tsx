@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRateMonitor'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,10 +13,6 @@ export interface KhafiSessionResult {
   beatCount: number         // total beats
   coherence: number         // 0–1
   consistency: number       // 0–1
-  deviceName: string        // e.g. "Magene H64" — 'tap' if tap-tempo was used
-  minBpm: number | null     // lowest BPM reading (device sessions only)
-  maxBpm: number | null     // highest BPM reading (device sessions only)
-  hrvRmssd: number | null   // RMSSD in ms, derived from device R-R intervals
 }
 
 interface Props {
@@ -68,23 +63,6 @@ function computeCoherence(intervals: number[]): number {
   }
   const rmssd = Math.sqrt(sq / (intervals.length - 1))
   return Math.max(0, Math.min(1, 1 - rmssd / mean / 0.15))
-}
-
-// ─── HRV RMSSD (raw ms, from device R-R intervals) ───────────────────────────
-
-function computeRmssd(intervalsMs: number[]): number | null {
-  if (intervalsMs.length < 4) return null
-  let sq = 0
-  for (let i = 1; i < intervalsMs.length; i++) {
-    const d = intervalsMs[i] - intervalsMs[i - 1]
-    sq += d * d
-  }
-  return Math.sqrt(sq / (intervalsMs.length - 1))
-}
-
-function average(values: number[]): number | null {
-  if (!values.length) return null
-  return values.reduce((a, b) => a + b, 0) / values.length
 }
 
 // ─── Haptic ──────────────────────────────────────────────────────────────────
@@ -141,8 +119,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const [postBpm, setPostBpm] = useState<number | null>(null)
   const [coherence, setCoherence] = useState(0)
   const [selesaiLoading, setSelesaiLoading] = useState(false)
-  const [hrvRmssd, setHrvRmssd] = useState<number | null>(null)
-  const [deviceLostNotice, setDeviceLostNotice] = useState(false)
 
   const tapsRef = useRef<number[]>([])
   const phaseRef = useRef<'Allah' | 'Hu'>('Allah')
@@ -154,45 +130,8 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const bpmSumRef = useRef(0)
   const bpmSamplesRef = useRef(0)
   const lastTapRef = useRef(0)
-  const sessionPhaseRef = useRef<Phase>('idle')
-  const minBpmRef = useRef<number | null>(null)
-  const maxBpmRef = useRef<number | null>(null)
-  const bpmTimeSeriesRef = useRef<{ t: number; bpm: number }[]>([])
-  const rrIntervalsSessionRef = useRef<number[]>([])
-  const usedDeviceNameRef = useRef<string>('tap')
-  const deviceLostTimerRef = useRef<number | null>(null)
 
   const isInfinity = sessionMin === 0
-
-  // ── Heart rate monitor (Web Bluetooth) ─────────────────────────────
-
-  const handleHrReading = useCallback((reading: HeartRateReading) => {
-    if (sessionPhaseRef.current !== 'running') return
-    const smoothed = smootherRef.current.add(reading.bpm)
-    intervalMsRef.current = 60000 / smoothed
-    bpmSumRef.current += smoothed
-    bpmSamplesRef.current += 1
-    setBpm(Number(smoothed.toFixed(1)))
-
-    minBpmRef.current = minBpmRef.current === null ? reading.bpm : Math.min(minBpmRef.current, reading.bpm)
-    maxBpmRef.current = maxBpmRef.current === null ? reading.bpm : Math.max(maxBpmRef.current, reading.bpm)
-    bpmTimeSeriesRef.current.push({ t: (performance.now() - startedAtRef.current) / 1000, bpm: reading.bpm })
-
-    if (reading.rrIntervalsMs.length) {
-      rrIntervalsSessionRef.current.push(...reading.rrIntervalsMs)
-      beatIntervalsRef.current.push(...reading.rrIntervalsMs)
-    }
-  }, [])
-
-  const handleUnexpectedDisconnect = useCallback(() => {
-    setDeviceLostNotice(true)
-    if (deviceLostTimerRef.current) window.clearTimeout(deviceLostTimerRef.current)
-    deviceLostTimerRef.current = window.setTimeout(() => setDeviceLostNotice(false), 4000)
-  }, [])
-
-  const hr = useHeartRateMonitor({ onReading: handleHrReading, onUnexpectedDisconnect: handleUnexpectedDisconnect })
-
-  useEffect(() => { sessionPhaseRef.current = phase }, [phase])
 
   // ── Tap Tempo ──────────────────────────────────────────────────────
 
@@ -226,7 +165,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setPreBpm(initialBpm)
     setPostBpm(null)
     setCoherence(0)
-    setHrvRmssd(null)
     beatIntervalsRef.current = []
     bpmSumRef.current = initialBpm
     bpmSamplesRef.current = 1
@@ -236,10 +174,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setRemaining(sessionMin * 60)
     setElapsed(0)
     startedAtRef.current = performance.now()
-    minBpmRef.current = initialBpm
-    maxBpmRef.current = initialBpm
-    bpmTimeSeriesRef.current = [{ t: 0, bpm: initialBpm }]
-    rrIntervalsSessionRef.current = []
     setPhase('running')
   }
 
@@ -288,7 +222,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   // ── Live BPM drift (simulate slight variation) ─────────────────────
 
   useEffect(() => {
-    if (phase !== 'running' || hr.state === 'connected') return
+    if (phase !== 'running') return
     const id = window.setInterval(() => {
       const drift = (Math.random() - 0.5) * 4
       const newBpm = smootherRef.current.add(bpm + drift)
@@ -298,35 +232,18 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
       setBpm(Number(newBpm.toFixed(1)))
     }, 3000)
     return () => window.clearInterval(id)
-  }, [phase, bpm, hr.state])
+  }, [phase, bpm])
 
   // ── Finalize ───────────────────────────────────────────────────────
 
   function finalizeSession() {
     if (timerRef.current) window.clearTimeout(timerRef.current)
-
-    const deviceConnected = hr.state === 'connected'
-    const rrSource = deviceConnected && rrIntervalsSessionRef.current.length >= 4
-      ? rrIntervalsSessionRef.current
-      : beatIntervalsRef.current
-    setCoherence(computeCoherence(rrSource))
-    setHrvRmssd(deviceConnected ? computeRmssd(rrIntervalsSessionRef.current) : null)
-    usedDeviceNameRef.current = deviceConnected ? (hr.deviceName ?? 'Peranti BPM') : 'tap'
-
+    const c = computeCoherence(beatIntervalsRef.current)
+    setCoherence(c)
     tapsRef.current = []
     setTapCount(0)
     setTapBpm(null)
-
-    if (deviceConnected) {
-      const totalSec = (performance.now() - startedAtRef.current) / 1000
-      const series = bpmTimeSeriesRef.current
-      const preAvg = average(series.filter(s => s.t <= 30).map(s => s.bpm))
-      const postAvg = average(series.filter(s => s.t >= totalSec - 30).map(s => s.bpm))
-      setPreBpm(preAvg !== null ? Math.round(preAvg) : preBpm)
-      commitAndShow(postAvg !== null ? Math.round(postAvg) : null)
-    } else {
-      setPhase('post_measure')
-    }
+    setPhase('post_measure')
   }
 
   function skipPostMeasure() { commitAndShow(null) }
@@ -353,10 +270,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         beatCount,
         coherence,
         consistency,
-        deviceName: usedDeviceNameRef.current,
-        minBpm: usedDeviceNameRef.current !== 'tap' ? minBpmRef.current : null,
-        maxBpm: usedDeviceNameRef.current !== 'tap' ? maxBpmRef.current : null,
-        hrvRmssd,
       })
     } finally {
       setSelesaiLoading(false)
@@ -376,7 +289,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setPreBpm(null)
     setPostBpm(null)
     setCoherence(0)
-    setHrvRmssd(null)
     setElapsed(0)
   }
 
@@ -410,54 +322,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
           </p>
         </div>
 
-        {/* Heart rate monitor connect */}
-        {hr.state !== 'unsupported' ? (
-          <div className="space-y-2 w-full max-w-xs">
-            {deviceLostNotice && (
-              <div className="py-2 px-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-[11px] text-amber-300 text-center">
-                ⚠️ {t('amalan.khafi_player.ble_device_lost')}
-              </div>
-            )}
-
-            {hr.state === 'connected' && (
-              <div className="flex items-center justify-between gap-3 py-3 px-4 rounded-xl border border-[#4ade8040] bg-[#4ade8010]">
-                <span className="text-xs text-[#4ade80]">✅ {hr.deviceName} — {hr.bpm ?? '—'} BPM</span>
-                <button onClick={hr.disconnect} className="text-[10px] uppercase tracking-widest text-red-400 hover:text-red-300 transition-colors">
-                  🔴 {t('amalan.khafi_player.ble_disconnect')}
-                </button>
-              </div>
-            )}
-
-            {hr.state === 'connecting' && (
-              <div className="py-3 px-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-xs text-amber-300 text-center">
-                🔍 {t('amalan.khafi_player.ble_connecting')}
-              </div>
-            )}
-
-            {hr.state === 'disconnected' && hr.error && (
-              <div className="space-y-2 py-3 px-4 rounded-xl border border-red-500/40 bg-red-500/10">
-                <p className="text-xs text-red-400 text-center">❌ {t('amalan.khafi_player.ble_error')}</p>
-                <button onClick={hr.connect} className="w-full py-2 rounded-lg border border-red-400/50 text-[10px] uppercase tracking-widest text-red-300 hover:bg-red-500/10 transition-colors">
-                  {t('amalan.khafi_player.ble_retry')}
-                </button>
-              </div>
-            )}
-
-            {hr.state === 'disconnected' && !hr.error && (
-              <button
-                onClick={hr.connect}
-                className="w-full py-3 rounded-xl border border-[#4ade8040] text-xs tracking-[0.15em] uppercase text-[#4ade80] hover:bg-[#4ade8010] transition-colors"
-              >
-                {t('amalan.khafi_player.ble_connect')}
-              </button>
-            )}
-
-            <p className="text-[#8a7a65] text-[10px] leading-relaxed">{t('amalan.khafi_player.ble_note')}</p>
-          </div>
-        ) : (
-          <p className="text-[#8a7a65] text-[10px] leading-relaxed max-w-xs">{t('amalan.khafi_player.ble_note')}</p>
-        )}
-
         {/* Session length */}
         <div className="space-y-3 w-full max-w-xs">
           <p className="text-[#8a7a65] text-[10px] uppercase tracking-[0.3em]">
@@ -478,16 +342,10 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
 
         <div className="flex flex-col items-center gap-3 w-full max-w-xs">
           <button
-            onClick={() => {
-              if (hr.state === 'connected' && hr.bpm) {
-                startSession(hr.bpm)
-              } else {
-                tapsRef.current = []; setTapCount(0); setTapBpm(null); setPhase('tapping')
-              }
-            }}
+            onClick={() => { tapsRef.current = []; setTapCount(0); setTapBpm(null); setPhase('tapping') }}
             className="w-full py-3.5 rounded-2xl border border-[#a78bfa50] text-sm tracking-[0.2em] uppercase text-[#a78bfa] hover:bg-[#a78bfa10] transition-colors"
           >
-            {hr.state === 'connected' ? t('amalan.khafi_player.mula_sesi') : t('amalan.khafi_player.mula_btn')}
+            {t('amalan.khafi_player.mula_btn')}
           </button>
           <button onClick={onCancel} className="text-[#8a7a65] text-xs hover:text-[#e8dcc8] transition-colors">
             ← {t('umum.kembali')}
@@ -593,17 +451,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
 
         {/* Stats + End button */}
         <div className="flex flex-col items-center gap-5 w-full">
-          {hr.state === 'connected' && (
-            <div className="flex items-center gap-3">
-              <p className="text-[9px] uppercase tracking-[0.3em] text-[#4ade80]">🫀 {hr.deviceName}</p>
-              <button onClick={hr.disconnect} className="text-[9px] uppercase tracking-[0.3em] text-red-400 hover:text-red-300 transition-colors">
-                🔴 {t('amalan.khafi_player.ble_disconnect')}
-              </button>
-            </div>
-          )}
-          {deviceLostNotice && (
-            <p className="text-[9px] uppercase tracking-[0.3em] text-amber-400">⚠️ {t('amalan.khafi_player.ble_device_lost')}</p>
-          )}
           <div className="flex gap-8 text-[10px] uppercase tracking-[0.3em] text-[#8a7a65]">
             <span>{bpm.toFixed(0)} bpm</span>
             <span>{beatCount} {t('amalan.khafi_player.ketukan').toLowerCase()}</span>
