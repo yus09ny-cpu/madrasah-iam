@@ -654,15 +654,18 @@ function KhafiSection({ userTier, onBack, onComplete }: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const db = supabase as any
 
-        // Biometric data — silently ignore if table belum wujud
-        await db.from('zikir_khafi_sessions').insert({
+        // Biometric data — table diperlukan; log (jangan swallow) supaya isu jelas di console
+        const khafiPayload = {
           user_id: user.id, session_date: today,
           duration_min: result.durationMin, actual_sec: result.actualSec,
           pre_bpm: result.preBpm, post_bpm: result.postBpm, avg_bpm: result.avgBpm,
           beat_count: result.beatCount, coherence: result.coherence, consistency: result.consistency,
           min_bpm: result.minBpm, max_bpm: result.maxBpm, hrv_rmssd: result.hrvRmssd,
-          device_name: result.deviceName,
-        }).catch(() => {})
+          device_name: result.deviceName || 'tap',
+        }
+        console.log('[zikir_khafi_sessions] payload:', khafiPayload)
+        const { error: khafiInsertErr } = await db.from('zikir_khafi_sessions').insert(khafiPayload)
+        if (khafiInsertErr) console.error('[zikir_khafi_sessions] insert error:', khafiInsertErr)
 
         // INSERT khafi_minit — kalau row dah ada (conflict), fallback ke UPDATE
         const { error: insertErr } = await db.from('amalan_sessions').insert({
