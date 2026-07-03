@@ -24,6 +24,26 @@ type Phase = 'idle' | 'tapping' | 'running' | 'post_measure' | 'summary'
 
 const SESSION_OPTIONS = [5, 10, 20, 0] as const  // 0 = ∞
 
+// Tap-detected BPM is accepted across a natural physiological range (not
+// clamped to the Zikir Khafi target) — the pacing guide brings it down
+// gradually during the session instead of forcing an immediate jump.
+const TAP_MIN = 30
+const TAP_MAX = 200
+const ZIKIR_RANGE_MAX = 60
+const TARGET_BPM = 50
+
+// Natural entrainment pace: ~2.5 BPM/min, bounded so extreme starting BPMs
+// don't produce absurdly long or short pacing windows.
+const PACING_RATE_BPM_PER_MIN = 2.5
+const MIN_DECAY_MIN = 3
+const MAX_DECAY_MIN = 20
+
+function estimateDecayMin(startBpm: number): number {
+  if (startBpm <= ZIKIR_RANGE_MAX) return 0
+  const raw = (startBpm - TARGET_BPM) / PACING_RATE_BPM_PER_MIN
+  return Math.min(MAX_DECAY_MIN, Math.max(MIN_DECAY_MIN, Math.round(raw)))
+}
+
 // ─── BPM Smoother (median + adaptive EMA) ────────────────────────────────────
 
 class BpmSmoother {
@@ -130,6 +150,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const bpmSumRef = useRef(0)
   const bpmSamplesRef = useRef(0)
   const lastTapRef = useRef(0)
+  const decayMsRef = useRef(0)
 
   const isInfinity = sessionMin === 0
 
@@ -151,7 +172,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
       }
       const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length
       const computed = Math.round(60000 / avg)
-      if (computed >= 40 && computed <= 60) setTapBpm(computed)
+      if (computed >= TAP_MIN && computed <= TAP_MAX) setTapBpm(computed)
     }
     if ('vibrate' in navigator) navigator.vibrate(8)
   }, [])
@@ -170,6 +191,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     bpmSamplesRef.current = 1
     intervalMsRef.current = 60000 / initialBpm
     phaseRef.current = 'Allah'
+    decayMsRef.current = estimateDecayMin(initialBpm) * 60 * 1000
     setBeatCount(0)
     setRemaining(sessionMin * 60)
     setElapsed(0)
@@ -219,20 +241,29 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, sessionMin, isInfinity])
 
-  // ── Live BPM drift (simulate slight variation) ─────────────────────
-
+  // ── Pacing guide — gradual linear decay from the real starting BPM down to
+  // TARGET_BPM over decayMsRef (entrainment: guide first, heart follows).
+  // If the starting BPM is already within the Zikir Khafi range, decayMsRef
+  // is 0 and the pacing simply holds steady — no forced drop.
   useEffect(() => {
     if (phase !== 'running') return
+    const startBpm = preBpm ?? bpm
+    const decayMs = decayMsRef.current
     const id = window.setInterval(() => {
-      const drift = (Math.random() - 0.5) * 4
-      const newBpm = smootherRef.current.add(bpm + drift)
-      intervalMsRef.current = 60000 / newBpm
-      bpmSumRef.current += newBpm
+      if (decayMs <= 0) return
+      const elapsedMs = performance.now() - startedAtRef.current
+      const progress = Math.min(1, elapsedMs / decayMs)
+      const pacingTarget = startBpm - (startBpm - TARGET_BPM) * progress
+      const clamped = Math.max(TARGET_BPM, pacingTarget)
+      const smoothed = smootherRef.current.add(clamped)
+      intervalMsRef.current = 60000 / smoothed
+      bpmSumRef.current += smoothed
       bpmSamplesRef.current += 1
-      setBpm(Number(newBpm.toFixed(1)))
-    }, 3000)
+      setBpm(Number(smoothed.toFixed(1)))
+    }, 2000)
     return () => window.clearInterval(id)
-  }, [phase, bpm])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
 
   // ── Finalize ───────────────────────────────────────────────────────
 
@@ -306,6 +337,12 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
 
   const bpmDelta = preBpm !== null && postBpm !== null ? postBpm - preBpm : null
 
+  const isPacingDown = preBpm !== null && preBpm > ZIKIR_RANGE_MAX
+  const pacingProgress = isPacingDown && preBpm !== null
+    ? Math.max(0, Math.min(1, (preBpm - bpm) / (preBpm - TARGET_BPM)))
+    : 1
+  const inZikirRange = bpm <= ZIKIR_RANGE_MAX
+
   // ── Render ─────────────────────────────────────────────────────────
 
   // ── IDLE ─────────────────────────────────────────────────────────────
@@ -367,7 +404,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         {/* Tap circle + ±1 buttons */}
         <div className="flex items-center gap-5">
           <button
-            onClick={() => setTapBpm(prev => Math.max(40, (prev ?? 60) - 1))}
+            onClick={() => setTapBpm(prev => Math.max(TAP_MIN, (prev ?? 60) - 1))}
             className="w-10 h-10 rounded-full border border-[#1e2d40] text-[#8a7a65] hover:text-[#e8dcc8] hover:border-[#a78bfa30] transition-all flex items-center justify-center text-xl select-none"
           >−</button>
 
@@ -386,7 +423,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
           </button>
 
           <button
-            onClick={() => setTapBpm(prev => Math.min(60, (prev ?? 60) + 1))}
+            onClick={() => setTapBpm(prev => Math.min(TAP_MAX, (prev ?? 60) + 1))}
             className="w-10 h-10 rounded-full border border-[#1e2d40] text-[#8a7a65] hover:text-[#e8dcc8] hover:border-[#a78bfa30] transition-all flex items-center justify-center text-xl select-none"
           >+</button>
         </div>
@@ -398,6 +435,14 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
             ? t('amalan.khafi_player.ketuk_terus', { n: tapCount })
             : t('amalan.khafi_player.ketuk_stabil', { n: tapCount })}
         </p>
+
+        {tapBpm !== null && (
+          <p className={cn('text-xs max-w-xs leading-relaxed', tapBpm > ZIKIR_RANGE_MAX ? 'text-[#a78bfa]' : 'text-[#4ade80]')}>
+            {tapBpm > ZIKIR_RANGE_MAX
+              ? t('amalan.khafi_player.pacing_intro', { bpm: tapBpm, min: estimateDecayMin(tapBpm) })
+              : t('amalan.khafi_player.pacing_ready')}
+          </p>
+        )}
 
         <div className="flex gap-3">
           <button onClick={resetAll} className="px-5 py-2 text-xs tracking-widest uppercase text-[#8a7a65] hover:text-[#e8dcc8] transition-colors">
@@ -420,10 +465,28 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     return (
       <div className="relative min-h-[70dvh] flex flex-col items-center justify-between py-10 select-none">
         {/* Timer top */}
-        <div className="text-center">
+        <div className="flex flex-col items-center gap-3">
           <p className="text-[#8a7a65] text-[10px] uppercase tracking-[0.4em] font-mono">
             {isInfinity ? `${mmss} ${t('amalan.khafi_player.berlalu')}` : mmss}
           </p>
+
+          {/* Pacing guide — only shown when starting BPM was above the Zikir Khafi range */}
+          {isPacingDown && preBpm !== null && (
+            <div className="w-full max-w-[220px] flex flex-col items-center gap-1.5">
+              <p className="text-[9px] uppercase tracking-[0.25em] text-[#8a7a65]">
+                {t('amalan.khafi_player.pacing_progress', { start: preBpm, target: TARGET_BPM })}
+              </p>
+              <div className="w-full h-1 bg-[#1e2d40] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#a78bfa] transition-all duration-700"
+                  style={{ width: `${pacingProgress * 100}%` }}
+                />
+              </div>
+              {inZikirRange && (
+                <p className="text-[10px] text-[#4ade80]">{t('amalan.khafi_player.pacing_in_range')}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Animated Orb — tap anywhere to add count */}
@@ -480,7 +543,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         </p>
 
         <div className="flex items-center gap-5">
-          <button onClick={() => setTapBpm(prev => Math.max(40, (prev ?? 60) - 1))}
+          <button onClick={() => setTapBpm(prev => Math.max(TAP_MIN, (prev ?? 60) - 1))}
             className="w-10 h-10 rounded-full border border-[#1e2d40] text-[#8a7a65] hover:text-[#e8dcc8] hover:border-[#a78bfa30] transition-all flex items-center justify-center text-xl select-none">
             −
           </button>
@@ -495,7 +558,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
               {tapBpm ? 'bpm' : t('amalan.khafi_player.ketuk_tap')}
             </span>
           </button>
-          <button onClick={() => setTapBpm(prev => Math.min(60, (prev ?? 60) + 1))}
+          <button onClick={() => setTapBpm(prev => Math.min(TAP_MAX, (prev ?? 60) + 1))}
             className="w-10 h-10 rounded-full border border-[#1e2d40] text-[#8a7a65] hover:text-[#e8dcc8] hover:border-[#a78bfa30] transition-all flex items-center justify-center text-xl select-none">
             +
           </button>

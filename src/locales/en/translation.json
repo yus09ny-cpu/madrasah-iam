@@ -740,7 +740,11 @@
       "purata_bpm": "Avg BPM",
       "konsistensi": "Consistency",
       "ulangi": "Repeat Again",
-      "selesai_btn": "Complete & Continue →"
+      "selesai_btn": "Complete & Continue →",
+      "pacing_intro": "Your starting BPM: {{bpm}} — we'll gradually pace it down to the Zikir Khafi range (~{{min}} min)",
+      "pacing_ready": "✓ Already within the Zikir Khafi range (40–60 BPM)",
+      "pacing_progress": "Starting BPM {{start}} → Target {{target}}",
+      "pacing_in_range": "✓ Within Zikir Khafi range"
     }
   },
   "ajv2": {

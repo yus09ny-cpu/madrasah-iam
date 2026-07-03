@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom'
 import { Shield, ArrowLeft, FlaskConical, RotateCcw, Play, Square } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRateMonitor'
+import ZikirKhafiPlayer from '@/components/zikir/ZikirKhafiPlayer'
 
 // ---------------------------------------------------------------------------
 // BpmSmoother — median window 5 + adaptive EMA (zikirkhafi)
@@ -124,8 +125,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const [sessionMin, setSessionMin] = useState<5 | 10 | 20>(10)
   const [remaining, setRemaining] = useState(0)
   const [pacingBpm, setPacingBpm] = useState(60)     // current pacing BPM (decreasing)
-  const [currentLabel, setCurrentLabel] = useState<'Allah' | 'Hu'>('Allah')
-  const [pulse, setPulse] = useState(0)               // 0–1, drives heart scale
 
   // ── Tap refs (animation loop) ──
   const tapsRef = useRef<number[]>([])
@@ -143,13 +142,16 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const timerRef = useRef<number | null>(null)
   const sessionPhaseRef = useRef<SessionPhase>('idle')
 
-  // ── Canvas refs (waveform + outer breath ring only) ──
+  // ── Canvas refs (waveform only) ──
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const pacerOuterRef = useRef<HTMLDivElement>(null)
-  const pacerOuterLabelRef = useRef<HTMLSpanElement>(null)
 
   // ── Signal quality (dry electrode detection) ──
   const [noSignal, setNoSignal] = useState(false)
+  // Driven by the device's own GATT Sensor Contact Status bit (spec-reported,
+  // not inferred) — chest straps with poor/dry electrode contact routinely
+  // double-count beats (T-wave oversensing / motion artifact), which reads as
+  // an implausibly high but internally "consistent" BPM + R-R pair.
+  const [poorContact, setPoorContact] = useState(false)
   const lastValidReadingRef = useRef<number>(0)
 
   // ---------------------------------------------------------------------------
@@ -163,6 +165,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     }
     lastValidReadingRef.current = performance.now()
     setNoSignal(false)
+    setPoorContact(reading.sensorContact === 'not_detected')
 
     const smoothed = Math.round(smootherRef.current.add(reading.bpm))
     setTapBpm(reading.bpm)
@@ -288,8 +291,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     phaseRef.current = 'Allah'
     setRemaining(sessionMin * 60)
     setPacingBpm(bpmRef.current)
-    setCurrentLabel('Allah')
-    setPulse(0)
     setSessionPhase('running')
   }, [canStart, sessionMin])
 
@@ -297,7 +298,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current)
     timerRef.current = null
     setSessionPhase('idle')
-    setPulse(0)
   }, [])
 
   // ---------------------------------------------------------------------------
@@ -316,11 +316,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         const isAllah = phaseRef.current === 'Allah'
         if (isAllah) fireAllah()
         else fireHu()
-
-        setCurrentLabel(phaseRef.current)
-        const pulseVal = isAllah ? 1 : 0.55
-        setPulse(pulseVal)
-        window.setTimeout(() => { if (!cancelled) setPulse(0) }, isAllah ? 220 : 320)
 
         phaseRef.current = isAllah ? 'Hu' : 'Allah'
         scheduleNext()
@@ -401,7 +396,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     const ctx = canvas.getContext('2d')!
     let animationFrameId: number
     let phase = 0
-    let breathCycle = 0
 
     const resizeCanvas = () => {
       const dpr = window.devicePixelRatio || 1
@@ -445,22 +439,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
       }
       ctx.stroke()
 
-      // Outer breath ring — oscillates perlahan (~3 nafas/min)
-      breathCycle += 0.005
-      const breathProgress = (Math.sin(breathCycle) + 1) / 2
-      if (pacerOuterRef.current) pacerOuterRef.current.style.transform = `scale(${0.85 + breathProgress * 0.4})`
-      if (pacerOuterLabelRef.current && pacerOuterRef.current) {
-        if (breathProgress > 0.6) {
-          pacerOuterLabelRef.current.textContent = 'Keadaan Nafas: Tahan Nafas'
-          pacerOuterLabelRef.current.className = 'text-xs text-amber-300 font-medium uppercase tracking-widest mb-3 transition-colors duration-300'
-          pacerOuterRef.current.className = 'absolute inset-0 rounded-full bg-amber-500/5 border border-amber-500/35 transition-colors duration-500'
-        } else {
-          pacerOuterLabelRef.current.textContent = 'Keadaan Nafas: Lepas Semula'
-          pacerOuterLabelRef.current.className = 'text-xs text-emerald-400 font-medium uppercase tracking-widest mb-3 transition-colors duration-300'
-          pacerOuterRef.current.className = 'absolute inset-0 rounded-full bg-emerald-500/5 border border-emerald-500/20 transition-colors duration-500'
-        }
-      }
-
       animationFrameId = requestAnimationFrame(animate)
     }
 
@@ -472,9 +450,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   // Render
   // ---------------------------------------------------------------------------
   const isRunning = sessionPhase === 'running'
-  const heartColor = isRunning
-    ? currentLabel === 'Allah' ? 'amber' : 'emerald'
-    : inZikirRange ? 'emerald' : 'amber'
 
   return (
     <div className="min-h-screen flex flex-col justify-between overflow-x-hidden bg-[#0b0f19] text-gray-100 font-sans">
@@ -577,6 +552,11 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                 {hr.state === 'connected' && noSignal && (
                   <div className="py-2 px-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-[11px] text-amber-300 text-center">
                     ⚠️ Tiada isyarat — pastikan elektrod lembap &amp; rapat ke kulit
+                  </div>
+                )}
+                {hr.state === 'connected' && !noSignal && poorContact && (
+                  <div className="py-2 px-4 rounded-xl border border-red-500/40 bg-red-500/10 text-[11px] text-red-300 text-center">
+                    ⚠️ H64 melaporkan hubungan elektrod lemah — BPM/R-R mungkin double-count (T-wave/artifak). Ketatkan strap &amp; lembapkan elektrod.
                   </div>
                 )}
                 {hr.state !== 'connected' && (
@@ -683,62 +663,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               )}
             </div>
 
-            {/* Divider + Heart Orb (Allah/Hu pacing visual) */}
-            <div className="w-full pt-4 border-t border-gray-800/60 flex flex-col items-center">
-              <span ref={pacerOuterLabelRef} className="text-xs text-amber-200/70 uppercase tracking-widest mb-3">
-                Keadaan Nafas: Tahan Nafas
-              </span>
-
-              <div className="relative w-32 h-32 flex items-center justify-center">
-                {/* Outer breath ring — dipacu oleh canvas rAF */}
-                <div ref={pacerOuterRef} className="absolute inset-0 rounded-full bg-emerald-500/5 border border-emerald-500/20 transition-transform duration-500 ease-out" />
-
-                {/* Inner heart orb — dipacu oleh scheduleNext() React state */}
-                <div
-                  className={`absolute w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all duration-75 ${
-                    heartColor === 'amber'
-                      ? 'bg-amber-500/20 border-2 border-amber-500/60 shadow-[0_0_20px_rgba(245,158,11,0.3)]'
-                      : 'bg-emerald-500/20 border-2 border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
-                  }`}
-                  style={{ transform: `scale(${1 + pulse * 0.35})` }}
-                >
-                  <svg
-                    className={`w-8 h-8 transition-all duration-150 ${
-                      heartColor === 'amber'
-                        ? 'text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]'
-                        : 'text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.6)]'
-                    }`}
-                    fill="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Allah/Hu label — aktif semasa sesi */}
-              {isRunning && (
-                <div className={`mt-3 text-lg font-light tracking-[0.3em] uppercase transition-all duration-150 ${
-                  currentLabel === 'Allah' ? 'text-amber-300' : 'text-emerald-300'
-                }`}>
-                  {currentLabel}
-                </div>
-              )}
-
-              <div className="mt-4 flex gap-5 text-[10px] uppercase tracking-wider text-gray-500">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500/20 border border-amber-500/60" />
-                  <span>Beat 1: AL-LLAHHU</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/20 border border-emerald-500/60" />
-                  <span>Beat 2: ALLAH</span>
-                </div>
-              </div>
-
-              <p className="text-xs text-center text-gray-400 mt-4 max-w-xs italic leading-relaxed">
-                Tahan nafas atau lepaskan secara semula jadi. Tutup bibir, diam lisan — fokus sepenuh hati menyelaraskan diri dengan glow jantung yang berganti warna.
-              </p>
-            </div>
           </div>
 
           {/* BLE LOG */}
@@ -870,6 +794,26 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       </main>
+
+      {/* ── SIMULASI ZIKIR KHAFI (komponen TQN sebenar, dari tab Amalan) ── */}
+      <div className="max-w-7xl w-full mx-auto px-4 lg:px-6 pb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-[#a78bfa30]" />
+          <span className="text-xs uppercase tracking-[0.3em] text-[#a78bfa] font-medium whitespace-nowrap">
+            Simulasi Zikir Khafi
+          </span>
+          <div className="flex-1 h-px bg-[#a78bfa30]" />
+        </div>
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(17,24,39,0.7)', border: '1px solid rgba(167,139,250,0.15)' }}>
+          <ZikirKhafiPlayer
+            onSessionDone={async () => { /* dev simulation — sengaja tidak disimpan ke Supabase */ }}
+            onCancel={() => {}}
+          />
+        </div>
+        <p className="text-center text-[10px] text-yellow-500/70 mt-3">
+          ⚠️ Data simulasi tidak disimpan
+        </p>
+      </div>
 
       <footer className="border-t border-gray-800 bg-gray-950/60 p-4 text-center text-xs text-gray-500">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">

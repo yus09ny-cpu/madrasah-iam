@@ -740,7 +740,11 @@
       "purata_bpm": "متوسط BPM",
       "konsistensi": "الاتساق",
       "ulangi": "أعِد",
-      "selesai_btn": "أتمم وتابع →"
+      "selesai_btn": "أتمم وتابع →",
+      "pacing_intro": "معدل نبضك عند البدء: {{bpm}} — سنخفضه تدريجياً إلى نطاق الذكر الخفي (~{{min}} دقيقة)",
+      "pacing_ready": "✓ ضمن نطاق الذكر الخفي بالفعل (40–60 نبضة)",
+      "pacing_progress": "البداية {{start}} ← الهدف {{target}}",
+      "pacing_in_range": "✓ ضمن نطاق الذكر الخفي"
     }
   },
   "ajv2": {

@@ -36,10 +36,13 @@ interface NavigatorBluetooth {
 
 export type HeartRateMonitorState = 'unsupported' | 'disconnected' | 'connecting' | 'connected'
 
+export type SensorContactStatus = 'not_supported' | 'not_detected' | 'detected'
+
 export interface HeartRateReading {
   bpm: number
   rrIntervalsMs: number[]
   timestamp: number
+  sensorContact: SensorContactStatus
 }
 
 interface UseHeartRateMonitorOptions {
@@ -57,7 +60,9 @@ function getBluetooth(): NavigatorBluetooth | undefined {
 // ─── Parse heart_rate_measurement (GATT 0x2A37) ────────────────────────────
 // Flags byte: bit0 HR format, bit1-2 sensor contact, bit3 energy expended present, bit4 RR-interval present.
 
-function parseHeartRateMeasurement(value: DataView): { bpm: number; rrIntervalsMs: number[] } {
+function parseHeartRateMeasurement(
+  value: DataView,
+): { bpm: number; rrIntervalsMs: number[]; sensorContact: SensorContactStatus } {
   const flags = value.getUint8(0)
   let index = 1
   let bpm: number
@@ -78,7 +83,21 @@ function parseHeartRateMeasurement(value: DataView): { bpm: number; rrIntervalsM
       index += 2
     }
   }
-  return { bpm, rrIntervalsMs }
+
+  // Bit 2: Sensor Contact Status feature supported. Bit 1 (only meaningful
+  // when bit 2 = 1): contact currently detected. Straps with poor/dry
+  // electrode contact routinely double-count beats (T-wave oversensing,
+  // motion/EMG artifact) — this is the device's own confirmation of that,
+  // not a guess computed from the BPM/RR numbers themselves.
+  const contactFeatureSupported = (flags >> 2) & 0x1
+  const contactDetected = (flags >> 1) & 0x1
+  const sensorContact: SensorContactStatus = !contactFeatureSupported
+    ? 'not_supported'
+    : contactDetected
+    ? 'detected'
+    : 'not_detected'
+
+  return { bpm, rrIntervalsMs, sensorContact }
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────
@@ -99,9 +118,13 @@ export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
   const handleValueChanged = useCallback((event: Event) => {
     const characteristic = event.target as BluetoothRemoteGATTCharacteristic
     if (!characteristic.value) return
-    const { bpm: heartRate, rrIntervalsMs } = parseHeartRateMeasurement(characteristic.value)
+    const { bpm: heartRate, rrIntervalsMs, sensorContact } = parseHeartRateMeasurement(characteristic.value)
+    if (import.meta.env.DEV) {
+      const raw = new Uint8Array(characteristic.value.buffer, characteristic.value.byteOffset, characteristic.value.byteLength)
+      console.log('[H64] raw bytes:', Array.from(raw).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')), 'sensorContact:', sensorContact)
+    }
     setBpm(heartRate)
-    onReadingRef.current?.({ bpm: heartRate, rrIntervalsMs, timestamp: performance.now() })
+    onReadingRef.current?.({ bpm: heartRate, rrIntervalsMs, sensorContact, timestamp: performance.now() })
   }, [])
 
   const handleGattDisconnected = useCallback(() => {

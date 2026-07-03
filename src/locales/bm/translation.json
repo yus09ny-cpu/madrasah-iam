@@ -740,7 +740,11 @@
       "purata_bpm": "Purata BPM",
       "konsistensi": "Konsistensi",
       "ulangi": "Ulangi",
-      "selesai_btn": "Selesai & Teruskan →"
+      "selesai_btn": "Selesai & Teruskan →",
+      "pacing_intro": "BPM permulaan anda: {{bpm}} — akan diturunkan perlahan ke julat Zikir Khafi (~{{min}} minit)",
+      "pacing_ready": "✓ Sudah dalam julat Zikir Khafi (40–60 BPM)",
+      "pacing_progress": "BPM Permulaan {{start}} → Sasaran {{target}}",
+      "pacing_in_range": "✓ Dalam julat Zikir Khafi"
     }
   },
   "ajv2": {
