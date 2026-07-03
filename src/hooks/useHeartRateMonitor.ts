@@ -21,6 +21,7 @@ interface BluetoothRemoteGATTServer {
 }
 
 interface BluetoothDevice extends EventTarget {
+  readonly id: string
   readonly name?: string
   readonly gatt?: BluetoothRemoteGATTServer
 }
@@ -105,6 +106,7 @@ function parseHeartRateMeasurement(
 export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
   const [state, setState] = useState<HeartRateMonitorState>(getBluetooth() ? 'disconnected' : 'unsupported')
   const [deviceName, setDeviceName] = useState<string | null>(null)
+  const [deviceId, setDeviceId] = useState<string | null>(null)
   const [bpm, setBpm] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -133,6 +135,7 @@ export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
     setState(getBluetooth() ? 'disconnected' : 'unsupported')
     setBpm(null)
     setDeviceName(null)
+    setDeviceId(null)
     deviceRef.current = null
     characteristicRef.current = null
     onUnexpectedDisconnectRef.current?.()
@@ -150,6 +153,7 @@ export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
       const device = await bluetooth.requestDevice({ filters: [{ services: ['heart_rate'] }] })
       deviceRef.current = device
       setDeviceName(device.name ?? 'Peranti BPM')
+      setDeviceId(device.id)
       device.addEventListener('gattserverdisconnected', handleGattDisconnected)
 
       const server = await device.gatt!.connect()
@@ -185,6 +189,7 @@ export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
     setState(getBluetooth() ? 'disconnected' : 'unsupported')
     setBpm(null)
     setDeviceName(null)
+    setDeviceId(null)
     setError(null)
   }, [handleValueChanged, handleGattDisconnected])
 
@@ -204,5 +209,5 @@ export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
     }
   }, [handleValueChanged, handleGattDisconnected])
 
-  return { state, deviceName, bpm, error, connect, disconnect }
+  return { state, deviceName, deviceId, bpm, error, connect, disconnect }
 }

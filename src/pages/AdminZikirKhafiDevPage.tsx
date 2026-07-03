@@ -17,9 +17,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Shield, ArrowLeft, FlaskConical, RotateCcw, Play, Square } from 'lucide-react'
+import { format } from 'date-fns'
 import { useAuthStore } from '@/store/authStore'
 import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRateMonitor'
+import { supabase } from '@/lib/supabase'
 import ZikirKhafiPlayer from '@/components/zikir/ZikirKhafiPlayer'
+import HrvSessionsReview from '@/components/admin/HrvSessionsReview'
 
 // ---------------------------------------------------------------------------
 // BpmSmoother — median window 5 + adaptive EMA (zikirkhafi)
@@ -57,6 +60,30 @@ function computeCoherence(intervalsMs: number[]): number {
   }
   const rmssd = Math.sqrt(sq / (intervalsMs.length - 1))
   return Math.max(0, Math.min(1, 1 - rmssd / mean / 0.15))
+}
+
+// ---------------------------------------------------------------------------
+// computeRmssdMs — raw RMSSD in ms (not normalized), for saved experiment rows
+// ---------------------------------------------------------------------------
+function computeRmssdMs(intervalsMs: number[]): number {
+  if (intervalsMs.length < 2) return 0
+  let sq = 0
+  for (let i = 1; i < intervalsMs.length; i++) {
+    const d = intervalsMs[i] - intervalsMs[i - 1]
+    sq += d * d
+  }
+  return Math.sqrt(sq / (intervalsMs.length - 1))
+}
+
+// ---------------------------------------------------------------------------
+// computeConsistency — 0–100%, low variance in raw BPM samples = high score
+// (sama formula seperti ZikirKhafiPlayer's BpmSmoother.consistency())
+// ---------------------------------------------------------------------------
+function computeConsistency(samples: number[]): number {
+  if (samples.length < 3) return 100
+  const mean = samples.reduce((a, b) => a + b, 0) / samples.length
+  const variance = samples.reduce((a, b) => a + (b - mean) ** 2, 0) / samples.length
+  return Math.round(Math.max(0, 1 - Math.min(1, Math.sqrt(variance) / mean)) * 100)
 }
 
 // ---------------------------------------------------------------------------
@@ -111,7 +138,28 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+interface PendingSave {
+  device_name: string
+  device_id: string | null
+  duration_seconds: number
+  start_bpm: number
+  end_bpm: number
+  avg_bpm: number
+  min_bpm: number
+  max_bpm: number
+  rmssd: number
+  coherence_score: number
+  consistency_score: number
+  beat_count: number
+  stage_achieved: number
+  pacing_start_bpm: number
+  pacing_end_bpm: number
+}
+
 function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
+  const { user } = useAuthStore()
+  const [viewMode, setViewMode] = useState<'monitor' | 'review'>('monitor')
+
   // ── Tap calibration state ──
   const [tapBpm, setTapBpm] = useState<number | null>(null)
   const [, setBpm] = useState(60)              // smoothed tap BPM (dipapar via bpmRef)
@@ -125,6 +173,23 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const [sessionMin, setSessionMin] = useState<5 | 10 | 20>(10)
   const [remaining, setRemaining] = useState(0)
   const [pacingBpm, setPacingBpm] = useState(60)     // current pacing BPM (decreasing)
+
+  // ── Experiment save state (hrv_sessions) ──
+  const [pendingSave, setPendingSave] = useState<PendingSave | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saveResult, setSaveResult] = useState<'idle' | 'success' | 'error'>('idle')
+  const [sessionNotes, setSessionNotes] = useState('')
+
+  // ── Session-aggregate refs (real device readings only, for hrv_sessions) ──
+  const minBpmRef = useRef<number | null>(null)
+  const maxBpmRef = useRef<number | null>(null)
+  const bpmSumRef = useRef(0)
+  const bpmSamplesRef = useRef(0)
+  const sessionBpmSamplesRef = useRef<number[]>([])
+  const sessionRrRef = useRef<number[]>([])
+  const maxStageRef = useRef(1)
+  const sessionUsedDeviceRef = useRef(false)
+  const beatCountRef = useRef(0)
 
   // ── Tap refs (animation loop) ──
   const tapsRef = useRef<number[]>([])
@@ -189,6 +254,20 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     const coh = Math.round(computeCoherence(intervalsRef.current) * 100)
     coherenceRef.current = coh
     setCoherence(coh)
+
+    // Accumulate real-device stats for the running session only — this is
+    // what distinguishes an "experiment" row from tap-tempo calibration.
+    if (sessionPhaseRef.current === 'running') {
+      sessionUsedDeviceRef.current = true
+      bpmSumRef.current += reading.bpm
+      bpmSamplesRef.current += 1
+      sessionBpmSamplesRef.current = [...sessionBpmSamplesRef.current, reading.bpm].slice(-1000)
+      minBpmRef.current = minBpmRef.current === null ? reading.bpm : Math.min(minBpmRef.current, reading.bpm)
+      maxBpmRef.current = maxBpmRef.current === null ? reading.bpm : Math.max(maxBpmRef.current, reading.bpm)
+      if (reading.rrIntervalsMs.length) sessionRrRef.current = [...sessionRrRef.current, ...reading.rrIntervalsMs].slice(-1000)
+      const stage = coh >= 86 ? 3 : coh >= 71 ? 2 : 1
+      maxStageRef.current = Math.max(maxStageRef.current, stage)
+    }
   }, [])
 
   const [showDisconnectWarning, setShowDisconnectWarning] = useState(false)
@@ -291,6 +370,18 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     phaseRef.current = 'Allah'
     setRemaining(sessionMin * 60)
     setPacingBpm(bpmRef.current)
+    setPendingSave(null)
+    setSaveResult('idle')
+    setSessionNotes('')
+    minBpmRef.current = null
+    maxBpmRef.current = null
+    bpmSumRef.current = 0
+    bpmSamplesRef.current = 0
+    sessionBpmSamplesRef.current = []
+    sessionRrRef.current = []
+    maxStageRef.current = 1
+    sessionUsedDeviceRef.current = false
+    beatCountRef.current = 0
     setSessionPhase('running')
   }, [canStart, sessionMin])
 
@@ -298,6 +389,60 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current)
     timerRef.current = null
     setSessionPhase('idle')
+
+    // Only offer to save when the session actually received real Magene H64
+    // readings — tap-tempo-only calibration never produces an hrv_sessions row.
+    if (sessionUsedDeviceRef.current && bpmSamplesRef.current > 0) {
+      setPendingSave({
+        device_name: hr.deviceName ?? 'Magene H64',
+        device_id: hr.deviceId,
+        duration_seconds: Math.max(1, Math.round((performance.now() - startedAtRef.current) / 1000)),
+        start_bpm: startBpmRef.current,
+        end_bpm: bpmRef.current,
+        avg_bpm: Number((bpmSumRef.current / bpmSamplesRef.current).toFixed(1)),
+        min_bpm: minBpmRef.current ?? bpmRef.current,
+        max_bpm: maxBpmRef.current ?? bpmRef.current,
+        rmssd: Number(computeRmssdMs(sessionRrRef.current).toFixed(1)),
+        coherence_score: Math.round(computeCoherence(sessionRrRef.current) * 100),
+        consistency_score: computeConsistency(sessionBpmSamplesRef.current),
+        beat_count: beatCountRef.current,
+        stage_achieved: maxStageRef.current,
+        pacing_start_bpm: startBpmRef.current,
+        pacing_end_bpm: pacingBpm,
+      })
+    }
+  }, [hr.deviceName, hr.deviceId, pacingBpm])
+
+  // ---------------------------------------------------------------------------
+  // hrv_sessions save — admin-only real-device experiment data
+  // ---------------------------------------------------------------------------
+  const handleSaveSession = useCallback(async () => {
+    if (!pendingSave || !user || saving) return
+    setSaving(true)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const { error } = await db.from('hrv_sessions').insert({
+        user_id: user.id,
+        session_date: format(new Date(), 'yyyy-MM-dd'),
+        notes: sessionNotes.trim() || null,
+        ...pendingSave,
+      })
+      if (error) throw error
+      setSaveResult('success')
+      window.setTimeout(() => { setPendingSave(null); setSaveResult('idle'); setSessionNotes('') }, 2000)
+    } catch (err) {
+      console.error('[hrv_sessions] save error:', err)
+      setSaveResult('error')
+    } finally {
+      setSaving(false)
+    }
+  }, [pendingSave, user, saving, sessionNotes])
+
+  const handleDiscardSession = useCallback(() => {
+    setPendingSave(null)
+    setSessionNotes('')
+    setSaveResult('idle')
   }, [])
 
   // ---------------------------------------------------------------------------
@@ -317,6 +462,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         if (isAllah) fireAllah()
         else fireHu()
 
+        beatCountRef.current += 1
         phaseRef.current = isAllah ? 'Hu' : 'Allah'
         scheduleNext()
       }, intervalMsRef.current)
@@ -492,6 +638,32 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         </div>
       </header>
 
+      {/* Live Monitor / Review toggle */}
+      <div className="border-b border-gray-800 bg-gray-950/60 px-6 py-3">
+        <div className="max-w-7xl mx-auto flex gap-2">
+          <button
+            onClick={() => setViewMode('monitor')}
+            className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all ${
+              viewMode === 'monitor' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300' : 'border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+            }`}
+          >
+            🫀 Live Monitor
+          </button>
+          <button
+            onClick={() => setViewMode('review')}
+            className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all ${
+              viewMode === 'review' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300' : 'border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+            }`}
+          >
+            📊 Review
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'review' && user && <HrvSessionsReview userId={user.id} />}
+
+      {viewMode === 'monitor' && (
+      <>
       {/* Prominent BLE disconnect warning — visible regardless of running state */}
       {showDisconnectWarning && (
         <div className="border-b border-red-800/50 bg-red-950/40 px-6 py-3">
@@ -618,9 +790,57 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               </>
             )}
 
+            {/* Pending experiment save — real Magene H64 session just stopped */}
+            {!isRunning && pendingSave && (
+              <div className="w-full space-y-3 p-4 rounded-xl border border-purple-500/30 bg-purple-500/5">
+                <p className="text-sm text-purple-300 font-medium">📊 Sesi eksperimen selesai — simpan data?</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-gray-400">
+                  <div>BPM: <span className="text-gray-200">{pendingSave.start_bpm} → {pendingSave.end_bpm}</span></div>
+                  <div>Purata: <span className="text-gray-200">{pendingSave.avg_bpm} BPM</span></div>
+                  <div>Min/Max: <span className="text-gray-200">{pendingSave.min_bpm}–{pendingSave.max_bpm} BPM</span></div>
+                  <div>RMSSD: <span className="text-gray-200">{pendingSave.rmssd} ms</span></div>
+                  <div>Coherence: <span className="text-gray-200">{pendingSave.coherence_score}%</span></div>
+                  <div>Konsistensi: <span className="text-gray-200">{pendingSave.consistency_score}%</span></div>
+                  <div>Ketukan: <span className="text-gray-200">{pendingSave.beat_count}</span></div>
+                  <div>Stage tertinggi: <span className="text-gray-200">{pendingSave.stage_achieved}</span></div>
+                  <div>Pacing: <span className="text-gray-200">{pendingSave.pacing_start_bpm} → {pendingSave.pacing_end_bpm}</span></div>
+                  <div>Tempoh: <span className="text-gray-200">{formatTime(pendingSave.duration_seconds)}</span></div>
+                  <div className="col-span-2">Peranti: <span className="text-gray-200">{pendingSave.device_name}</span>{pendingSave.device_id && <span className="text-gray-600"> ({pendingSave.device_id})</span>}</div>
+                </div>
+                {saveResult !== 'success' && (
+                  <textarea
+                    value={sessionNotes}
+                    onChange={e => setSessionNotes(e.target.value)}
+                    placeholder="Nota (pilihan) — cth: elektrod lembap, subjek duduk tenang..."
+                    rows={2}
+                    className="w-full text-xs bg-gray-950/50 border border-gray-800 rounded-lg px-3 py-2 text-gray-300 placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50 resize-none"
+                  />
+                )}
+                {saveResult === 'error' && (
+                  <p className="text-xs text-red-400">Gagal simpan — semak console &amp; pastikan table hrv_sessions wujud.</p>
+                )}
+                {saveResult === 'success' ? (
+                  <p className="text-xs text-emerald-400">✓ Disimpan ke hrv_sessions</p>
+                ) : (
+                  <div className="flex gap-2">
+                    <button onClick={handleDiscardSession} className="flex-1 py-2 rounded-lg text-xs border border-gray-700 text-gray-400 hover:text-gray-200 transition-colors">
+                      Buang
+                    </button>
+                    <button
+                      onClick={handleSaveSession}
+                      disabled={saving}
+                      className="flex-1 py-2 rounded-lg text-xs border border-purple-500/50 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 disabled:opacity-50 transition-colors"
+                    >
+                      {saving ? 'Menyimpan...' : 'Simpan Sesi Eksperimen'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Session duration + Start/Stop */}
             <div className="w-full space-y-3">
-              {!isRunning && canStart && (
+              {!isRunning && !pendingSave && canStart && (
                 <div className="flex gap-2 justify-center">
                   {SESSION_OPTS.map(min => (
                     <button
@@ -634,7 +854,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
-              {!isRunning ? (
+              {!isRunning && !pendingSave ? (
                 <button
                   onClick={startSession}
                   disabled={!canStart}
@@ -643,7 +863,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                   <Play size={14} />
                   {canStart ? `Mulakan Sesi (${sessionMin} min)` : 'Tap sekurang-kurang 3x untuk mula'}
                 </button>
-              ) : (
+              ) : isRunning ? (
                 <div className="space-y-2">
                   {/* Progress bar */}
                   <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
@@ -660,7 +880,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                     <Square size={12} /> Henti Sesi
                   </button>
                 </div>
-              )}
+              ) : null}
             </div>
 
           </div>
@@ -814,6 +1034,8 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
           ⚠️ Data simulasi tidak disimpan
         </p>
       </div>
+      </>
+      )}
 
       <footer className="border-t border-gray-800 bg-gray-950/60 p-4 text-center text-xs text-gray-500">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
