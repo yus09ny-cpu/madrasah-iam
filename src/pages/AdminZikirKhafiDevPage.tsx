@@ -303,7 +303,9 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
       const rr = Math.round(reading.rrIntervalsMs[reading.rrIntervalsMs.length - 1])
       rrRef.current = rr
       setCurrentRr(rr)
-      coh = Math.round(computeCoherence(intervalsRef.current) * 100)
+      // 'suspect' R-R collapses RMSSD to ~0 the same way the BPM-derived
+      // fallback does — never surface that as a numeric coherence score.
+      coh = isSuspect ? null : Math.round(computeCoherence(intervalsRef.current) * 100)
     } else {
       // No R-R in this packet (common on budget straps / dropped notification)
       // — show a BPM-derived pseudo-interval for reference only. It must
