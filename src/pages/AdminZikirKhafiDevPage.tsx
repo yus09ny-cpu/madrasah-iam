@@ -49,6 +49,9 @@ class BpmSmoother {
 
 // ---------------------------------------------------------------------------
 // computeCoherence — RMSSD-derived, 0 (chaotic) → 1 (coherent) (zikirkhafi)
+// Callers must only pass genuinely measured intervals (device R-R or real tap
+// timestamps) — a BPM-derived pseudo-interval has near-zero variance and will
+// falsely saturate this at a suspiciously clean 1.0 (100%).
 // ---------------------------------------------------------------------------
 function computeCoherence(intervalsMs: number[]): number {
   if (intervalsMs.length < 4) return 0
@@ -132,6 +135,15 @@ type SessionPhase = 'idle' | 'running'
 const TARGET_BPM = 50  // midpoint of 40–60 Zikir Khafi range
 const SESSION_OPTS = [5, 10, 20] as const
 
+// Some budget HR straps set the GATT R-R-present flag but internally derive
+// the "R-R" field from their own averaged BPM rather than true beat-to-beat
+// detection — same failure mode as a BPM-derived fallback, just baked into
+// the device firmware, so it still arrives as genuine reading.rrIntervalsMs.
+// Real beat-to-beat R-R (at 1/1024s = ~0.977ms resolution) essentially never
+// repeats the exact same rounded-ms value this many times in a row — treat a
+// streak this long as a device-level fake, not a software bug on our side.
+const DUPLICATE_RR_STREAK_THRESHOLD = 5
+
 function formatTime(s: number) {
   const m = Math.floor(s / 60)
   const sec = Math.floor(s % 60)
@@ -154,6 +166,8 @@ interface PendingSave {
   stage_achieved: number
   pacing_start_bpm: number
   pacing_end_bpm: number
+  used_real_rr: boolean
+  rr_suspect: boolean
 }
 
 function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
@@ -163,10 +177,16 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   // ── Tap calibration state ──
   const [tapBpm, setTapBpm] = useState<number | null>(null)
   const [, setBpm] = useState(60)              // smoothed tap BPM (dipapar via bpmRef)
-  const [coherence, setCoherence] = useState(0)
+  const [coherence, setCoherence] = useState<number | null>(0)
   const [currentRr, setCurrentRr] = useState(0)
   const [tapCount, setTapCount] = useState(0)
   const [logs, setLogs] = useState<string[]>([])
+  // 'real' = genuine R-R (device GATT or real tap timestamps), 'fallback' =
+  // BLE connected but device sent no R-R this packet (BPM-derived estimate
+  // only), 'suspect' = device claims real R-R but is repeating the same value
+  // (likely device-derived-from-BPM, see DUPLICATE_RR_STREAK_THRESHOLD) —
+  // only 'real' should ever be presented to the user as genuine HRV data.
+  const [rrSource, setRrSource] = useState<'real' | 'fallback' | 'suspect' | null>(null)
 
   // ── Session state ──
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>('idle')
@@ -189,6 +209,8 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const sessionRrRef = useRef<number[]>([])
   const maxStageRef = useRef(1)
   const sessionUsedDeviceRef = useRef(false)
+  const sessionUsedRealRrRef = useRef(false)
+  const sessionRrSuspectRef = useRef(false)
   const beatCountRef = useRef(0)
 
   // ── Tap refs (animation loop) ──
@@ -197,7 +219,15 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const smootherRef = useRef(new BpmSmoother())
   const bpmRef = useRef(60)
   const rrRef = useRef(1000)
-  const coherenceRef = useRef(0)
+  const coherenceRef = useRef<number | null>(0)
+  const rrSourceRef = useRef<'real' | 'fallback' | 'suspect' | null>(null)
+  // Rolling history of genuinely-measured intervals (device R-R or real tap
+  // diffs) for the tachogram canvas — a BPM-derived fallback value is never
+  // pushed here, so the plot never fabricates a beat-to-beat shape.
+  const rrHistoryRef = useRef<number[]>([])
+  // Duplicate-R-R detector (device-level fake-real-R-R, see DUPLICATE_RR_STREAK_THRESHOLD)
+  const lastRealRrValueRef = useRef<number | null>(null)
+  const duplicateRrStreakRef = useRef(0)
 
   // ── Session refs ──
   const phaseRef = useRef<'Allah' | 'Hu'>('Allah')
@@ -237,21 +267,56 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     setBpm(smoothed)
     bpmRef.current = smoothed
 
-    if (reading.rrIntervalsMs.length) {
-      // Device sends real R-R intervals — use them for RMSSD coherence.
+    const hasRealRr = reading.rrIntervalsMs.length > 0
+
+    let isSuspect = false
+    if (hasRealRr) {
+      // Check every R-R value in this packet against the last one seen —
+      // a device faking R-R from its own averaged BPM tends to repeat the
+      // exact same rounded-ms value many times in a row.
+      for (const raw of reading.rrIntervalsMs) {
+        const rounded = Math.round(raw)
+        if (lastRealRrValueRef.current === rounded) {
+          duplicateRrStreakRef.current += 1
+        } else {
+          duplicateRrStreakRef.current = 1
+          lastRealRrValueRef.current = rounded
+        }
+      }
+      if (duplicateRrStreakRef.current >= DUPLICATE_RR_STREAK_THRESHOLD) isSuspect = true
+    } else {
+      duplicateRrStreakRef.current = 0
+      lastRealRrValueRef.current = null
+    }
+
+    rrSourceRef.current = hasRealRr ? (isSuspect ? 'suspect' : 'real') : 'fallback'
+    setRrSource(rrSourceRef.current)
+
+    let coh: number | null
+    if (hasRealRr) {
+      // Device sends real R-R intervals — use them for RMSSD coherence and
+      // the tachogram history (even when flagged 'suspect': we plot what the
+      // device actually reported, the warning label is what changes, not the
+      // data itself).
       intervalsRef.current = [...intervalsRef.current, ...reading.rrIntervalsMs].slice(-7)
+      rrHistoryRef.current = [...rrHistoryRef.current, ...reading.rrIntervalsMs].slice(-40)
       const rr = Math.round(reading.rrIntervalsMs[reading.rrIntervalsMs.length - 1])
       rrRef.current = rr
       setCurrentRr(rr)
+      coh = Math.round(computeCoherence(intervalsRef.current) * 100)
     } else {
-      // No R-R from the device (common on budget straps) — fall back to a
-      // BPM-derived pseudo-interval so the waveform still animates.
+      // No R-R in this packet (common on budget straps / dropped notification)
+      // — show a BPM-derived pseudo-interval for reference only. It must
+      // NEVER feed computeCoherence (near-zero variance would falsely
+      // saturate coherence at 100%) or the tachogram history (it would draw
+      // a fabricated beat-to-beat shape). Break the real-R-R streak so a
+      // later real reading starts its coherence window clean.
       const rr = Math.round(60000 / smoothed)
-      intervalsRef.current = [...intervalsRef.current, rr].slice(-7)
       rrRef.current = rr
       setCurrentRr(rr)
+      intervalsRef.current = []
+      coh = null
     }
-    const coh = Math.round(computeCoherence(intervalsRef.current) * 100)
     coherenceRef.current = coh
     setCoherence(coh)
 
@@ -259,14 +324,18 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     // what distinguishes an "experiment" row from tap-tempo calibration.
     if (sessionPhaseRef.current === 'running') {
       sessionUsedDeviceRef.current = true
+      if (hasRealRr) sessionUsedRealRrRef.current = true
+      if (isSuspect) sessionRrSuspectRef.current = true
       bpmSumRef.current += reading.bpm
       bpmSamplesRef.current += 1
       sessionBpmSamplesRef.current = [...sessionBpmSamplesRef.current, reading.bpm].slice(-1000)
       minBpmRef.current = minBpmRef.current === null ? reading.bpm : Math.min(minBpmRef.current, reading.bpm)
       maxBpmRef.current = maxBpmRef.current === null ? reading.bpm : Math.max(maxBpmRef.current, reading.bpm)
-      if (reading.rrIntervalsMs.length) sessionRrRef.current = [...sessionRrRef.current, ...reading.rrIntervalsMs].slice(-1000)
-      const stage = coh >= 86 ? 3 : coh >= 71 ? 2 : 1
-      maxStageRef.current = Math.max(maxStageRef.current, stage)
+      if (hasRealRr) sessionRrRef.current = [...sessionRrRef.current, ...reading.rrIntervalsMs].slice(-1000)
+      if (coh !== null) {
+        const stage = coh >= 86 ? 3 : coh >= 71 ? 2 : 1
+        maxStageRef.current = Math.max(maxStageRef.current, stage)
+      }
     }
   }, [])
 
@@ -282,6 +351,10 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     if (hr.state !== 'connected') { setNoSignal(false); return }
     lastValidReadingRef.current = performance.now()
+    // Fresh connect — reset the duplicate-R-R detector so a previous
+    // device's streak doesn't bleed into this one.
+    duplicateRrStreakRef.current = 0
+    lastRealRrValueRef.current = null
     const id = window.setInterval(() => {
       if (performance.now() - lastValidReadingRef.current > 6000) {
         setNoSignal(true)
@@ -314,6 +387,10 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
       const diffs: number[] = []
       for (let i = 1; i < tapsRef.current.length; i++) diffs.push(tapsRef.current[i] - tapsRef.current[i - 1])
       intervalsRef.current = diffs.slice(-7)
+      // Real tap-to-tap timings — genuine intervals, safe for the tachogram.
+      rrHistoryRef.current = [...rrHistoryRef.current, ...diffs.slice(-1)].slice(-40)
+      rrSourceRef.current = 'real'
+      setRrSource('real')
 
       const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length
       const rawBpm = Math.round(60000 / avg)
@@ -348,6 +425,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const handleReset = useCallback(() => {
     tapsRef.current = []
     intervalsRef.current = []
+    rrHistoryRef.current = []
     smootherRef.current.reset()
     setTapBpm(null)
     setTapCount(0)
@@ -357,6 +435,10 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     bpmRef.current = 60
     rrRef.current = 1000
     coherenceRef.current = 0
+    rrSourceRef.current = null
+    setRrSource(null)
+    duplicateRrStreakRef.current = 0
+    lastRealRrValueRef.current = null
   }, [])
 
   // ---------------------------------------------------------------------------
@@ -381,6 +463,8 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     sessionRrRef.current = []
     maxStageRef.current = 1
     sessionUsedDeviceRef.current = false
+    sessionUsedRealRrRef.current = false
+    sessionRrSuspectRef.current = false
     beatCountRef.current = 0
     setSessionPhase('running')
   }, [canStart, sessionMin])
@@ -409,6 +493,8 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         stage_achieved: maxStageRef.current,
         pacing_start_bpm: startBpmRef.current,
         pacing_end_bpm: pacingBpm,
+        used_real_rr: sessionUsedRealRrRef.current,
+        rr_suspect: sessionRrSuspectRef.current,
       })
     }
   }, [hr.deviceName, hr.deviceId, pacingBpm])
@@ -534,14 +620,17 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   }, [])
 
   // ---------------------------------------------------------------------------
-  // Canvas rAF — waveform HRV + outer breath ring sahaja (tiada beat pulse)
+  // Canvas rAF — real tachogram plotted from rrHistoryRef (genuinely measured
+  // device R-R or real tap intervals). When the current source is 'fallback'
+  // (BLE connected but device sent no R-R this packet) we deliberately do NOT
+  // draw a fabricated waveform — a flat, dim placeholder line is shown
+  // instead, so nobody mistakes it for real HRV data.
   // ---------------------------------------------------------------------------
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')!
     let animationFrameId: number
-    let phase = 0
 
     const resizeCanvas = () => {
       const dpr = window.devicePixelRatio || 1
@@ -554,10 +643,10 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     window.addEventListener('resize', resizeCanvas)
 
     const animate = () => {
-      phase += 0.05
       const width = canvas.width / (window.devicePixelRatio || 1)
       const height = canvas.height / (window.devicePixelRatio || 1)
       const cy = height / 2
+      const padY = 24
 
       ctx.clearRect(0, 0, width, height)
       ctx.strokeStyle = 'rgba(255,255,255,0.05)'
@@ -565,25 +654,47 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
       ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(width, cy); ctx.stroke()
 
       const coh = coherenceRef.current
-      const amplitude = 8 + (coh / 100) * 49
-      const smoothFactor = coh / 100
-      const jitterStrength = ((100 - coh) / 100) * 14
+      const history = rrHistoryRef.current
+      const source = rrSourceRef.current
+      const isPlottable = (source === 'real' || source === 'suspect') && history.length >= 2
 
-      ctx.beginPath()
-      ctx.lineWidth = 3
-      ctx.strokeStyle = coh >= 86 ? '#f59e0b' : coh >= 71 ? '#10b981' : '#3b82f6'
-      ctx.lineJoin = 'round'
+      if (!isPlottable) {
+        // No genuine interval data to plot right now — flat/dim line, not a
+        // fabricated shape.
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+        ctx.lineWidth = 2
+        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(width, cy); ctx.stroke()
+      } else {
+        const values = history.slice(-40)
+        const min = Math.min(...values)
+        const max = Math.max(...values)
+        const range = Math.max(1, max - min)
+        const stepX = values.length > 1 ? width / (values.length - 1) : width
 
-      for (let i = 0; i < width; i++) {
-        const theta = (i / width) * Math.PI * 6 - phase
-        let y = cy + Math.sin(theta) * amplitude
-        if (jitterStrength > 0) {
-          y += Math.sin(theta * 7.5 + phase * 3) * jitterStrength * (1.1 - smoothFactor)
-          y += (Math.random() - 0.5) * ((100 - coh) * 0.15)
-        }
-        i === 0 ? ctx.moveTo(i, y) : ctx.lineTo(i, y)
+        ctx.beginPath()
+        ctx.lineWidth = 3
+        // 'suspect' always renders in red regardless of the (unreliable) coherence
+        // number — this is what actually happened on the wire, flagged as fishy.
+        ctx.strokeStyle = source === 'suspect' ? '#ef4444' : coh === null ? '#6b7280' : coh >= 86 ? '#f59e0b' : coh >= 71 ? '#10b981' : '#3b82f6'
+        ctx.lineJoin = 'round'
+
+        values.forEach((v, i) => {
+          const norm = (v - min) / range
+          const y = height - padY - norm * (height - padY * 2)
+          const x = i * stepX
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+        })
+        ctx.stroke()
+
+        // Beat markers so individual R-R points are visible (genuine tachogram, not a curve fit).
+        ctx.fillStyle = ctx.strokeStyle as string
+        values.forEach((v, i) => {
+          const norm = (v - min) / range
+          const y = height - padY - norm * (height - padY * 2)
+          const x = i * stepX
+          ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill()
+        })
       }
-      ctx.stroke()
 
       animationFrameId = requestAnimationFrame(animate)
     }
@@ -806,6 +917,15 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                   <div>Pacing: <span className="text-gray-200">{pendingSave.pacing_start_bpm} → {pendingSave.pacing_end_bpm}</span></div>
                   <div>Tempoh: <span className="text-gray-200">{formatTime(pendingSave.duration_seconds)}</span></div>
                   <div className="col-span-2">Peranti: <span className="text-gray-200">{pendingSave.device_name}</span>{pendingSave.device_id && <span className="text-gray-600"> ({pendingSave.device_id})</span>}</div>
+                  <div className="col-span-2">
+                    Sumber R-R: <span className={!pendingSave.used_real_rr ? 'text-amber-400' : pendingSave.rr_suspect ? 'text-red-400' : 'text-emerald-400'}>
+                      {!pendingSave.used_real_rr
+                        ? 'Tiada R-R sebenar diterima'
+                        : pendingSave.rr_suspect
+                        ? '⚠️ Disyaki tetap/berulang (device)'
+                        : 'Sebenar (device R-R)'}
+                    </span>
+                  </div>
                 </div>
                 {saveResult !== 'success' && (
                   <textarea
@@ -932,10 +1052,18 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
             </div>
             <div className="zk-glass rounded-2xl p-4 text-center border-l-2 border-l-emerald-500">
               <span className="text-xs text-gray-400 block mb-1">Coherence Score</span>
-              <span className={`text-3xl font-bold ${coherence >= 71 ? 'text-emerald-400' : coherence > 0 ? 'text-blue-400' : 'text-gray-600'}`}>
-                {coherence > 0 ? `${coherence}%` : '—'}
+              <span className={`text-3xl font-bold ${coherence !== null && coherence >= 71 ? 'text-emerald-400' : coherence !== null && coherence > 0 ? 'text-blue-400' : 'text-gray-600'}`}>
+                {coherence !== null ? `${coherence}%` : '—'}
               </span>
-              <span className="text-[10px] text-gray-500 block mt-1">{hr.state === 'connected' ? 'RMSSD sebenar' : 'Simulasi'}</span>
+              <span className={`text-[10px] block mt-1 ${rrSource === 'suspect' ? 'text-red-400 font-medium' : 'text-gray-500'}`}>
+                {hr.state === 'connected'
+                  ? rrSource === 'real'
+                    ? 'RMSSD sebenar'
+                    : rrSource === 'suspect'
+                    ? '⚠️ R-R disyaki tetap (device)'
+                    : 'Tiada R-R sebenar — anggaran BPM'
+                  : rrSource === 'real' ? 'RMSSD tap sebenar' : 'Simulasi'}
+              </span>
             </div>
             <div className="zk-glass rounded-2xl p-4 text-center">
               <span className="text-xs text-gray-400 block mb-1">R-R Interval</span>
@@ -951,17 +1079,23 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="text-lg font-medium text-white">Live Heart Rhythm Waveform (HRV)</h2>
-                <p className="text-xs text-gray-400">
-                  {tapBpm ? 'Gelombang dari coherence RMSSD tap sebenar' : 'Tap nadi anda untuk aktifkan waveform'}
+                <p className={`text-xs ${rrSource === 'suspect' ? 'text-red-400' : 'text-gray-400'}`}>
+                  {!tapBpm
+                    ? 'Tap nadi anda untuk aktifkan waveform'
+                    : rrSource === 'real'
+                    ? (hr.state === 'connected' ? 'Tachogram R-R sebenar dari peranti' : 'Tachogram dari tap sebenar (kalibrasi)')
+                    : rrSource === 'suspect'
+                    ? '⚠️ R-R kelihatan tetap/berulang — kemungkinan bukan bacaan sebenar'
+                    : 'Peranti tidak hantar R-R sebenar — tiada visualisasi ditunjukkan'}
                 </p>
               </div>
               {/* Label dalaman — jangan tunjuk pengguna awam */}
               <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                coherence >= 86 ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                : coherence >= 71 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                (coherence ?? 0) >= 86 ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                : (coherence ?? 0) >= 71 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                 : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
               }`}>
-                {coherence >= 86 ? 'Stage 3: Kesedaran Berterusan' : coherence >= 71 ? 'Stage 2: Zikir Beresonans' : 'Stage 1: Zikir Hati'}
+                {coherence === null ? 'Coherence tidak tersedia' : coherence >= 86 ? 'Stage 3: Kesedaran Berterusan' : coherence >= 71 ? 'Stage 2: Zikir Beresonans' : 'Stage 1: Zikir Hati'}
               </span>
             </div>
             <div className="relative w-full h-48 bg-black/40 rounded-xl overflow-hidden border border-gray-900">
@@ -975,7 +1109,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
             <div className="flex justify-between items-center mt-3 text-xs text-gray-400">
               <span>Chaotic (Low Coherence)</span>
               <div className="flex gap-2 items-center">
-                <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${coherence >= 86 ? 'bg-amber-500' : coherence >= 71 ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${(coherence ?? 0) >= 86 ? 'bg-amber-500' : (coherence ?? 0) >= 71 ? 'bg-emerald-500' : 'bg-blue-500'}`} />
                 <span className="text-[11px]">Dhikr Resonant Wave</span>
               </div>
               <span>Coherent (High Coherence)</span>
@@ -990,9 +1124,9 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
             </div>
             <div className="space-y-4">
               {[
-                { stage: 1, label: 'Usaha Sedar / Zikir Hati', range: 'Coherence < 71%', active: coherence < 71, color: 'blue' },
-                { stage: 2, label: 'Zikir Beresonans', range: 'Coherence 71%–85%', active: coherence >= 71 && coherence < 86, color: 'emerald' },
-                { stage: 3, label: 'Kesedaran Berterusan', range: 'Coherence > 85%', active: coherence >= 86, color: 'amber' },
+                { stage: 1, label: 'Usaha Sedar / Zikir Hati', range: 'Coherence < 71%', active: (coherence ?? 0) < 71, color: 'blue' },
+                { stage: 2, label: 'Zikir Beresonans', range: 'Coherence 71%–85%', active: (coherence ?? 0) >= 71 && (coherence ?? 0) < 86, color: 'emerald' },
+                { stage: 3, label: 'Kesedaran Berterusan', range: 'Coherence > 85%', active: (coherence ?? 0) >= 86, color: 'amber' },
               ].map(({ stage, label, range, active, color }) => (
                 <div key={stage} className={`p-3.5 rounded-xl border transition-all duration-300 ${
                   active
