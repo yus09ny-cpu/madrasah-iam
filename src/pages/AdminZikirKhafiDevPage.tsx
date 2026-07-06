@@ -4,7 +4,9 @@
  * - Tap detection: sebenar (timestamp-based)
  * - Progressive pacing: sebenar (scheduleNext + linear BPM decay)
  * - Web Bluetooth (Magene H64 / GATT heart_rate): sebenar, via useHeartRateMonitor
- * - BLE hex log: reka bentuk semula GATT 0x2A37 dari bpmRef/rrRef (tap ATAU peranti sebenar)
+ * - BLE hex log: bytes literal dari characteristic.value setiap notification GATT
+ *   0x2A37 sebenar (bukan reconstruction) — hanya muncul semasa peranti BLE
+ *   disambung, bukan semasa tap-tempo (tiada packet BLE sebenar untuk itu)
  * - BpmSmoother + computeCoherence: diadaptasi dari Sahamhalal/zikirkhafi
  * - fireAllah/fireHu + scheduleNext: diadaptasi dari Sahamhalal/zikirkhafi
  *
@@ -291,6 +293,18 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
 
     rrSourceRef.current = hasRealRr ? (isSuspect ? 'suspect' : 'real') : 'fallback'
     setRrSource(rrSourceRef.current)
+
+    // Log the literal bytes this notification arrived with — genuine wire
+    // data (reading.rawBytes, from characteristic.value), not a reconstruction
+    // built from already-processed BPM/RR. This is the only trustworthy way
+    // to prove/inspect a device repeating identical packets.
+    {
+      const hex = reading.rawBytes.map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ')
+      const ts = new Date().toLocaleTimeString()
+      const decoded = hasRealRr ? `HR=${reading.bpm}bpm, RR=${Math.round(reading.rrIntervalsMs[reading.rrIntervalsMs.length - 1])}ms` : `HR=${reading.bpm}bpm, no R-R in packet`
+      const warn = isSuspect ? '⚠️ ' : ''
+      setLogs(prev => [`${warn}[${ts}] RX: ${hex} (Decoded: ${decoded})`, ...prev].slice(0, 5))
+    }
 
     let coh: number | null
     if (hasRealRr) {
@@ -602,24 +616,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     }, 250)
     return () => window.clearInterval(id)
   }, [sessionPhase, sessionMin, stopSession])
-
-  // ---------------------------------------------------------------------------
-  // BLE hex log emulasi — guna bpmRef/rrRef dari tap sebenar
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (bpmRef.current === 60 && rrRef.current === 1000) return
-      const flags = 0x16
-      const hrByte = bpmRef.current
-      const rawRrUnits = Math.round((rrRef.current * 1024.0) / 1000.0)
-      const rrByteLow = rawRrUnits & 0xff
-      const rrByteHigh = (rawRrUnits >> 8) & 0xff
-      const toHex = (v: number) => '0x' + v.toString(16).toUpperCase().padStart(2, '0')
-      const ts = new Date().toLocaleTimeString()
-      setLogs(prev => [`[${ts}] RX: ${toHex(flags)} ${toHex(hrByte)} ${toHex(rrByteLow)} ${toHex(rrByteHigh)} (Decoded: ${rrRef.current}ms)`, ...prev].slice(0, 5))
-    }, 1100)
-    return () => clearInterval(id)
-  }, [])
 
   // ---------------------------------------------------------------------------
   // Canvas rAF — real tachogram plotted from rrHistoryRef (genuinely measured
@@ -1014,8 +1010,8 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                 <span className="font-mono text-sm">&lt;/&gt;</span>
                 Data Sensor (Live)
               </h2>
-              <p className="text-xs text-gray-400 mb-1">BPM & R-R Interval dikira daripada data degupan nadi sebenar.</p>
-              <p className="text-[10px] text-gray-600 font-mono">Format: GATT 0x2A37 standard · Flags · HR · R-R</p>
+              <p className="text-xs text-gray-400 mb-1">Bytes literal dari setiap notification GATT peranti — bukan reconstruction.</p>
+              <p className="text-[10px] text-gray-600 font-mono">Format: GATT 0x2A37 standard · Flags · HR · R-R · hanya semasa BLE disambung</p>
             </div>
             <div className="bg-black/60 rounded-xl p-4 font-mono text-xs text-emerald-300/90 border border-emerald-950/40 h-36 flex flex-col gap-1.5 overflow-y-auto zk-scroll">
               <div className="text-gray-500">{'// [Flags] [HR BPM] [R-R low] [R-R high]'}</div>

@@ -44,6 +44,11 @@ export interface HeartRateReading {
   rrIntervalsMs: number[]
   timestamp: number
   sensorContact: SensorContactStatus
+  // The literal bytes of this GATT notification, straight off characteristic.value
+  // — for callers that need to prove/inspect what the device actually sent on the
+  // wire (e.g. detecting a device repeating identical packets), as opposed to any
+  // reconstruction built from already-processed values.
+  rawBytes: number[]
 }
 
 interface UseHeartRateMonitorOptions {
@@ -121,12 +126,13 @@ export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
     const characteristic = event.target as BluetoothRemoteGATTCharacteristic
     if (!characteristic.value) return
     const { bpm: heartRate, rrIntervalsMs, sensorContact } = parseHeartRateMeasurement(characteristic.value)
+    const raw = new Uint8Array(characteristic.value.buffer, characteristic.value.byteOffset, characteristic.value.byteLength)
+    const rawBytes = Array.from(raw)
     if (import.meta.env.DEV) {
-      const raw = new Uint8Array(characteristic.value.buffer, characteristic.value.byteOffset, characteristic.value.byteLength)
-      console.log('[H64] raw bytes:', Array.from(raw).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')), 'sensorContact:', sensorContact)
+      console.log('[H64] raw bytes:', rawBytes.map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')), 'sensorContact:', sensorContact)
     }
     setBpm(heartRate)
-    onReadingRef.current?.({ bpm: heartRate, rrIntervalsMs, sensorContact, timestamp: performance.now() })
+    onReadingRef.current?.({ bpm: heartRate, rrIntervalsMs, sensorContact, timestamp: performance.now(), rawBytes })
   }, [])
 
   const handleGattDisconnected = useCallback(() => {
