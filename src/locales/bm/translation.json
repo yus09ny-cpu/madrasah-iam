@@ -754,7 +754,15 @@
       "akhir_bpm": "BPM Akhir",
       "pacing_selesai": "Berjaya turun ke julat Zikir Khafi",
       "pacing_belum": "Belum sempat turun ke julat Zikir Khafi kali ini — teruskan istiqamah",
-      "ble_data_sebenar": "Data HRV Sebenar"
+      "ble_data_sebenar": "Data HRV Sebenar",
+      "tier_1": "Hilang Tumpuan",
+      "tier_2": "Kurang Stabil",
+      "tier_3": "Menghampiri Tenang",
+      "tier_4": "Ketenangan Mendalam",
+      "tier_5": "Kesedaran Berterusan",
+      "tahap_dominan": "Tahap Dominan",
+      "tahap_terdalam": "Tahap terdalam dicapai: {{tier}}",
+      "ble_upsell": "🫀 Sambungkan peranti BPM untuk melihat perjalanan ketenangan sebenar anda"
     }
   },
   "ajv2": {

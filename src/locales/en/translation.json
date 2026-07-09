@@ -754,7 +754,15 @@
       "akhir_bpm": "Ending BPM",
       "pacing_selesai": "Reached the Zikir Khafi range",
       "pacing_belum": "Didn't reach the range this time — keep at it",
-      "ble_data_sebenar": "Real HRV Data"
+      "ble_data_sebenar": "Real HRV Data",
+      "tier_1": "Focus Lost",
+      "tier_2": "Still Elevated",
+      "tier_3": "Approaching Calm",
+      "tier_4": "Deep Calm",
+      "tier_5": "Sustained Awareness",
+      "tahap_dominan": "Dominant Stage",
+      "tahap_terdalam": "Deepest stage reached: {{tier}}",
+      "ble_upsell": "🫀 Connect a BPM device to see your real calming journey"
     }
   },
   "ajv2": {

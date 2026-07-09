@@ -49,6 +49,63 @@ const PACING_RATE_BPM_PER_MIN = 2.5
 const MIN_DECAY_MIN = 3
 const MAX_DECAY_MIN = 20
 
+// Hard physiological bounds for a raw BLE reading — outside this range it's
+// a sensor artifact (motion, poor contact, a glitched packet), never a real
+// beat. Discarded outright (not smoothed), same bounds already established
+// for the admin research page's handleHrReading.
+const PHYSIO_BPM_MIN = 30
+const PHYSIO_BPM_MAX = 220
+
+// How often a bpm sample is recorded into bpmHistory for the summary graph.
+const BPM_SAMPLE_INTERVAL_MS = 2500
+
+// ─── BPM tier classification (BLE-only reward system) ────────────────────
+// Ordered high-arousal -> deep-calm. Boundaries reuse this file's own
+// established constants (TARGET_BPM=50, ZIKIR_RANGE_MAX=60) so tier 4 lines
+// up exactly with the pacing target's own "in range" definition, rather than
+// introducing a second, slightly different notion of what counts as calm.
+type BpmTier = 1 | 2 | 3 | 4 | 5
+
+function classifyBpmTier(bpm: number): BpmTier {
+  if (bpm > 100) return 1
+  if (bpm > 80) return 2
+  if (bpm > ZIKIR_RANGE_MAX) return 3
+  if (bpm >= 40) return 4
+  return 5
+}
+
+const TIER_META: Record<BpmTier, { key: string; color: string }> = {
+  1: { key: 'tier_1', color: '#f87171' }, // Hilang Tumpuan
+  2: { key: 'tier_2', color: '#fb923c' }, // Kurang Stabil
+  3: { key: 'tier_3', color: '#fbbf24' }, // Menghampiri Tenang
+  4: { key: 'tier_4', color: '#34d399' }, // Ketenangan Mendalam
+  5: { key: 'tier_5', color: '#a78bfa' }, // Kesedaran Berterusan
+}
+
+interface TierBreakdown {
+  pct: Record<BpmTier, number>   // 0-100 per tier, sums to ~100
+  dominant: BpmTier              // most readings spent — the headline badge
+  bestReached: BpmTier           // deepest tier ever touched — sub-text
+}
+
+// Built from raw, per-reading tier counts (post-validity-filter, PRE the
+// heavy display EMA) — not the smoothed bpmHistory used for the graph.
+// BpmSmoother's damping (deliberately slow for jumps >15 BPM, tuned for
+// gentle haptic pacing) can otherwise quietly wash out a genuine brief dip
+// before it ever counts toward an achievement, undermining the badge's
+// whole point the same way over-smoothed coherence did earlier.
+function computeTierBreakdown(counts: Record<BpmTier, number>, bestReached: BpmTier): TierBreakdown | null {
+  const total = ([1, 2, 3, 4, 5] as BpmTier[]).reduce((s, tier) => s + counts[tier], 0)
+  if (total === 0) return null
+  const pct = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<BpmTier, number>
+  let dominant: BpmTier = 1
+  ;([1, 2, 3, 4, 5] as BpmTier[]).forEach(tier => {
+    pct[tier] = Math.round((counts[tier] / total) * 100)
+    if (counts[tier] > counts[dominant]) dominant = tier
+  })
+  return { pct, dominant, bestReached }
+}
+
 function estimateDecayMin(startBpm: number): number {
   if (startBpm <= ZIKIR_RANGE_MAX) return 0
   const raw = (startBpm - TARGET_BPM) / PACING_RATE_BPM_PER_MIN
@@ -130,6 +187,49 @@ function CoherenceRing({ value, label }: { value: number; label: string }) {
   )
 }
 
+// ─── BpmHistoryGraph ───────────────────────────────────────────────────────
+// Static post-session line chart from bpmHistory. BLE mode colors each
+// segment by its BPM tier (ties the graph visually to the tier badge below
+// it); tap mode is a single purple line — it's the pacing target's own
+// decline curve, not sensor data, so no per-point variance to color by.
+
+function BpmHistoryGraph({ history, mode }: { history: { t: number; bpm: number }[]; mode: SessionMode }) {
+  if (history.length < 2) return null
+  const width = 280
+  const height = 110
+  const padX = 6
+  const padY = 14
+  const bpms = history.map(h => h.bpm)
+  const minBpm = Math.min(...bpms, TARGET_BPM) - 4
+  const maxBpm = Math.max(...bpms) + 4
+  const maxT = Math.max(1, history[history.length - 1].t)
+  const x = (t: number) => padX + (t / maxT) * (width - padX * 2)
+  const y = (bpm: number) => height - padY - ((bpm - minBpm) / Math.max(1, maxBpm - minBpm)) * (height - padY * 2)
+  const refY = y(ZIKIR_RANGE_MAX)
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="w-full max-w-xs">
+      {/* Reference line at the Zikir Khafi range ceiling */}
+      <line x1={padX} x2={width - padX} y1={refY} y2={refY} stroke="#8a7a6540" strokeDasharray="3 3" />
+      {mode === 'ble'
+        ? history.slice(1).map((pt, i) => {
+            const prev = history[i]
+            const color = TIER_META[classifyBpmTier(pt.bpm)].color
+            return (
+              <line key={pt.t} x1={x(prev.t)} y1={y(prev.bpm)} x2={x(pt.t)} y2={y(pt.bpm)}
+                stroke={color} strokeWidth={2} strokeLinecap="round" />
+            )
+          })
+        : (
+          <polyline
+            points={history.map(pt => `${x(pt.t)},${y(pt.bpm)}`).join(' ')}
+            fill="none" stroke="#a78bfa" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+          />
+        )}
+    </svg>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
@@ -175,6 +275,17 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   // (see commitAndShow), so the summary's start->end decline needs its own
   // stable value rather than reading live `bpm` state.
   const finalBpmRef = useRef<number | null>(null)
+  // Full-session BPM trace (post-filter, post-smoothing), sampled every
+  // BPM_SAMPLE_INTERVAL_MS regardless of mode — powers the summary graph
+  // only. Deliberately NOT used for tier classification (see below) — the
+  // display smoothing is tuned for gentle haptic pacing, not for judging
+  // whether a genuine dip counts as an achievement.
+  const bpmHistoryRef = useRef<{ t: number; bpm: number }[]>([])
+  // Per-reading tier tallies from the RAW BLE value (post-filter, before
+  // BpmSmoother) — every genuine reading counts here, so a brief real dip
+  // that the display EMA hasn't caught up to yet still registers.
+  const rawTierCountsRef = useRef<Record<BpmTier, number>>({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 })
+  const bestReachedTierRef = useRef<BpmTier>(1)
 
   const isInfinity = sessionMin === 0
 
@@ -210,6 +321,14 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   // (see onReadingRef in useHeartRateMonitor.ts), so identity churn here is
   // harmless — it never tears down or reopens the BLE connection.
   const handleHrReading = useCallback((reading: HeartRateReading) => {
+    // Hard physiological gate — a raw reading outside this range is a
+    // sensor artifact (motion, poor contact, a glitched BLE packet), never
+    // a real beat. Discarded outright, not smoothed: the last valid
+    // smoothed value simply holds until a plausible reading arrives.
+    if (reading.bpm < PHYSIO_BPM_MIN || reading.bpm > PHYSIO_BPM_MAX) {
+      console.warn('[ZikirKhafiPlayer] discarding out-of-range BPM reading:', reading.bpm)
+      return
+    }
     hrBpmRef.current = reading.bpm
     if (reading.rrIntervalsMs.length) {
       rrQueueRef.current = [...rrQueueRef.current, ...reading.rrIntervalsMs].slice(-16)
@@ -218,6 +337,13 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     // synthetic pacing-decay effect is skipped entirely in BLE mode (see
     // the running-phase effects below).
     if (phase === 'running' && sessionMode === 'ble') {
+      // Tier tally from the raw reading, before smoothing touches it — every
+      // genuine reading counts toward the achievement, not just whatever the
+      // damped display value happens to be at each 2.5s sample tick.
+      const rawTier = classifyBpmTier(reading.bpm)
+      rawTierCountsRef.current[rawTier] += 1
+      if (rawTier > bestReachedTierRef.current) bestReachedTierRef.current = rawTier
+
       const smoothed = smootherRef.current.add(reading.bpm)
       bpmSumRef.current += reading.bpm
       bpmSamplesRef.current += 1
@@ -269,6 +395,9 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     beatIntervalsRef.current = []
     rrQueueRef.current = []
     finalBpmRef.current = null
+    bpmHistoryRef.current = [{ t: 0, bpm: initialBpm }]
+    rawTierCountsRef.current = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+    bestReachedTierRef.current = classifyBpmTier(initialBpm)
     bpmSumRef.current = initialBpm
     bpmSamplesRef.current = 1
     intervalMsRef.current = 60000 / initialBpm
@@ -383,6 +512,18 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, sessionMode])
 
+  // ── BPM history sampler — mode-agnostic (reads bpmRef, whichever
+  // scheduler is driving it), so the summary graph works the same way
+  // regardless of tap-tempo or BLE mode.
+  useEffect(() => {
+    if (phase !== 'running') return
+    const id = window.setInterval(() => {
+      const elapsedSec = Math.round((performance.now() - startedAtRef.current) / 1000)
+      bpmHistoryRef.current = [...bpmHistoryRef.current, { t: elapsedSec, bpm: bpmRef.current }]
+    }, BPM_SAMPLE_INTERVAL_MS)
+    return () => window.clearInterval(id)
+  }, [phase])
+
   // ── Finalize ───────────────────────────────────────────────────────
 
   function finalizeSession() {
@@ -471,6 +612,11 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     : 1
   const inZikirRange = bpm <= ZIKIR_RANGE_MAX
   const crossedZikirRange = isPacingDown && finalBpmRef.current !== null && finalBpmRef.current <= ZIKIR_RANGE_MAX
+  // Only meaningful once the running phase has actually ended — bpmHistoryRef
+  // stops changing at that point, so this is stable for the summary render.
+  const tierBreakdown = phase === 'summary' || phase === 'post_measure'
+    ? computeTierBreakdown(rawTierCountsRef.current, bestReachedTierRef.current)
+    : null
 
   // ── Render ─────────────────────────────────────────────────────────
 
@@ -842,6 +988,45 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
           )}
         </div>
       )}
+
+      {/* BPM history graph — both modes. Real fluctuations show in BLE mode
+          (losing/regaining focus mid-session); tap mode is the pacing
+          curve, smooth by construction, no artificial variance added. */}
+      {bpmHistoryRef.current.length >= 2 && (
+        <BpmHistoryGraph history={bpmHistoryRef.current} mode={sessionMode} />
+      )}
+
+      {sessionMode === 'ble' && tierBreakdown ? (
+        // Tier badges — BLE-only, deliberately: a value-add exclusive to
+        // users with a real device, not shown for tap-tempo since the
+        // underlying data isn't genuine biological measurement.
+        <div className="space-y-2 w-full">
+          <div className="inline-flex flex-col items-center gap-1 px-5 py-3 rounded-2xl border"
+            style={{ borderColor: TIER_META[tierBreakdown.dominant].color + '60', background: TIER_META[tierBreakdown.dominant].color + '15' }}>
+            <span className="text-sm font-medium" style={{ color: TIER_META[tierBreakdown.dominant].color }}>
+              {t(`amalan.khafi_player.${TIER_META[tierBreakdown.dominant].key}`)}
+            </span>
+            <span className="text-[9px] uppercase tracking-[0.25em] text-[#8a7a65]">
+              {t('amalan.khafi_player.tahap_dominan')}
+            </span>
+          </div>
+          {tierBreakdown.bestReached > tierBreakdown.dominant && (
+            <p className="text-[10px] text-[#8a7a65]">
+              {t('amalan.khafi_player.tahap_terdalam', { tier: t(`amalan.khafi_player.${TIER_META[tierBreakdown.bestReached].key}`) })}
+            </p>
+          )}
+          {/* Compact time-in-tier breakdown */}
+          <div className="flex w-full h-1.5 rounded-full overflow-hidden">
+            {([1, 2, 3, 4, 5] as BpmTier[]).filter(tier => tierBreakdown.pct[tier] > 0).map(tier => (
+              <div key={tier} style={{ width: `${tierBreakdown.pct[tier]}%`, background: TIER_META[tier].color }} />
+            ))}
+          </div>
+        </div>
+      ) : sessionMode === 'tap' ? (
+        <p className="text-[#8a7a65] text-xs leading-relaxed max-w-xs">
+          {t('amalan.khafi_player.ble_upsell')}
+        </p>
+      ) : null}
 
       {/* Optional post-session tap-measurement — separate from the BPM
           decline above (that's the session's own pacing; this is the
