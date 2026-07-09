@@ -744,7 +744,17 @@
       "pacing_intro": "Your starting BPM: {{bpm}} — we'll gradually pace it down to the Zikir Khafi range (~{{min}} min)",
       "pacing_ready": "✓ Already within the Zikir Khafi range (40–60 BPM)",
       "pacing_progress": "Starting BPM {{start}} → Target {{target}}",
-      "pacing_in_range": "✓ Within Zikir Khafi range"
+      "pacing_in_range": "✓ Within Zikir Khafi range",
+      "audio_label": "Soft Tone",
+      "mula_ble_btn": "Connect BPM Device",
+      "ble_menyambung": "Connecting to device...",
+      "ble_sedia": "Device Ready",
+      "ble_guna_tap": "Use tap-tempo instead",
+      "mula_bpm": "Starting BPM",
+      "akhir_bpm": "Ending BPM",
+      "pacing_selesai": "Reached the Zikir Khafi range",
+      "pacing_belum": "Didn't reach the range this time — keep at it",
+      "ble_data_sebenar": "Real HRV Data"
     }
   },
   "ajv2": {

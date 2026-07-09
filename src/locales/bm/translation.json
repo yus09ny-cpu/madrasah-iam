@@ -744,7 +744,17 @@
       "pacing_intro": "BPM permulaan anda: {{bpm}} — akan diturunkan perlahan ke julat Zikir Khafi (~{{min}} minit)",
       "pacing_ready": "✓ Sudah dalam julat Zikir Khafi (40–60 BPM)",
       "pacing_progress": "BPM Permulaan {{start}} → Sasaran {{target}}",
-      "pacing_in_range": "✓ Dalam julat Zikir Khafi"
+      "pacing_in_range": "✓ Dalam julat Zikir Khafi",
+      "audio_label": "Nada Lembut",
+      "mula_ble_btn": "Sambung Peranti BPM",
+      "ble_menyambung": "Menyambung ke peranti...",
+      "ble_sedia": "Peranti Bersedia",
+      "ble_guna_tap": "Guna ketukan sahaja",
+      "mula_bpm": "BPM Permulaan",
+      "akhir_bpm": "BPM Akhir",
+      "pacing_selesai": "Berjaya turun ke julat Zikir Khafi",
+      "pacing_belum": "Belum sempat turun ke julat Zikir Khafi kali ini — teruskan istiqamah",
+      "ble_data_sebenar": "Data HRV Sebenar"
     }
   },
   "ajv2": {

@@ -744,7 +744,17 @@
       "pacing_intro": "BPM awal Anda: {{bpm}} — akan diturunkan perlahan ke rentang Zikir Khafi (~{{min}} menit)",
       "pacing_ready": "✓ Sudah dalam rentang Zikir Khafi (40–60 BPM)",
       "pacing_progress": "BPM Awal {{start}} → Target {{target}}",
-      "pacing_in_range": "✓ Dalam rentang Zikir Khafi"
+      "pacing_in_range": "✓ Dalam rentang Zikir Khafi",
+      "audio_label": "Nada Lembut",
+      "mula_ble_btn": "Sambungkan Perangkat BPM",
+      "ble_menyambung": "Menyambungkan ke perangkat...",
+      "ble_sedia": "Perangkat Siap",
+      "ble_guna_tap": "Gunakan ketukan saja",
+      "mula_bpm": "BPM Awal",
+      "akhir_bpm": "BPM Akhir",
+      "pacing_selesai": "Berhasil turun ke rentang Zikir Khafi",
+      "pacing_belum": "Belum sempat turun ke rentang Zikir Khafi kali ini — tetap istiqamah",
+      "ble_data_sebenar": "Data HRV Nyata"
     }
   },
   "ajv2": {

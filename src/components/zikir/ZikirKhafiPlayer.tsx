@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useWakeLock } from '@/hooks/useWakeLock'
 import WakeLockBadge from '@/components/zikir/WakeLockBadge'
+import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRateMonitor'
+import { useAudioPulse } from '@/hooks/useAudioPulse'
+import BleStatusBadge from '@/components/zikir/BleStatusBadge'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,8 +16,13 @@ export interface KhafiSessionResult {
   postBpm: number | null    // BPM after (null = skipped)
   avgBpm: number            // average during session
   beatCount: number         // total beats
-  coherence: number         // 0–1
-  consistency: number       // 0–1
+  // Only ever populated for a BLE-connected session (real R-R data) — a
+  // tap-tempo session's beat timing is a synthetic pacing curve, not a
+  // measurement, so computing either here would fabricate a number that
+  // merely looks like a biometric reading. See ZikirKhafiPlayer's
+  // firePulseTick(isReal) and the summary-screen mode gating.
+  coherence: number | null  // 0–1
+  consistency: number | null // 0–1
 }
 
 interface Props {
@@ -22,7 +30,8 @@ interface Props {
   onCancel: () => void
 }
 
-type Phase = 'idle' | 'tapping' | 'running' | 'post_measure' | 'summary'
+type Phase = 'idle' | 'connecting' | 'tapping' | 'running' | 'post_measure' | 'summary'
+type SessionMode = 'tap' | 'ble'
 
 const SESSION_OPTIONS = [5, 10, 20, 0] as const  // 0 = ∞
 
@@ -141,7 +150,9 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const [postBpm, setPostBpm] = useState<number | null>(null)
   const [coherence, setCoherence] = useState(0)
   const [selesaiLoading, setSelesaiLoading] = useState(false)
+  const [sessionMode, setSessionMode] = useState<SessionMode>('tap')
   const wakeLock = useWakeLock()
+  const audioPulse = useAudioPulse()
 
   const tapsRef = useRef<number[]>([])
   const phaseRef = useRef<'Allah' | 'Hu'>('Allah')
@@ -154,8 +165,20 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const bpmSamplesRef = useRef(0)
   const lastTapRef = useRef(0)
   const decayMsRef = useRef(0)
+  const bpmRef = useRef(60)
+  // FIFO of genuine device R-R intervals (ms) awaiting a scheduled pulse —
+  // refilled by handleHrReading, drained by the BLE pulse scheduler.
+  const rrQueueRef = useRef<number[]>([])
+  const hrBpmRef = useRef<number | null>(null)
+  // Snapshot of the tracked BPM at the exact moment the running phase ends —
+  // `bpm` state itself gets overwritten to the session average right after
+  // (see commitAndShow), so the summary's start->end decline needs its own
+  // stable value rather than reading live `bpm` state.
+  const finalBpmRef = useRef<number | null>(null)
 
   const isInfinity = sessionMin === 0
+
+  useEffect(() => { bpmRef.current = bpm }, [bpm])
 
   // ── Tap Tempo ──────────────────────────────────────────────────────
 
@@ -180,9 +203,63 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     if ('vibrate' in navigator) navigator.vibrate(8)
   }, [])
 
+  // ── BLE device (optional alternative to tap-tempo) ─────────────────
+
+  // Not wrapped with [] deps — needs fresh `phase`/`sessionMode` each call,
+  // and useHeartRateMonitor re-captures this into a ref every render anyway
+  // (see onReadingRef in useHeartRateMonitor.ts), so identity churn here is
+  // harmless — it never tears down or reopens the BLE connection.
+  const handleHrReading = useCallback((reading: HeartRateReading) => {
+    hrBpmRef.current = reading.bpm
+    if (reading.rrIntervalsMs.length) {
+      rrQueueRef.current = [...rrQueueRef.current, ...reading.rrIntervalsMs].slice(-16)
+    }
+    // Drive bpm/smoother/average directly from real readings — the
+    // synthetic pacing-decay effect is skipped entirely in BLE mode (see
+    // the running-phase effects below).
+    if (phase === 'running' && sessionMode === 'ble') {
+      const smoothed = smootherRef.current.add(reading.bpm)
+      bpmSumRef.current += reading.bpm
+      bpmSamplesRef.current += 1
+      setBpm(Number(smoothed.toFixed(1)))
+    }
+  }, [phase, sessionMode])
+
+  // A dropped BLE connection mid-session doesn't pause or prompt to
+  // reconnect here (unlike the admin research tool, where preserving a
+  // continuous real dataset matters) — it silently falls back to
+  // tap-tempo-equivalent pacing so the practice session itself is never
+  // interrupted, and the summary honestly reflects only the mode that was
+  // actually active by the time the session ended.
+  const handleUnexpectedDisconnect = useCallback(() => {
+    setSessionMode('tap')
+  }, [])
+
+  const hr = useHeartRateMonitor({ onReading: handleHrReading, onUnexpectedDisconnect: handleUnexpectedDisconnect })
+
+  async function handleConnectBle() {
+    if (hr.state === 'connecting') return
+    setSessionMode('ble')
+    setPhase('connecting')
+    await hr.connect()
+  }
+
+  // Resolve the 'connecting' handshake once hr.state settles — watching
+  // state via effect (not chaining off the connect() promise) so a user who
+  // backs out before it resolves doesn't get bounced by a stale callback.
+  useEffect(() => {
+    if (phase !== 'connecting') return
+    if (hr.state === 'connected') { setPhase('tapping'); return }
+    if (hr.state === 'disconnected' || hr.state === 'unsupported') setPhase('idle')
+  }, [phase, hr.state])
+
   // ── Start session ──────────────────────────────────────────────────
 
   function startSession(initialBpm: number) {
+    // Must run synchronously here, inside the same click handler that
+    // called startSession — this is the one gesture-covered entry point
+    // shared by both modes' "Mula Sesi" buttons and repeatSession().
+    audioPulse.init()
     smootherRef.current = new BpmSmoother()
     smootherRef.current.add(initialBpm)
     setBpm(initialBpm)
@@ -190,6 +267,8 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setPostBpm(null)
     setCoherence(0)
     beatIntervalsRef.current = []
+    rrQueueRef.current = []
+    finalBpmRef.current = null
     bpmSumRef.current = initialBpm
     bpmSamplesRef.current = 1
     intervalMsRef.current = 60000 / initialBpm
@@ -203,29 +282,62 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     wakeLock.request()
   }
 
-  // ── Beat loop ──────────────────────────────────────────────────────
+  // ── Pulse tick — single shared trigger for haptic + orb + audio, so all
+  // three sensory cues stay perfectly in sync regardless of which scheduler
+  // (tap-mode metronome or BLE-mode real-beat queue) is driving them.
+  // isReal=false intervals (synthetic pacing) never feed beatIntervalsRef —
+  // that's what stops a "looks precise but isn't measured" figure from
+  // being computed at all, the same failure mode fixed on the admin page.
+  function firePulseTick(intervalMs: number, isReal: boolean) {
+    const isAllah = phaseRef.current === 'Allah'
+    isAllah ? fireAllah() : fireHu()
+    audioPulse.play()
+    if (isReal) beatIntervalsRef.current.push(intervalMs)
+    setCurrentLabel(phaseRef.current)
+    setBeatCount(c => c + 1)
+    setPulse(isAllah ? 1 : 0.55)
+    window.setTimeout(() => setPulse(0), isAllah ? 220 : 320)
+    phaseRef.current = isAllah ? 'Hu' : 'Allah'
+  }
+
+  // ── Beat loop — tap-tempo mode (smooth metronome on the pacing target) ──
 
   useEffect(() => {
-    if (phase !== 'running') return
+    if (phase !== 'running' || sessionMode !== 'tap') return
     let cancelled = false
     const scheduleNext = () => {
       if (cancelled) return
       timerRef.current = window.setTimeout(() => {
         if (cancelled) return
-        const isAllah = phaseRef.current === 'Allah'
-        isAllah ? fireAllah() : fireHu()
-        beatIntervalsRef.current.push(intervalMsRef.current)
-        setCurrentLabel(phaseRef.current)
-        setBeatCount(c => c + 1)
-        setPulse(isAllah ? 1 : 0.55)
-        window.setTimeout(() => setPulse(0), isAllah ? 220 : 320)
-        phaseRef.current = isAllah ? 'Hu' : 'Allah'
+        // Not a real per-beat measurement (it's the synthetic pacing
+        // interval) — see firePulseTick's isReal contract above.
+        firePulseTick(intervalMsRef.current, false)
         scheduleNext()
       }, intervalMsRef.current)
     }
     scheduleNext()
     return () => { cancelled = true; if (timerRef.current) window.clearTimeout(timerRef.current) }
-  }, [phase])
+  }, [phase, sessionMode])
+
+  // ── Beat loop — BLE mode (organic timing from queued real R-R intervals) ─
+
+  useEffect(() => {
+    if (phase !== 'running' || sessionMode !== 'ble') return
+    let cancelled = false
+    const scheduleNextBle = () => {
+      if (cancelled) return
+      const queue = rrQueueRef.current
+      const hasReal = queue.length > 0
+      const ms = hasReal ? queue.shift()! : 60000 / (hrBpmRef.current || TARGET_BPM)
+      timerRef.current = window.setTimeout(() => {
+        if (cancelled) return
+        firePulseTick(ms, hasReal)
+        scheduleNextBle()
+      }, ms)
+    }
+    scheduleNextBle()
+    return () => { cancelled = true; if (timerRef.current) window.clearTimeout(timerRef.current) }
+  }, [phase, sessionMode])
 
   // ── Countdown / elapsed ────────────────────────────────────────────
 
@@ -249,8 +361,10 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   // TARGET_BPM over decayMsRef (entrainment: guide first, heart follows).
   // If the starting BPM is already within the Zikir Khafi range, decayMsRef
   // is 0 and the pacing simply holds steady — no forced drop.
+  // Tap-tempo mode only — BLE mode drives bpm/smoother from real readings
+  // in handleHrReading instead (see above).
   useEffect(() => {
-    if (phase !== 'running') return
+    if (phase !== 'running' || sessionMode !== 'tap') return
     const startBpm = preBpm ?? bpm
     const decayMs = decayMsRef.current
     const id = window.setInterval(() => {
@@ -267,12 +381,16 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     }, 2000)
     return () => window.clearInterval(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase])
+  }, [phase, sessionMode])
 
   // ── Finalize ───────────────────────────────────────────────────────
 
   function finalizeSession() {
     if (timerRef.current) window.clearTimeout(timerRef.current)
+    // bpmRef, not bpm state — this can run from a countdown-effect closure
+    // that predates the latest bpm update (effect deps don't include bpm),
+    // so only the ref is guaranteed current.
+    finalBpmRef.current = bpmRef.current
     const c = computeCoherence(beatIntervalsRef.current)
     setCoherence(c)
     tapsRef.current = []
@@ -304,8 +422,10 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         postBpm,
         avgBpm: Number(avg.toFixed(1)),
         beatCount,
-        coherence,
-        consistency,
+        // Only meaningful for a BLE session (real R-R data) — never send a
+        // tap-tempo-derived value, since it was never a real measurement.
+        coherence: sessionMode === 'ble' ? coherence : null,
+        consistency: sessionMode === 'ble' ? consistency : null,
       })
     } finally {
       setSelesaiLoading(false)
@@ -317,6 +437,8 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   }
 
   function resetAll() {
+    if (sessionMode === 'ble') hr.disconnect()
+    setSessionMode('tap')
     setPhase('idle')
     setBeatCount(0)
     setTapBpm(null)
@@ -348,6 +470,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     ? Math.max(0, Math.min(1, (preBpm - bpm) / (preBpm - TARGET_BPM)))
     : 1
   const inZikirRange = bpm <= ZIKIR_RANGE_MAX
+  const crossedZikirRange = isPacingDown && finalBpmRef.current !== null && finalBpmRef.current <= ZIKIR_RANGE_MAX
 
   // ── Render ─────────────────────────────────────────────────────────
 
@@ -383,13 +506,35 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
           </div>
         </div>
 
+        {/* Soft audio pulse toggle */}
+        <div className="flex items-center justify-between w-full max-w-xs px-1">
+          <span className="text-[#8a7a65] text-xs">{t('amalan.khafi_player.audio_label')}</span>
+          <button
+            onClick={() => audioPulse.setEnabled(!audioPulse.enabled)}
+            disabled={!audioPulse.isSupported}
+            className={cn('w-11 h-6 rounded-full relative transition-all disabled:opacity-30',
+              audioPulse.enabled ? 'bg-[#a78bfa]' : 'bg-[#1e2d40]')}
+          >
+            <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all',
+              audioPulse.enabled ? 'left-[22px]' : 'left-0.5')} />
+          </button>
+        </div>
+
         <div className="flex flex-col items-center gap-3 w-full max-w-xs">
           <button
-            onClick={() => { tapsRef.current = []; setTapCount(0); setTapBpm(null); setPhase('tapping') }}
+            onClick={() => { tapsRef.current = []; setTapCount(0); setTapBpm(null); setSessionMode('tap'); setPhase('tapping') }}
             className="w-full py-3.5 rounded-2xl border border-[#a78bfa50] text-sm tracking-[0.2em] uppercase text-[#a78bfa] hover:bg-[#a78bfa10] transition-colors"
           >
             {t('amalan.khafi_player.mula_btn')}
           </button>
+          {hr.state !== 'unsupported' && (
+            <button
+              onClick={handleConnectBle}
+              className="w-full py-3.5 rounded-2xl border border-emerald-500/50 text-sm tracking-[0.2em] uppercase text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+            >
+              🫀 {t('amalan.khafi_player.mula_ble_btn')}
+            </button>
+          )}
           <button onClick={onCancel} className="text-[#8a7a65] text-xs hover:text-[#e8dcc8] transition-colors">
             ← {t('umum.kembali')}
           </button>
@@ -398,7 +543,70 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     )
   }
 
-  // ── TAPPING ───────────────────────────────────────────────────────────
+  // ── CONNECTING ─────────────────────────────────────────────────────────
+  if (phase === 'connecting') {
+    return (
+      <div className="flex flex-col items-center gap-6 py-16 px-4 text-center">
+        <div className="w-10 h-10 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+        <p className="text-[#8a7a65] text-xs uppercase tracking-[0.3em]">
+          {t('amalan.khafi_player.ble_menyambung')}
+        </p>
+        <button onClick={() => setPhase('idle')} className="text-[#8a7a65] text-xs hover:text-[#e8dcc8] transition-colors">
+          {t('umum.batal')}
+        </button>
+      </div>
+    )
+  }
+
+  // ── TAPPING (BLE-ready branch) ──────────────────────────────────────
+  if (phase === 'tapping' && sessionMode === 'ble') {
+    const ready = hr.bpm !== null
+    return (
+      <div className="flex flex-col items-center gap-6 py-8 px-4 text-center">
+        <p className="text-[#8a7a65] text-[10px] uppercase tracking-[0.3em]">
+          {t('amalan.khafi_player.ble_sedia')}
+        </p>
+
+        <div className="flex flex-col items-center gap-2 py-8 px-10 rounded-3xl border border-emerald-500/40"
+          style={{ background: 'radial-gradient(circle at center, rgba(16,185,129,0.08), rgba(16,185,129,0) 70%)' }}>
+          <BleStatusBadge state={hr.state} />
+          <span className="text-5xl font-light text-[#e8dcc8]">{hr.bpm ?? '—'}</span>
+          <span className="text-[10px] uppercase tracking-[0.3em] text-[#8a7a65]">
+            {hr.deviceName ?? 'bpm'}
+          </span>
+        </div>
+
+        {hr.bpm !== null && (
+          <p className={cn('text-xs max-w-xs leading-relaxed', hr.bpm > ZIKIR_RANGE_MAX ? 'text-[#a78bfa]' : 'text-[#4ade80]')}>
+            {hr.bpm > ZIKIR_RANGE_MAX
+              ? t('amalan.khafi_player.pacing_intro', { bpm: hr.bpm, min: estimateDecayMin(hr.bpm) })
+              : t('amalan.khafi_player.pacing_ready')}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button onClick={resetAll} className="px-5 py-2 text-xs tracking-widest uppercase text-[#8a7a65] hover:text-[#e8dcc8] transition-colors">
+            {t('umum.batal')}
+          </button>
+          <button
+            onClick={() => { hr.disconnect(); setSessionMode('tap'); tapsRef.current = []; setTapCount(0); setTapBpm(null) }}
+            className="text-[10px] uppercase tracking-widest text-[#8a7a65] hover:text-[#e8dcc8] underline transition-colors"
+          >
+            {t('amalan.khafi_player.ble_guna_tap')}
+          </button>
+          <button
+            disabled={!ready}
+            onClick={() => hr.bpm && startSession(hr.bpm)}
+            className="px-7 py-2.5 rounded-full border border-emerald-500/50 text-xs tracking-[0.2em] uppercase text-emerald-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-emerald-500/10 transition-colors"
+          >
+            {t('amalan.khafi_player.mula_sesi')}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── TAPPING (manual tap-tempo branch) ───────────────────────────────
   if (phase === 'tapping') {
     const ready = tapBpm !== null
     return (
@@ -477,6 +685,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
               {isInfinity ? `${mmss} ${t('amalan.khafi_player.berlalu')}` : mmss}
             </p>
             <WakeLockBadge status={wakeLock.status} />
+            {sessionMode === 'ble' && <BleStatusBadge state={hr.state} />}
           </div>
 
           {/* Pacing guide — only shown when starting BPM was above the Zikir Khafi range */}
@@ -526,7 +735,10 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
           <div className="flex gap-8 text-[10px] uppercase tracking-[0.3em] text-[#8a7a65]">
             <span>{bpm.toFixed(0)} bpm</span>
             <span>{beatCount} {t('amalan.khafi_player.ketukan').toLowerCase()}</span>
-            <span>{(consistency * 100).toFixed(0)}%</span>
+            {/* Same BLE-only gate as the summary screen — this was the
+                exact live figure that first surfaced the synthetic-100%
+                issue, so it can't stay ungated here while summary is fixed. */}
+            {sessionMode === 'ble' && <span>{(consistency * 100).toFixed(0)}%</span>}
           </div>
           <button
             onClick={finalizeSession}
@@ -600,18 +812,51 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         {t('amalan.khafi_player.selesai_tajuk')}
       </p>
 
-      {/* Pre / Post BPM */}
+      {/* BPM decline — primary metric, honestly derived in BOTH modes (a
+          real detected beat or a real tap, never the synthetic curve) */}
+      {preBpm !== null && finalBpmRef.current !== null && (
+        <div className="space-y-2">
+          <div className="flex items-end gap-6">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-5xl font-light text-[#e8dcc8]">{preBpm}</span>
+              <span className="text-[10px] uppercase tracking-[0.3em] text-[#8a7a65]">
+                {t('amalan.khafi_player.mula_bpm')}
+              </span>
+            </div>
+            <div className="pb-3 text-[#8a7a65] text-2xl font-light">→</div>
+            <div className="flex flex-col items-center gap-1">
+              <span className={cn('text-5xl font-light', crossedZikirRange ? 'text-[#4ade80]' : 'text-[#e8dcc8]')}>
+                {Math.round(finalBpmRef.current)}
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.3em] text-[#8a7a65]">
+                {t('amalan.khafi_player.akhir_bpm')}
+              </span>
+            </div>
+          </div>
+          {isPacingDown ? (
+            <p className={cn('text-xs tracking-wide', crossedZikirRange ? 'text-[#4ade80]' : 'text-[#8a7a65]')}>
+              {crossedZikirRange ? `✓ ${t('amalan.khafi_player.pacing_selesai')}` : t('amalan.khafi_player.pacing_belum')}
+            </p>
+          ) : (
+            <p className="text-[#4ade80] text-xs tracking-wide">{t('amalan.khafi_player.pacing_ready')}</p>
+          )}
+        </div>
+      )}
+
+      {/* Optional post-session tap-measurement — separate from the BPM
+          decline above (that's the session's own pacing; this is the
+          user's own subjective before/after check, may be skipped) */}
       {preBpm !== null && (
         <div className="flex items-end gap-6">
           <div className="flex flex-col items-center gap-1">
-            <span className="text-5xl font-light text-[#e8dcc8]">{preBpm}</span>
+            <span className="text-3xl font-light text-[#8a7a65]">{preBpm}</span>
             <span className="text-[10px] uppercase tracking-[0.3em] text-[#8a7a65]">
               {t('amalan.khafi_player.sebelum')}
             </span>
           </div>
-          <div className="pb-3 text-[#8a7a65] text-2xl font-light">→</div>
+          <div className="pb-2 text-[#8a7a65] text-lg font-light">→</div>
           <div className="flex flex-col items-center gap-1">
-            <span className={cn('text-5xl font-light', bpmDelta !== null && bpmDelta < 0 ? 'text-[#4ade80]' : 'text-[#e8dcc8]')}>
+            <span className={cn('text-3xl font-light', bpmDelta !== null && bpmDelta < 0 ? 'text-[#4ade80]' : 'text-[#8a7a65]')}>
               {postBpm ?? '—'}
             </span>
             <span className="text-[10px] uppercase tracking-[0.3em] text-[#8a7a65]">
@@ -631,15 +876,26 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         </p>
       )}
 
-      {/* Coherence Ring */}
-      <CoherenceRing value={coherence} label={t('amalan.khafi_player.koheren')} />
+      {/* Coherence/consistency — BLE-connected sessions only, where they're
+          finally computed from genuine R-R data instead of a synthetic
+          pacing curve (see firePulseTick's isReal contract). */}
+      {sessionMode === 'ble' && (
+        <>
+          <CoherenceRing value={coherence} label={t('amalan.khafi_player.koheren')} />
+          <div className="flex items-center gap-2 text-emerald-400/70 text-[10px] uppercase tracking-[0.3em]">
+            🫀 {t('amalan.khafi_player.ble_data_sebenar')}
+          </div>
+        </>
+      )}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className={cn('grid gap-6', sessionMode === 'ble' ? 'grid-cols-3' : 'grid-cols-2')}>
         {[
           { label: t('amalan.khafi_player.ketukan'), value: beatCount.toString() },
           { label: t('amalan.khafi_player.purata_bpm'), value: bpm.toFixed(0) },
-          { label: t('amalan.khafi_player.konsistensi'), value: `${(consistency * 100).toFixed(0)}%` },
+          ...(sessionMode === 'ble'
+            ? [{ label: t('amalan.khafi_player.konsistensi'), value: `${(consistency * 100).toFixed(0)}%` }]
+            : []),
         ].map(s => (
           <div key={s.label} className="flex flex-col items-center gap-2">
             <span className="text-3xl font-light text-[#e8dcc8]">{s.value}</span>
