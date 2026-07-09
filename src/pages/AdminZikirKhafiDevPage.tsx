@@ -22,8 +22,10 @@ import { Shield, ArrowLeft, FlaskConical, RotateCcw, Play, Square } from 'lucide
 import { format } from 'date-fns'
 import { useAuthStore } from '@/store/authStore'
 import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRateMonitor'
+import { useWakeLock } from '@/hooks/useWakeLock'
 import { supabase } from '@/lib/supabase'
 import ZikirKhafiPlayer from '@/components/zikir/ZikirKhafiPlayer'
+import WakeLockBadge from '@/components/zikir/WakeLockBadge'
 import HrvSessionsReview from '@/components/admin/HrvSessionsReview'
 
 // ---------------------------------------------------------------------------
@@ -359,6 +361,11 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const handleUnexpectedDisconnect = useCallback(() => {
     console.warn('[H64] gattserverdisconnected — unexpected drop, showing warning banner')
     setShowDisconnectWarning(true)
+    // The device has stopped sending anything — clear rrSource immediately so
+    // the UI never keeps showing a stale 'real'/'suspect' label (or plotting
+    // the last tachogram) as if data is still flowing while disconnected.
+    rrSourceRef.current = null
+    setRrSource(null)
   }, [])
 
   const hr = useHeartRateMonitor({ onReading: handleHrReading, onUnexpectedDisconnect: handleUnexpectedDisconnect })
@@ -385,6 +392,39 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
 
   // Keep sessionPhaseRef in sync for use inside closures
   useEffect(() => { sessionPhaseRef.current = sessionPhase }, [sessionPhase])
+
+  // ---------------------------------------------------------------------------
+  // Screen Wake Lock — keep the display on for the duration of a running
+  // session (tap-tempo or BLE) so the screen doesn't sleep/dim mid-zikir.
+  // ---------------------------------------------------------------------------
+  const wakeLock = useWakeLock()
+
+  // ---------------------------------------------------------------------------
+  // BLE auto-reconnect on visibilitychange — BLE-mode only. A wake lock keeps
+  // the screen on but does NOT guarantee the BLE link itself survives the tab
+  // being backgrounded (OS may still tear down the radio). Gated on
+  // sessionUsedDeviceRef (this session actually received real device readings)
+  // rather than hr.state alone or rrSource — a tap-tempo-only session also
+  // reports rrSource 'real' and would otherwise falsely trigger this.
+  // ---------------------------------------------------------------------------
+  const [reconnecting, setReconnecting] = useState(false)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return
+      if (sessionPhaseRef.current !== 'running') return
+      if (!sessionUsedDeviceRef.current) return  // tap-tempo-only session — no device to reconnect
+      if (hr.state === 'connected' || hr.state === 'connecting' || hr.state === 'unsupported') return
+      console.warn('[H64] tab visible again mid-session with BLE disconnected — attempting reconnect')
+      setReconnecting(true)
+      hr.reconnect().then(success => {
+        // Only dismiss the persistent disconnect banner once actually back
+        // online — a failed attempt leaves it up, since we're still disconnected.
+        if (success) setShowDisconnectWarning(false)
+      }).finally(() => setReconnecting(false))
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [hr.state, hr.reconnect])
 
   // ---------------------------------------------------------------------------
   // Tap handler — timestamp intervals → smooth BPM → RMSSD coherence
@@ -483,12 +523,14 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     sessionRrSuspectRef.current = false
     beatCountRef.current = 0
     setSessionPhase('running')
-  }, [canStart, sessionMin])
+    wakeLock.request()
+  }, [canStart, sessionMin, wakeLock.request])
 
   const stopSession = useCallback(() => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current)
     timerRef.current = null
     setSessionPhase('idle')
+    wakeLock.release()
 
     // Only offer to save when the session actually received real Magene H64
     // readings — tap-tempo-only calibration never produces an hrv_sessions row.
@@ -513,7 +555,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         rr_suspect: sessionRrSuspectRef.current,
       })
     }
-  }, [hr.deviceName, hr.deviceId, pacingBpm])
+  }, [hr.deviceName, hr.deviceId, pacingBpm, wakeLock.release])
 
   // ---------------------------------------------------------------------------
   // hrv_sessions save — admin-only real-device experiment data
@@ -741,6 +783,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
                 <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
                 Sesi Aktif · {formatTime(remaining)}
+                <WakeLockBadge status={wakeLock.status} />
               </span>
             )}
           </div>
@@ -773,6 +816,13 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
 
       {viewMode === 'monitor' && (
       <>
+      {/* Reconnect toast — BLE-mode only, shown while auto-reconnect (visibilitychange) is in flight */}
+      {reconnecting && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-gray-900 border border-amber-500/40 rounded-xl px-4 py-2.5 text-amber-300 text-xs shadow-lg">
+          🔄 Sensor terputus, menyambung semula...
+        </div>
+      )}
+
       {/* Prominent BLE disconnect warning — visible regardless of running state */}
       {showDisconnectWarning && (
         <div className="border-b border-red-800/50 bg-red-950/40 px-6 py-3">

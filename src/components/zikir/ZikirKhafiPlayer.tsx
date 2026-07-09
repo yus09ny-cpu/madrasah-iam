@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { useWakeLock } from '@/hooks/useWakeLock'
+import WakeLockBadge from '@/components/zikir/WakeLockBadge'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -139,6 +141,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const [postBpm, setPostBpm] = useState<number | null>(null)
   const [coherence, setCoherence] = useState(0)
   const [selesaiLoading, setSelesaiLoading] = useState(false)
+  const wakeLock = useWakeLock()
 
   const tapsRef = useRef<number[]>([])
   const phaseRef = useRef<'Allah' | 'Hu'>('Allah')
@@ -197,6 +200,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setElapsed(0)
     startedAtRef.current = performance.now()
     setPhase('running')
+    wakeLock.request()
   }
 
   // ── Beat loop ──────────────────────────────────────────────────────
@@ -275,6 +279,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setTapCount(0)
     setTapBpm(null)
     setPhase('post_measure')
+    wakeLock.release()
   }
 
   function skipPostMeasure() { commitAndShow(null) }
@@ -321,6 +326,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setPostBpm(null)
     setCoherence(0)
     setElapsed(0)
+    wakeLock.release()
   }
 
   // ── Orb animation ──────────────────────────────────────────────────
@@ -466,9 +472,12 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
       <div className="relative min-h-[70dvh] flex flex-col items-center justify-between py-10 select-none">
         {/* Timer top */}
         <div className="flex flex-col items-center gap-3">
-          <p className="text-[#8a7a65] text-[10px] uppercase tracking-[0.4em] font-mono">
-            {isInfinity ? `${mmss} ${t('amalan.khafi_player.berlalu')}` : mmss}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-[#8a7a65] text-[10px] uppercase tracking-[0.4em] font-mono">
+              {isInfinity ? `${mmss} ${t('amalan.khafi_player.berlalu')}` : mmss}
+            </p>
+            <WakeLockBadge status={wakeLock.status} />
+          </div>
 
           {/* Pacing guide — only shown when starting BPM was above the Zikir Khafi range */}
           {isPacingDown && preBpm !== null && (

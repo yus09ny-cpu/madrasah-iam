@@ -138,11 +138,12 @@ export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
   const handleGattDisconnected = useCallback(() => {
     // disconnect() strips this listener before calling gatt.disconnect(), so
     // reaching here always means an out-of-band drop (strap off, out of range).
+    // deviceRef is deliberately NOT cleared here (unlike disconnect()) — it's
+    // the already-authorized BluetoothDevice, and reconnect() needs it to
+    // re-establish the GATT connection without a new requestDevice() picker
+    // (which requires a user gesture and can't run from e.g. visibilitychange).
     setState(getBluetooth() ? 'disconnected' : 'unsupported')
     setBpm(null)
-    setDeviceName(null)
-    setDeviceId(null)
-    deviceRef.current = null
     characteristicRef.current = null
     onUnexpectedDisconnectRef.current?.()
   }, [])
@@ -178,6 +179,44 @@ export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
       characteristicRef.current = null
     }
   }, [handleValueChanged, handleGattDisconnected])
+
+  // Re-establish the GATT connection to the device this hook already holds a
+  // reference to (set by a prior connect()), without prompting the device
+  // picker again — safe to call from contexts with no user gesture, e.g. a
+  // visibilitychange handler after the OS silently dropped the BLE link.
+  // No-ops if there is no known device (connect() was never called, or the
+  // user deliberately disconnected via disconnect()).
+  // Returns whether it succeeded — callers that need to react to the outcome
+  // (e.g. clearing a "disconnected" banner only once actually reconnected)
+  // can't rely on reading `state` right after calling this, since a state
+  // update from within the same closure/effect is stale until the next
+  // render. This never throws, matching the rest of the hook's contract.
+  const reconnect = useCallback(async (): Promise<boolean> => {
+    const device = deviceRef.current
+    if (!device?.gatt) return false
+    setError(null)
+    setState('connecting')
+    try {
+      const server = await device.gatt.connect()
+      const service = await server.getPrimaryService('heart_rate')
+      const characteristic = await service.getCharacteristic('heart_rate_measurement')
+      const previous = characteristicRef.current
+      if (previous) previous.removeEventListener('characteristicvaluechanged', handleValueChanged)
+      characteristicRef.current = characteristic
+      characteristic.addEventListener('characteristicvaluechanged', handleValueChanged)
+      await characteristic.startNotifications()
+      setDeviceName(device.name ?? 'Peranti BPM')
+      setDeviceId(device.id)
+      setState('connected')
+      return true
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[useHeartRateMonitor] reconnect failed:', message)
+      setError(message)
+      setState(getBluetooth() ? 'disconnected' : 'unsupported')
+      return false
+    }
+  }, [handleValueChanged])
 
   const disconnect = useCallback(() => {
     const characteristic = characteristicRef.current
@@ -215,5 +254,5 @@ export function useHeartRateMonitor(options?: UseHeartRateMonitorOptions) {
     }
   }, [handleValueChanged, handleGattDisconnected])
 
-  return { state, deviceName, deviceId, bpm, error, connect, disconnect }
+  return { state, deviceName, deviceId, bpm, error, connect, disconnect, reconnect }
 }
