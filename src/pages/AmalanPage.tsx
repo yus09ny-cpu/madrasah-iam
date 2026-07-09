@@ -654,13 +654,19 @@ function KhafiSection({ userTier, onBack, onComplete }: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const db = supabase as any
 
-        // Biometric data — silently ignore if table belum wujud
-        await db.from('zikir_khafi_sessions').insert({
-          user_id: user.id, session_date: today,
-          duration_min: result.durationMin, actual_sec: result.actualSec,
-          pre_bpm: result.preBpm, post_bpm: result.postBpm, avg_bpm: result.avgBpm,
-          beat_count: result.beatCount, coherence: result.coherence, consistency: result.consistency,
-        }).catch(() => {})
+        // Biometric data — silently ignore if table belum wujud. Supabase's
+        // query builder is a thenable, not a real Promise, until awaited —
+        // chaining .catch() on it directly throws "not a function" instead
+        // of catching anything, so this must be a real try/await/catch.
+        try {
+          await db.from('zikir_khafi_sessions').insert({
+            user_id: user.id, session_date: today,
+            duration_min: result.durationMin, actual_sec: result.actualSec,
+            pre_bpm: result.preBpm, final_bpm: result.finalBpm, avg_bpm: result.avgBpm,
+            beat_count: result.beatCount, coherence: result.coherence, consistency: result.consistency,
+            session_mode: result.sessionMode, dominant_tier: result.dominantTier, deepest_tier: result.deepestTier,
+          })
+        } catch { /* table/columns belum wujud — jangan halang amalan_sessions di bawah */ }
 
         // INSERT khafi_minit — kalau row dah ada (conflict), fallback ke UPDATE
         const { error: insertErr } = await db.from('amalan_sessions').insert({

@@ -6,16 +6,18 @@ import WakeLockBadge from '@/components/zikir/WakeLockBadge'
 import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRateMonitor'
 import { useAudioPulse } from '@/hooks/useAudioPulse'
 import BleStatusBadge from '@/components/zikir/BleStatusBadge'
+import { classifyBpmTier, TIER_META, type BpmTier } from '@/lib/bpmTiers'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface KhafiSessionResult {
   durationMin: number       // target duration (0 = ∞)
   actualSec: number         // actual elapsed seconds
-  preBpm: number | null     // BPM before session
-  postBpm: number | null    // BPM after (null = skipped)
+  preBpm: number | null     // BPM at session start
+  finalBpm: number | null   // true tracked BPM at the exact moment the session ended
   avgBpm: number            // average during session
   beatCount: number         // total beats
+  sessionMode: 'tap' | 'ble'
   // Only ever populated for a BLE-connected session (real R-R data) — a
   // tap-tempo session's beat timing is a synthetic pacing curve, not a
   // measurement, so computing either here would fabricate a number that
@@ -23,6 +25,8 @@ export interface KhafiSessionResult {
   // firePulseTick(isReal) and the summary-screen mode gating.
   coherence: number | null  // 0–1
   consistency: number | null // 0–1
+  dominantTier: BpmTier | null
+  deepestTier: BpmTier | null
 }
 
 interface Props {
@@ -30,7 +34,7 @@ interface Props {
   onCancel: () => void
 }
 
-type Phase = 'idle' | 'connecting' | 'tapping' | 'running' | 'post_measure' | 'summary'
+type Phase = 'idle' | 'connecting' | 'tapping' | 'running' | 'summary'
 type SessionMode = 'tap' | 'ble'
 
 const SESSION_OPTIONS = [5, 10, 20, 0] as const  // 0 = ∞
@@ -58,29 +62,6 @@ const PHYSIO_BPM_MAX = 220
 
 // How often a bpm sample is recorded into bpmHistory for the summary graph.
 const BPM_SAMPLE_INTERVAL_MS = 2500
-
-// ─── BPM tier classification (BLE-only reward system) ────────────────────
-// Ordered high-arousal -> deep-calm. Boundaries reuse this file's own
-// established constants (TARGET_BPM=50, ZIKIR_RANGE_MAX=60) so tier 4 lines
-// up exactly with the pacing target's own "in range" definition, rather than
-// introducing a second, slightly different notion of what counts as calm.
-type BpmTier = 1 | 2 | 3 | 4 | 5
-
-function classifyBpmTier(bpm: number): BpmTier {
-  if (bpm > 100) return 1
-  if (bpm > 80) return 2
-  if (bpm > ZIKIR_RANGE_MAX) return 3
-  if (bpm >= 40) return 4
-  return 5
-}
-
-const TIER_META: Record<BpmTier, { key: string; color: string }> = {
-  1: { key: 'tier_1', color: '#f87171' }, // Hilang Tumpuan
-  2: { key: 'tier_2', color: '#fb923c' }, // Kurang Stabil
-  3: { key: 'tier_3', color: '#fbbf24' }, // Menghampiri Tenang
-  4: { key: 'tier_4', color: '#34d399' }, // Ketenangan Mendalam
-  5: { key: 'tier_5', color: '#a78bfa' }, // Kesedaran Berterusan
-}
 
 interface TierBreakdown {
   pct: Record<BpmTier, number>   // 0-100 per tier, sums to ~100
@@ -247,7 +228,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const [elapsed, setElapsed] = useState(0)
   const [consistency, setConsistency] = useState(1)
   const [preBpm, setPreBpm] = useState<number | null>(null)
-  const [postBpm, setPostBpm] = useState<number | null>(null)
   const [coherence, setCoherence] = useState(0)
   const [selesaiLoading, setSelesaiLoading] = useState(false)
   const [sessionMode, setSessionMode] = useState<SessionMode>('tap')
@@ -272,7 +252,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const hrBpmRef = useRef<number | null>(null)
   // Snapshot of the tracked BPM at the exact moment the running phase ends —
   // `bpm` state itself gets overwritten to the session average right after
-  // (see commitAndShow), so the summary's start->end decline needs its own
+  // (see finalizeSession), so the summary's start->end decline needs its own
   // stable value rather than reading live `bpm` state.
   const finalBpmRef = useRef<number | null>(null)
   // Full-session BPM trace (post-filter, post-smoothing), sampled every
@@ -390,7 +370,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     smootherRef.current.add(initialBpm)
     setBpm(initialBpm)
     setPreBpm(initialBpm)
-    setPostBpm(null)
     setCoherence(0)
     beatIntervalsRef.current = []
     rrQueueRef.current = []
@@ -526,6 +505,10 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
 
   // ── Finalize ───────────────────────────────────────────────────────
 
+  // Goes straight to 'summary' — no more manual post-session pulse tap. That
+  // screen predated continuous bpmHistory recording; finalBpmRef already
+  // captures an accurate, automatic end-of-session BPM, so asking the user
+  // to tap again afterward added friction with no remaining data value.
   function finalizeSession() {
     if (timerRef.current) window.clearTimeout(timerRef.current)
     // bpmRef, not bpm state — this can run from a countdown-effect closure
@@ -534,21 +517,13 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     finalBpmRef.current = bpmRef.current
     const c = computeCoherence(beatIntervalsRef.current)
     setCoherence(c)
+    const avg = bpmSamplesRef.current > 0 ? bpmSumRef.current / bpmSamplesRef.current : bpm
+    setBpm(Number(avg.toFixed(1)))
     tapsRef.current = []
     setTapCount(0)
     setTapBpm(null)
-    setPhase('post_measure')
-    wakeLock.release()
-  }
-
-  function skipPostMeasure() { commitAndShow(null) }
-  function confirmPostMeasure() { if (tapBpm) commitAndShow(tapBpm) }
-
-  function commitAndShow(postValue: number | null) {
-    const avg = bpmSamplesRef.current > 0 ? bpmSumRef.current / bpmSamplesRef.current : bpm
-    setPostBpm(postValue)
-    setBpm(Number(avg.toFixed(1)))
     setPhase('summary')
+    wakeLock.release()
   }
 
   async function handleSelesai() {
@@ -560,13 +535,16 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         durationMin: sessionMin,
         actualSec: Math.round(elapsed),
         preBpm,
-        postBpm,
+        finalBpm: finalBpmRef.current,
         avgBpm: Number(avg.toFixed(1)),
         beatCount,
+        sessionMode,
         // Only meaningful for a BLE session (real R-R data) — never send a
         // tap-tempo-derived value, since it was never a real measurement.
         coherence: sessionMode === 'ble' ? coherence : null,
         consistency: sessionMode === 'ble' ? consistency : null,
+        dominantTier: sessionMode === 'ble' ? tierBreakdown?.dominant ?? null : null,
+        deepestTier: sessionMode === 'ble' ? tierBreakdown?.bestReached ?? null : null,
       })
     } finally {
       setSelesaiLoading(false)
@@ -586,7 +564,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setCurrentLabel('')
     setPulse(0)
     setPreBpm(null)
-    setPostBpm(null)
     setCoherence(0)
     setElapsed(0)
     wakeLock.release()
@@ -604,7 +581,13 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     return `${m}:${sec.toString().padStart(2, '0')}`
   }, [remaining, elapsed, isInfinity])
 
-  const bpmDelta = preBpm !== null && postBpm !== null ? postBpm - preBpm : null
+  // Uses finalBpmRef (the real tracked end-of-session value) instead of a
+  // manually re-tapped post-session BPM — that extra tap was removed since
+  // finalBpmRef already captures this automatically, in both modes.
+  // Rounded — subtracting two "clean" floats (e.g. 75 - 70.4) can still land
+  // on a JS binary floating-point artifact like 4.599999999999994, and an
+  // unrounded value would also make the ===0 "steady" check nearly unreachable.
+  const bpmDelta = preBpm !== null && finalBpmRef.current !== null ? Math.round(finalBpmRef.current - preBpm) : null
 
   const isPacingDown = preBpm !== null && preBpm > ZIKIR_RANGE_MAX
   const pacingProgress = isPacingDown && preBpm !== null
@@ -614,7 +597,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const crossedZikirRange = isPacingDown && finalBpmRef.current !== null && finalBpmRef.current <= ZIKIR_RANGE_MAX
   // Only meaningful once the running phase has actually ended — bpmHistoryRef
   // stops changing at that point, so this is stable for the summary render.
-  const tierBreakdown = phase === 'summary' || phase === 'post_measure'
+  const tierBreakdown = phase === 'summary'
     ? computeTierBreakdown(rawTierCountsRef.current, bestReachedTierRef.current)
     : null
 
@@ -897,60 +880,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     )
   }
 
-  // ── POST MEASURE ──────────────────────────────────────────────────────
-  if (phase === 'post_measure') {
-    const ready = tapBpm !== null
-    return (
-      <div className="flex flex-col items-center gap-6 py-8 px-4 text-center">
-        <p className="text-[#a78bfa] text-[10px] uppercase tracking-[0.4em]">
-          {t('amalan.khafi_player.rehat')}
-        </p>
-        <p className="text-[#8a7a65] text-xs max-w-xs leading-relaxed">
-          {t('amalan.khafi_player.rehat_arahan')}
-        </p>
-
-        <div className="flex items-center gap-5">
-          <button onClick={() => setTapBpm(prev => Math.max(TAP_MIN, (prev ?? 60) - 1))}
-            className="w-10 h-10 rounded-full border border-[#1e2d40] text-[#8a7a65] hover:text-[#e8dcc8] hover:border-[#a78bfa30] transition-all flex items-center justify-center text-xl select-none">
-            −
-          </button>
-          <button onClick={handleTap}
-            className="relative rounded-full border border-[#a78bfa20] hover:border-[#a78bfa40] active:scale-95 transition-all select-none"
-            style={{
-              width: 160, height: 160,
-              background: 'radial-gradient(circle at center, rgba(167,139,250,0.06), rgba(0,0,0,0) 70%)',
-            }}>
-            <span className="text-4xl font-light text-[#e8dcc8]">{tapBpm ?? '—'}</span>
-            <span className="block mt-1 text-[10px] uppercase tracking-[0.3em] text-[#8a7a65]">
-              {tapBpm ? 'bpm' : t('amalan.khafi_player.ketuk_tap')}
-            </span>
-          </button>
-          <button onClick={() => setTapBpm(prev => Math.min(TAP_MAX, (prev ?? 60) + 1))}
-            className="w-10 h-10 rounded-full border border-[#1e2d40] text-[#8a7a65] hover:text-[#e8dcc8] hover:border-[#a78bfa30] transition-all flex items-center justify-center text-xl select-none">
-            +
-          </button>
-        </div>
-
-        <p className="text-[#8a7a65] text-xs">
-          {tapCount < 2
-            ? t('amalan.khafi_player.ketuk_min')
-            : t('amalan.khafi_player.ketuk_stabil', { n: tapCount })}
-        </p>
-
-        <div className="flex gap-3">
-          <button onClick={skipPostMeasure}
-            className="px-5 py-2 text-xs tracking-widest uppercase text-[#8a7a65] hover:text-[#e8dcc8] transition-colors">
-            {t('amalan.khafi_player.langkau')}
-          </button>
-          <button disabled={!ready} onClick={confirmPostMeasure}
-            className="px-7 py-2.5 rounded-full border border-[#a78bfa50] text-xs tracking-[0.2em] uppercase text-[#a78bfa] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#a78bfa10] transition-colors">
-            {t('amalan.khafi_player.simpan')}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   // ── SUMMARY ───────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col items-center gap-6 py-8 px-4 text-center max-w-xs mx-auto">
@@ -984,7 +913,21 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
               {crossedZikirRange ? `✓ ${t('amalan.khafi_player.pacing_selesai')}` : t('amalan.khafi_player.pacing_belum')}
             </p>
           ) : (
-            <p className="text-[#4ade80] text-xs tracking-wide">{t('amalan.khafi_player.pacing_ready')}</p>
+            <>
+              <p className="text-[#4ade80] text-xs tracking-wide">{t('amalan.khafi_player.pacing_ready')}</p>
+              {/* Already started in range — pacing_ready covers the range
+                  itself, this adds whether it settled further during the
+                  session (using finalBpm, not a manually re-tapped value). */}
+              {bpmDelta !== null && (
+                <p className={cn('text-xs tracking-wide', bpmDelta < 0 ? 'text-[#4ade80]' : 'text-[#8a7a65]')}>
+                  {bpmDelta < 0
+                    ? t('amalan.khafi_player.lebih_tenang', { n: Math.abs(bpmDelta) })
+                    : bpmDelta === 0
+                    ? t('amalan.khafi_player.stabil')
+                    : `↑ ${bpmDelta} bpm`}
+                </p>
+              )}
+            </>
           )}
         </div>
       )}
@@ -1027,39 +970,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
           {t('amalan.khafi_player.ble_upsell')}
         </p>
       ) : null}
-
-      {/* Optional post-session tap-measurement — separate from the BPM
-          decline above (that's the session's own pacing; this is the
-          user's own subjective before/after check, may be skipped) */}
-      {preBpm !== null && (
-        <div className="flex items-end gap-6">
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-3xl font-light text-[#8a7a65]">{preBpm}</span>
-            <span className="text-[10px] uppercase tracking-[0.3em] text-[#8a7a65]">
-              {t('amalan.khafi_player.sebelum')}
-            </span>
-          </div>
-          <div className="pb-2 text-[#8a7a65] text-lg font-light">→</div>
-          <div className="flex flex-col items-center gap-1">
-            <span className={cn('text-3xl font-light', bpmDelta !== null && bpmDelta < 0 ? 'text-[#4ade80]' : 'text-[#8a7a65]')}>
-              {postBpm ?? '—'}
-            </span>
-            <span className="text-[10px] uppercase tracking-[0.3em] text-[#8a7a65]">
-              {t('amalan.khafi_player.selepas')}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {bpmDelta !== null && (
-        <p className={cn('text-xs tracking-wide', bpmDelta < 0 ? 'text-[#4ade80]' : 'text-[#8a7a65]')}>
-          {bpmDelta < 0
-            ? t('amalan.khafi_player.lebih_tenang', { n: Math.abs(bpmDelta) })
-            : bpmDelta === 0
-            ? t('amalan.khafi_player.stabil')
-            : `↑ ${bpmDelta} bpm`}
-        </p>
-      )}
 
       {/* Coherence/consistency — BLE-connected sessions only, where they're
           finally computed from genuine R-R data instead of a synthetic

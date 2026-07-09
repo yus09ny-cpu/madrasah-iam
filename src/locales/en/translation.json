@@ -597,7 +597,11 @@
       "rezeki_desc": "Your provision has been precisely measured by Allah. Your task — to know Him through every journey of provision.",
       "baqarah286_trans": "\"Allah does not burden a soul beyond what it can bear\" — Al-Baqarah: 286",
       "khafi_tajuk": "Zikir Khafi Sessions",
-      "khafi_tiada": "No sessions recorded yet"
+      "khafi_tiada": "No sessions recorded yet",
+      "trend_tajuk": "Calm Trend",
+      "trend_7hari": "7 Days",
+      "trend_30hari": "30 Days",
+      "trend_tiada": "No BPM-device sessions in this period"
     },
     "kesadaran": {
       "bukan_milik": "— not yours to keep",
