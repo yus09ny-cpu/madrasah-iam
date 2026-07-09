@@ -766,7 +766,12 @@
       "tier_5": "Sustained Awareness",
       "tahap_dominan": "Dominant Stage",
       "tahap_terdalam": "Deepest stage reached: {{tier}}",
-      "ble_upsell": "🫀 Connect a BPM device to see your real calming journey"
+      "ble_upsell": "🫀 Connect a BPM device to see your real calming journey",
+      "riwayat_tajuk": "History & Calm Trend",
+      "riwayat_terkunci_desc": "Upgrade to Pro to see your session history and calm trend over time.",
+      "riwayat_terkunci_btn": "Upgrade to Pro",
+      "data_lama": "Old Data",
+      "data_lama_tooltip": "Recorded before the coherence-accuracy fix on 9 July 2026 — this coherence number may not be accurate"
     }
   },
   "ajv2": {

@@ -766,7 +766,12 @@
       "tier_5": "Kesedaran Berterusan",
       "tahap_dominan": "Tahap Dominan",
       "tahap_terdalam": "Tahap terdalam dicapai: {{tier}}",
-      "ble_upsell": "🫀 Sambungkan peranti BPM untuk melihat perjalanan ketenangan sebenar anda"
+      "ble_upsell": "🫀 Sambungkan peranti BPM untuk melihat perjalanan ketenangan sebenar anda",
+      "riwayat_tajuk": "Riwayat & Trend Ketenangan",
+      "riwayat_terkunci_desc": "Naik taraf ke Pro untuk lihat riwayat sesi dan trend ketenangan anda dari semasa ke semasa.",
+      "riwayat_terkunci_btn": "Naik Taraf ke Pro",
+      "data_lama": "Data Lama",
+      "data_lama_tooltip": "Direkod sebelum pembaikan ketepatan koheren pada 9 Julai 2026 — nombor koheren ini mungkin tidak tepat"
     }
   },
   "ajv2": {

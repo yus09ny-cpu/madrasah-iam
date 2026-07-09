@@ -766,7 +766,12 @@
       "tier_5": "Kesadaran Berkelanjutan",
       "tahap_dominan": "Tahap Dominan",
       "tahap_terdalam": "Tahap terdalam yang dicapai: {{tier}}",
-      "ble_upsell": "🫀 Sambungkan perangkat BPM untuk melihat perjalanan ketenangan nyata Anda"
+      "ble_upsell": "🫀 Sambungkan perangkat BPM untuk melihat perjalanan ketenangan nyata Anda",
+      "riwayat_tajuk": "Riwayat & Tren Ketenangan",
+      "riwayat_terkunci_desc": "Tingkatkan ke Pro untuk melihat riwayat sesi dan tren ketenangan Anda dari waktu ke waktu.",
+      "riwayat_terkunci_btn": "Tingkatkan ke Pro",
+      "data_lama": "Data Lama",
+      "data_lama_tooltip": "Direkam sebelum perbaikan akurasi koherensi pada 9 Juli 2026 — angka koherensi ini mungkin tidak akurat"
     }
   },
   "ajv2": {

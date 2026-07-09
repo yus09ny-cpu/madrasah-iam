@@ -6,6 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import ZikirKhafiPlayer, { type KhafiSessionResult } from '@/components/zikir/ZikirKhafiPlayer'
+import KhafiHistoryPanel from '@/components/zikir/KhafiHistoryPanel'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
@@ -852,7 +853,14 @@ function KhafiSection({ userTier, onBack, onComplete }: {
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────────
 
-function Dashboard({ onStartJahar, onStartKhafi, user, refreshKey }: { onStartJahar: () => void; onStartKhafi: () => void; user: { id: string } | null; refreshKey: number }) {
+function Dashboard({ onStartJahar, onStartKhafi, user, userTier, onUpgrade, refreshKey }: {
+  onStartJahar: () => void
+  onStartKhafi: () => void
+  user: { id: string } | null
+  userTier: string
+  onUpgrade: () => void
+  refreshKey: number
+}) {
   const { t } = useTranslation()
   const [stats, setStats] = useState({ todayDone: false, streak: 0, totalJahar: 0, totalKhafiMins: 0 })
   const ayatIdx = new Date().getDate() % AYAT_LIST.length
@@ -982,6 +990,22 @@ function Dashboard({ onStartJahar, onStartKhafi, user, refreshKey }: { onStartJa
           <span className="text-[#a78bfa] text-lg">›</span>
         </button>
       </div>
+
+      {/* Zikir Khafi history/trend — moved here from Pintu Rezeki's Rekod
+          tab so it lives alongside the practice itself, not tucked away on
+          the subscription page. */}
+      {user && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-[#a78bfa] uppercase tracking-wider px-1">
+            {t('amalan.khafi_player.riwayat_tajuk')}
+          </p>
+          <KhafiHistoryPanel
+            userId={user.id}
+            isPro={userTier === 'pro' || userTier === 'pro_plus'}
+            onUpgrade={onUpgrade}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -1491,7 +1515,14 @@ export default function AmalanPage() {
 
 
         {phase === 'dashboard' && (
-          <Dashboard onStartJahar={() => setPhase(1)} onStartKhafi={() => setPhase('khafi')} user={user} refreshKey={dashRefreshKey} />
+          <Dashboard
+            onStartJahar={() => setPhase(1)}
+            onStartKhafi={() => setPhase('khafi')}
+            user={user}
+            userTier={(user as { tier?: string } | null)?.tier ?? 'free'}
+            onUpgrade={() => navigate('/rezeki')}
+            refreshKey={dashRefreshKey}
+          />
         )}
         {phase === 1 && <Fasa1 items={bacaanPembuka} onDone={() => setPhase(2)} />}
         {phase === 2 && <Fasa2 item={zikirJaharItem} onDone={handleJaharDone} />}

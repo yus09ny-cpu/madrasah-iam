@@ -4,12 +4,10 @@ import { Send, Loader2, Check, Lock, ArrowLeft, ExternalLink } from 'lucide-reac
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
-import { supabase } from '@/lib/supabase'
 import { sendIAMMessage } from '@/lib/iam-chat'
 import { buildPintuRezekiSystemPrompt, FORMAT_CONTROL } from '@/lib/systemPrompts'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
-import { TIER_META, type BpmTier } from '@/lib/bpmTiers'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,24 +26,6 @@ interface SifatAuditRecord {
   kembalikan?: { infak: string; completedAt: string }
 }
 type AuditData = Record<string, SifatAuditRecord>
-
-interface KhafiSession {
-  session_date: string
-  duration_min: number
-  actual_sec: number
-  pre_bpm: number | null
-  final_bpm: number | null
-  avg_bpm: number
-  // Non-null only for a BLE-connected session — tap-tempo's beat timing is a
-  // synthetic pacing curve, never a measurement, so these are never
-  // fabricated for it (see ZikirKhafiPlayer's mode gating).
-  coherence: number | null
-  consistency: number | null
-  session_mode: 'tap' | 'ble' | null
-  dominant_tier: BpmTier | null
-  deepest_tier: BpmTier | null
-  created_at: string
-}
 
 // ─── Data: Sifat ──────────────────────────────────────────────────────────────
 
@@ -1243,45 +1223,6 @@ function AmalanTab() {
 
 function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void }) {
   const { t } = useTranslation()
-  const { user } = useAuthStore()
-  const [khafiSessions, setKhafiSessions] = useState<KhafiSession[]>([])
-  const [khafiLoading, setKhafiLoading] = useState(false)
-  const [trendDays, setTrendDays] = useState<7 | 30>(7)
-  const [trendSessions, setTrendSessions] = useState<{ session_date: string; dominant_tier: BpmTier | null }[]>([])
-
-  useEffect(() => {
-    if (!user || !isPro) return
-    setKhafiLoading(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(supabase.from('zikir_khafi_sessions') as any)
-      .select('session_date, duration_min, actual_sec, pre_bpm, final_bpm, avg_bpm, coherence, consistency, session_mode, dominant_tier, deepest_tier, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20)
-      .then(({ data }: { data: KhafiSession[] | null }) => {
-        setKhafiSessions(data ?? [])
-        setKhafiLoading(false)
-      })
-      .catch(() => setKhafiLoading(false))
-  }, [user?.id, isPro])
-
-  // Separate query for the trend chart, filtered by an actual date window
-  // (not the capped "last 20 sessions" list above) so day-bucketing reflects
-  // a real time range regardless of how many sessions fall inside it.
-  useEffect(() => {
-    if (!user || !isPro) return
-    const cutoff = format(subDays(new Date(), trendDays - 1), 'yyyy-MM-dd')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(supabase.from('zikir_khafi_sessions') as any)
-      .select('session_date, dominant_tier')
-      .eq('user_id', user.id)
-      .eq('session_mode', 'ble')
-      .gte('session_date', cutoff)
-      .then(({ data }: { data: { session_date: string; dominant_tier: BpmTier | null }[] | null }) => {
-        setTrendSessions(data ?? [])
-      })
-      .catch(() => {})
-  }, [user?.id, isPro, trendDays])
 
   if (!isPro) {
     return (
@@ -1322,20 +1263,6 @@ function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
       hasActivity: Object.values(data.amalan).some(Boolean),
     }
   })
-
-  // Dominant-tier trend — average of dominant_tier across BLE sessions per
-  // day (1=Hilang Tumpuan ... 5=Kesedaran Berterusan), so a rising trend
-  // visually means "reaching calmer tiers more often over time."
-  const trendData = Array.from({ length: trendDays }, (_, i) => {
-    const date = subDays(new Date(), trendDays - 1 - i)
-    const dateStr = format(date, 'yyyy-MM-dd')
-    const daySessions = trendSessions.filter(s => s.session_date === dateStr && s.dominant_tier !== null)
-    const avgTier = daySessions.length > 0
-      ? daySessions.reduce((sum, s) => sum + (s.dominant_tier as number), 0) / daySessions.length
-      : null
-    return { label: format(date, 'dd/MM'), isToday: i === trendDays - 1, avgTier, hasData: daySessions.length > 0 }
-  })
-  const hasTrendData = trendData.some(d => d.hasData)
 
   let streak = 0
   for (let i = 6; i >= 0; i--) {
@@ -1405,92 +1332,9 @@ function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
         </div>
       )}
 
-      {/* Dominant-tier trend — BLE sessions only, since tap-tempo has no
-          genuine tier data (see the BLE-only gating in ZikirKhafiPlayer). */}
-      <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-[#e8dcc8] text-sm font-medium">{t('pintu.rekod.trend_tajuk')}</p>
-          <div className="flex gap-1">
-            {([7, 30] as const).map(d => (
-              <button key={d} onClick={() => setTrendDays(d)}
-                className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all',
-                  trendDays === d ? 'bg-[#a78bfa20] border-[#a78bfa50] text-[#a78bfa]' : 'border-[#1e2d40] text-[#8a7a65]')}>
-                {d === 7 ? t('pintu.rekod.trend_7hari') : t('pintu.rekod.trend_30hari')}
-              </button>
-            ))}
-          </div>
-        </div>
-        {!hasTrendData ? (
-          <p className="text-[#8a7a65] text-xs text-center py-3">{t('pintu.rekod.trend_tiada')}</p>
-        ) : (
-          <div className="flex items-end gap-1 h-16">
-            {trendData.map((day, i) => (
-              <div key={i} className="flex-1 h-full flex items-end" title={day.hasData ? `${day.label}: ${day.avgTier?.toFixed(1)}` : day.label}>
-                <div className="w-full rounded-t transition-all duration-500"
-                  style={{
-                    height: day.hasData ? `${((day.avgTier ?? 0) / 5) * 100}%` : '3px',
-                    minHeight: '3px',
-                    backgroundColor: day.hasData
-                      ? TIER_META[Math.round(day.avgTier ?? 1) as BpmTier].color
-                      : day.isToday ? '#2a3d55' : '#1e2d40',
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="bg-[#0d1821] border border-[#a78bfa30] rounded-2xl p-4 space-y-3">
-        <p className="text-[#e8dcc8] text-sm font-medium">{t('pintu.rekod.khafi_tajuk')}</p>
-        {khafiLoading ? (
-          <p className="text-[#8a7a65] text-xs text-center py-3 animate-pulse">···</p>
-        ) : khafiSessions.length === 0 ? (
-          <p className="text-[#8a7a65] text-xs text-center py-3">{t('pintu.rekod.khafi_tiada')}</p>
-        ) : (
-          <div>
-            {khafiSessions.map((s, i) => {
-              const [yr, mo, dy] = s.session_date.split('-')
-              const displayDate = `${dy}/${mo}/${yr.slice(2)}`
-              const mins = s.actual_sec ? Math.max(1, Math.round(s.actual_sec / 60)) : (s.duration_min || 1)
-              const isBle = s.session_mode === 'ble'
-              // final_bpm replaces the old manually re-tapped post_bpm — the
-              // session's own tracked end value, captured automatically.
-              const bpmDelta = s.pre_bpm !== null && s.final_bpm !== null ? s.final_bpm - s.pre_bpm : null
-              return (
-                <div key={i} className="flex items-center justify-between py-2.5 border-b border-[#1e2d40] last:border-0">
-                  <div className="space-y-0.5">
-                    <p className="text-[#e8dcc8] text-xs font-medium">{displayDate}</p>
-                    <p className="text-[#8a7a65] text-[10px]">
-                      {mins} min
-                      {/* coherence is only ever non-null for a BLE session —
-                          never format a null/tap-tempo value as a percentage */}
-                      {isBle && s.coherence !== null && ` · ${t('amalan.khafi_player.koheren')} ${(s.coherence * 100).toFixed(0)}%`}
-                    </p>
-                    {isBle && s.dominant_tier !== null && (
-                      <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-medium"
-                        style={{ color: TIER_META[s.dominant_tier].color, background: TIER_META[s.dominant_tier].color + '15' }}>
-                        {t(`amalan.khafi_player.${TIER_META[s.dominant_tier].key}`)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-right space-y-0.5">
-                    <p className="text-[#a78bfa] text-xs">{s.avg_bpm.toFixed(0)} bpm</p>
-                    {bpmDelta !== null && (
-                      <p className={cn('text-[10px]', bpmDelta < 0 ? 'text-[#4ade80]' : 'text-[#8a7a65]')}>
-                        {/* Round — subtracting two "clean" floats (e.g. 75 -
-                            70.4) can still land on a JS binary floating-point
-                            artifact like 4.599999999999994 */}
-                        {bpmDelta < 0 ? `↓ ${Math.round(Math.abs(bpmDelta))}` : `↑ ${Math.round(bpmDelta)}`}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+      {/* Zikir Khafi history/trend moved to AmalanPage.tsx's Zikir Khafi
+          dashboard — it belongs alongside the practice itself, not tucked
+          away on the subscription page. */}
 
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 text-center space-y-3">
         <p className="font-serif text-[#c9a96e] text-sm leading-loose" dir="rtl">لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا</p>
