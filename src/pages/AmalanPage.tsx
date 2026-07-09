@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import ZikirKhafiPlayer, { type KhafiSessionResult } from '@/components/zikir/ZikirKhafiPlayer'
 import KhafiHistoryPanel from '@/components/zikir/KhafiHistoryPanel'
+import KhatamanDzikirTQN from '@/components/zikir/KhatamanDzikirTQN'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
@@ -32,7 +33,7 @@ type AmalanTab = 'zikir' | 'khataman' | 'manakiban' | 'inabah' | 'ziarah'
 
 const AMALAN_TABS: { id: AmalanTab; label: string; arabic: string; soon?: boolean }[] = [
   { id: 'zikir',     label: 'Zikir',     arabic: 'الذِّكْر'     },
-  { id: 'khataman',  label: 'Khataman',  arabic: 'الخَتْم',  soon: true },
+  { id: 'khataman',  label: 'Khataman',  arabic: 'الخَتْم'  },
   { id: 'manakiban', label: 'Manakiban', arabic: 'المَنَاقِب', soon: true },
   { id: 'inabah',    label: 'Inabah',    arabic: 'الإِنَابَة', soon: true },
   { id: 'ziarah',    label: 'Ziarah',    arabic: 'الزِّيَارَة', soon: true },
@@ -1103,9 +1104,10 @@ function KhatamanTab() {
         <p className="text-[#8a7a65] text-xs pt-1">Minimum 2× seminggu. Boleh hadir setiap malam jika mampu.</p>
       </div>
 
-      <div className="flex items-center justify-center gap-2 py-4 text-[#8a7a65]">
-        <span className="text-xs">📖 Log kehadiran & rakaman khataman</span>
-        <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#1e2d40] border border-[#2a3d55]">Akan Datang</span>
+      {/* Amalan Khataman — bacaan & zikir penuh */}
+      <div className="space-y-2 pt-2">
+        <p className="text-[#8a7a65] text-xs uppercase tracking-wider px-1">Amalan Khataman</p>
+        <KhatamanDzikirTQN />
       </div>
     </div>
   )
