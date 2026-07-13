@@ -491,6 +491,32 @@
       "lain": "Other"
     }
   },
+  "rujukan": {
+    "tajuk": "Referral Program",
+    "sub": "Share Audit Jiwa, earn rewards",
+    "kod_rujukan": "Your Referral Code",
+    "pautan": "Share Link",
+    "salin": "Copy",
+    "salin_done": "Copied!",
+    "rujukan_aktif": "Active Referrals",
+    "tahap_semasa": "Current Tier",
+    "tiada_tahap": "No tier yet",
+    "lagi_untuk": "{{count}} more active referrals for",
+    "senarai_tajuk": "Your Referrals",
+    "senarai_kosong": "No referrals yet. Share your code to get started!",
+    "hanya_pro": "Referral codes are only available to Pro / Pro Plus subscribers",
+    "memuatkan": "Loading...",
+    "tahap": {
+      "dua_puluh": "20% Discount",
+      "lima_puluh": "50% Discount",
+      "seratus": "Free Forever"
+    },
+    "status": {
+      "pending": "Pending",
+      "active": "Active",
+      "churned": "Ended"
+    }
+  },
   "ayat": {
     "ali_imran_112": "...except through a bond with Allah and a bond with people",
     "zariyat_55": "And remind, for indeed reminders benefit the believers."

@@ -21,6 +21,7 @@ export interface Database {
           subscription_tier: 'free' | 'pro' | 'pro_plus' | null
           subscription_expiry: string | null
           last_reminder_sent: string | null
+          referral_code: string | null
           onboarded: boolean
           created_at: string
           updated_at: string
@@ -41,6 +42,7 @@ export interface Database {
           subscription_tier?: 'free' | 'pro' | 'pro_plus' | null
           subscription_expiry?: string | null
           last_reminder_sent?: string | null
+          referral_code?: string | null
           onboarded?: boolean
           created_at?: string
           updated_at?: string
@@ -224,6 +226,27 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['payment_events']['Insert']>
+      }
+      referrals: {
+        Row: {
+          id: string
+          referrer_id: string
+          referred_id: string | null
+          referral_code: string
+          status: 'pending' | 'active' | 'churned'
+          activated_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          referrer_id: string
+          referred_id?: string | null
+          referral_code: string
+          status?: 'pending' | 'active' | 'churned'
+          activated_at?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['referrals']['Insert']>
       }
     }
   }

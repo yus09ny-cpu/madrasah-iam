@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2, Loader2, User, Shield } from 'lucide-react'
@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import type { AppLanguage } from '@/types'
+import { getReferralTier, getNextReferralTier } from '@/config/referral'
 
 const LANGUAGES: { value: AppLanguage; label: string; flag: string }[] = [
   { value: 'bm', label: 'Bahasa Melayu', flag: '🇲🇾' },
@@ -44,6 +45,167 @@ const RELIGIOUS_BG: { value: string; labelKey: string }[] = [
   { value: 'Sudah lama belajar agama',        labelKey: 'profil.agama.lama_belajar' },
   { value: 'Lain-lain',                       labelKey: 'profil.agama.lain' },
 ]
+
+type ReferralItem = {
+  id: string
+  referred_name: string | null
+  status: 'pending' | 'active' | 'churned'
+  created_at: string
+  activated_at: string | null
+}
+
+function ReferralSection() {
+  const { t } = useTranslation()
+  const { user, setUser } = useAuthStore()
+  const [code, setCode] = useState<string | null>(user?.referral_code ?? null)
+  const [referrals, setReferrals] = useState<ReferralItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      let currentCode = code
+      if (!currentCode) {
+        try {
+          const res = await fetch('/api/referral/ensure-code', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          const data = await res.json()
+          if (res.ok && data.referral_code) {
+            currentCode = data.referral_code
+            if (!cancelled) {
+              setCode(currentCode)
+              if (user) setUser({ ...user, referral_code: currentCode })
+            }
+          }
+        } catch {
+          /* ignore — papar tanpa kod, cuba lagi bila reload */
+        }
+      }
+
+      try {
+        const res = await fetch('/api/referral/list', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        if (!cancelled && res.ok && Array.isArray(data)) setReferrals(data)
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const activeCount = referrals.filter(r => r.status === 'active').length
+  const currentTier = getReferralTier(activeCount)
+  const nextTier = getNextReferralTier(activeCount)
+  const link = code ? `${import.meta.env.VITE_APP_URL || window.location.origin}/join?ref=${code}` : ''
+
+  async function handleCopy() {
+    if (!link) return
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return (
+    <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-5 space-y-4">
+      <div>
+        <p className="text-[#e8dcc8] font-semibold text-sm">{t('rujukan.tajuk')}</p>
+        <p className="text-[#8a7a65] text-xs mt-0.5">{t('rujukan.sub')}</p>
+      </div>
+
+      {loading ? (
+        <p className="text-[#8a7a65] text-xs">{t('rujukan.memuatkan')}</p>
+      ) : !code ? (
+        <p className="text-[#8a7a65] text-xs">{t('rujukan.hanya_pro')}</p>
+      ) : (
+        <>
+          {/* Kod + pautan */}
+          <div className="space-y-2">
+            <label className="text-[#8a7a65] text-xs">{t('rujukan.kod_rujukan')}</label>
+            <div className="flex items-center gap-2 px-4 py-3 bg-[#060d16] border border-[#1e2d40] rounded-xl">
+              <span className="text-[#c9a96e] font-mono text-sm flex-1">{code}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleCopy}
+            className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-[#1e2d40] hover:border-[#c9a96e30] transition-all"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-sm flex-shrink-0">🔗</span>
+              <span className="text-[#8a7a65] text-xs truncate">{t('rujukan.pautan')}</span>
+            </div>
+            <span className={cn('text-xs flex-shrink-0 ml-2', copied ? 'text-emerald-400' : 'text-[#c9a96e]')}>
+              {copied ? `✓ ${t('rujukan.salin_done')}` : t('rujukan.salin')}
+            </span>
+          </button>
+
+          {/* Progress */}
+          <div className="flex items-center justify-between px-1">
+            <div>
+              <p className="text-[#8a7a65] text-[10px] uppercase tracking-widest">{t('rujukan.rujukan_aktif')}</p>
+              <p className="text-[#e8dcc8] text-lg font-semibold">{activeCount}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[#8a7a65] text-[10px] uppercase tracking-widest">{t('rujukan.tahap_semasa')}</p>
+              <p className="text-[#c9a96e] text-sm font-medium">
+                {currentTier ? t(currentTier.labelKey as any) : t('rujukan.tiada_tahap')}
+              </p>
+            </div>
+          </div>
+          {nextTier && (
+            <p className="text-[#8a7a65] text-[11px] text-center">
+              {t('rujukan.lagi_untuk', { count: nextTier.minActive - activeCount })} {t(nextTier.labelKey as any)}
+            </p>
+          )}
+
+          {/* Senarai rujukan */}
+          <div className="space-y-2 pt-2">
+            <p className="text-[#8a7a65] text-[10px] uppercase tracking-widest px-1">{t('rujukan.senarai_tajuk')}</p>
+            {referrals.length === 0 ? (
+              <p className="text-[#8a7a65] text-xs px-1">{t('rujukan.senarai_kosong')}</p>
+            ) : (
+              <div className="space-y-1.5">
+                {referrals.map(r => (
+                  <div key={r.id} className="flex items-center justify-between px-4 py-2.5 rounded-xl border border-[#1e2d40] text-sm">
+                    <span className="text-[#e8dcc8] truncate">{r.referred_name ?? '—'}</span>
+                    <span className={cn(
+                      'text-xs flex-shrink-0 ml-2',
+                      r.status === 'active' ? 'text-emerald-400' : r.status === 'churned' ? 'text-[#8a7a65]' : 'text-[#c9a96e]'
+                    )}>
+                      {t(`rujukan.status.${r.status}` as any)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 export default function ProfileSettingsPage() {
   const { t } = useTranslation()
@@ -266,6 +428,9 @@ export default function ProfileSettingsPage() {
           ← {t('umum.kembali')}
         </button>
       </div>
+
+      {/* Program rujukan — hanya untuk pelanggan Pro/Pro Plus */}
+      {user?.tier === 'pro' && <ReferralSection />}
 
       {/* Admin section — only for master_admin / super_admin / wakil_talkin */}
       {(user?.role === 'master_admin' || user?.role === 'super_admin' || user?.role === 'wakil_talkin') && (

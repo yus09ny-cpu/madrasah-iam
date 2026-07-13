@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../src/types/database'
 import { APP_URL } from './_config'
+import { getReferralTier } from '../src/config/referral'
 
 export const config = { runtime: 'edge' }
 
@@ -92,6 +93,54 @@ export default async function handler(req: Request): Promise<Response> {
     return data.user.email
   }
 
+  async function countActiveReferrals(referrerId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('referrals')
+      .select('id', { count: 'exact', head: true })
+      .eq('referrer_id', referrerId)
+      .eq('status', 'active')
+    if (error) {
+      console.error('[check-subscriptions] countActiveReferrals error:', error.message)
+      return 0
+    }
+    return count ?? 0
+  }
+
+  // 0. Diskaun 100% (>=10 rujukan aktif) — langkau ToyyibPay sepenuhnya, sambung terus
+  // subscription_expiry untuk sesiapa yang akan/sudah tamat tempoh minggu ni. Bypass ni
+  // sengaja dihadkan kepada set yang sama dengan reminder/downgrade (bukan setiap hari
+  // untuk semua referrer) — elak lanjutkan expiry berulang-ulang setiap kali cron jalan.
+  const { data: renewalCandidates, error: renewalError } = await supabase
+    .from('profiles')
+    .select('id, name, subscription_expiry')
+    .in('subscription_tier', ['pro', 'pro_plus'])
+    .not('subscription_expiry', 'is', null)
+    .lte('subscription_expiry', in3Days.toISOString())
+
+  const freeTierExtendedIds = new Set<string>()
+  if (renewalError) {
+    console.error('[check-subscriptions] renewal-candidate query error:', renewalError.message)
+  } else {
+    for (const u of renewalCandidates ?? []) {
+      if (!u.subscription_expiry) continue
+      const activeCount = await countActiveReferrals(u.id)
+      const tier = getReferralTier(activeCount)
+      if (tier?.discountPct === 100) {
+        const newExpiry = new Date(new Date(u.subscription_expiry).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        const { error: extendError } = await supabase
+          .from('profiles')
+          .update({ subscription_expiry: newExpiry })
+          .eq('id', u.id)
+        if (extendError) {
+          console.error(`[check-subscriptions] gagal lanjutkan free-tier untuk ${u.id}:`, extendError.message)
+        } else {
+          freeTierExtendedIds.add(u.id)
+          console.log(`[check-subscriptions] free-tier auto-extend: user=${u.id} activeReferrals=${activeCount} newExpiry=${newExpiry}`)
+        }
+      }
+    }
+  }
+
   // 1. Reminder — subscription tamat dalam 3 hari, belum dihantar reminder hari ini.
   const { data: reminderUsers, error: reminderError } = await supabase
     .from('profiles')
@@ -105,6 +154,7 @@ export default async function handler(req: Request): Promise<Response> {
     console.error('[check-subscriptions] reminder query error:', reminderError.message)
   } else {
     for (const u of reminderUsers ?? []) {
+      if (freeTierExtendedIds.has(u.id)) continue
       if (u.last_reminder_sent && u.last_reminder_sent.slice(0, 10) === todayStr) continue
       if (!u.subscription_expiry) continue
 
@@ -140,12 +190,24 @@ export default async function handler(req: Request): Promise<Response> {
     console.error('[check-subscriptions] expired query error:', expiredError.message)
   } else {
     for (const u of expiredUsers ?? []) {
+      if (freeTierExtendedIds.has(u.id)) continue
       if (!u.subscription_expiry) continue
 
       await supabase
         .from('profiles')
         .update({ tier: 'free', subscription_tier: 'free' })
         .eq('id', u.id)
+
+      // Kalau user yang tamat tempoh ni sendiri seorang "referred" (dirujuk orang lain),
+      // rujukan tu jadi 'churned' — kiraan aktif referrer akan turun secara automatik.
+      const { error: churnError } = await supabase
+        .from('referrals')
+        .update({ status: 'churned' })
+        .eq('referred_id', u.id)
+        .eq('status', 'active')
+      if (churnError) {
+        console.error(`[check-subscriptions] gagal churn referral untuk ${u.id}:`, churnError.message)
+      }
 
       if (resendKey) {
         const email = await getEmail(u.id)

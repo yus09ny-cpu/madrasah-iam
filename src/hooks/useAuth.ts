@@ -210,6 +210,31 @@ export function useAuth() {
                 created_at: new Date().toISOString(),
               },
         )
+
+        // Profil BAHARU sahaja (bukan race-fallback yang baca profil sedia ada) —
+        // daftar hubungan rujukan kalau user ni tiba melalui pautan ?ref=AJ-XXXXX.
+        // Best-effort, tak pernah halang signup walau apa pun berlaku.
+        if (newProfile) {
+          try {
+            const refCode = localStorage.getItem('madrasah_referral_code')
+            if (refCode) {
+              const { data: { session } } = await supabase.auth.getSession()
+              if (session?.access_token) {
+                await fetch('/api/referral/register', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({ referral_code: refCode }),
+                })
+              }
+              localStorage.removeItem('madrasah_referral_code')
+            }
+          } catch (err) {
+            console.error('referral register error:', err)
+          }
+        }
       }
     } catch (err) {
       console.error('syncProfile error:', err)

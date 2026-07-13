@@ -1,11 +1,14 @@
 // Vercel Edge Function — callback dari ToyyibPay selepas pembayaran.
 // ToyyibPay POST application/x-www-form-urlencoded: billcode, order_id,
 // status_id (1=berjaya, 2=pending, 3=gagal), amount, transaction_id, dll.
-// billExternalReferenceNo dihantar semasa createBill sebagai user_id.
-// Pakej (pro/pro_plus) ditentukan dari `amount` yang dibayar.
+// billExternalReferenceNo dihantar semasa createBill sebagai "userId::package"
+// (lihat create-bill.ts) — pakej diambil terus dari sini, BUKAN diteka dari
+// `amount` yang dibayar (diskaun rujukan boleh ubah amount, jadi teka dari
+// amount akan salah klasifikasi pro/pro_plus).
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '../src/types/database'
+import { ensureReferralCode } from './_referral'
 
 export const config = { runtime: 'edge' }
 
@@ -53,14 +56,19 @@ export default async function handler(req: Request): Promise<Response> {
 
   const form = await req.formData()
   const statusId = form.get('status_id')?.toString()
-  const userId = form.get('order_id')?.toString() ?? ''
+  const rawOrderId = form.get('order_id')?.toString() ?? ''
   const billcode = form.get('billcode')?.toString()
   const transactionId = form.get('transaction_id')?.toString()
   const rawAmount = form.get('amount')?.toString() ?? '0'
   const amount = parseFloat(rawAmount)
   const rawForm = Object.fromEntries(form.entries()) as Record<string, string>
 
-  console.log(`[payment-callback] STEP 1 — callback diterima: billcode=${billcode} order_id=${userId} status_id=${statusId} amount(raw)=${rawAmount} transaction_id=${transactionId}`)
+  // order_id = "userId::package" (baharu) — fallback ke order_id mentah + teka
+  // dari amount hanya untuk bil yang sudah dicipta sebelum perubahan ni deploy.
+  const [userId, encodedPkg] = rawOrderId.includes('::') ? rawOrderId.split('::') : [rawOrderId, undefined]
+  const pkg = encodedPkg === 'pro' || encodedPkg === 'pro_plus' ? encodedPkg : undefined
+
+  console.log(`[payment-callback] STEP 1 — callback diterima: billcode=${billcode} order_id=${rawOrderId} userId=${userId} pkg=${pkg ?? '(guna fallback amount)'} status_id=${statusId} amount(raw)=${rawAmount} transaction_id=${transactionId}`)
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -74,7 +82,7 @@ export default async function handler(req: Request): Promise<Response> {
   if (statusId !== '1') {
     console.log(`[payment-callback] STEP 2 — tidak diproses: status_id=${statusId} bukan '1' (1=berjaya, 2=pending, 3=gagal). Bil ${billcode} diabaikan.`)
     await logPaymentEvent(supabase, {
-      billcode, orderId: userId, statusId, amount, transactionId,
+      billcode, orderId: rawOrderId, statusId, amount, transactionId,
       matchedProfileId: null, subscriptionTierApplied: null, outcome: 'ignored_status', rawForm,
     })
     return new Response('OK', { status: 200 })
@@ -83,16 +91,17 @@ export default async function handler(req: Request): Promise<Response> {
   if (!userId) {
     console.error('[payment-callback] STEP 2 — order_id kosong/tidak sah, tidak boleh kenal pasti profile untuk dikemaskini')
     await logPaymentEvent(supabase, {
-      billcode, orderId: userId, statusId, amount, transactionId,
+      billcode, orderId: rawOrderId, statusId, amount, transactionId,
       matchedProfileId: null, subscriptionTierApplied: null, outcome: 'missing_order_id', rawForm,
     })
     return new Response('order_id tidak sah', { status: 400 })
   }
 
-  // Pro = RM19.90, Pro Plus = RM29.90 — bezakan ikut amount yang dibayar
-  const subscriptionTier = amount >= 25 ? 'pro_plus' : 'pro'
+  // Pakej diambil dari order_id ("userId::package") — fallback ke teka amount
+  // (>=RM25 = pro_plus) hanya untuk bil lama yang dicipta sebelum encoding ni wujud.
+  const subscriptionTier = pkg ?? (amount >= 25 ? 'pro_plus' : 'pro')
   const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-  console.log(`[payment-callback] STEP 2 — status_id=1 (berjaya). Target profile id=${userId}, subscriptionTier dikira=${subscriptionTier} (amount=${amount}), expiry=${expiry}`)
+  console.log(`[payment-callback] STEP 2 — status_id=1 (berjaya). Target profile id=${userId}, subscriptionTier=${subscriptionTier} (${pkg ? 'dari order_id' : 'fallback amount=' + amount}), expiry=${expiry}`)
 
   const { data: updated, error } = await supabase
     .from('profiles')
@@ -107,7 +116,7 @@ export default async function handler(req: Request): Promise<Response> {
   if (error) {
     console.error('[payment-callback] STEP 3 — Supabase update error:', error.message)
     await logPaymentEvent(supabase, {
-      billcode, orderId: userId, statusId, amount, transactionId,
+      billcode, orderId: rawOrderId, statusId, amount, transactionId,
       matchedProfileId: null, subscriptionTierApplied: null, outcome: 'db_error', rawForm,
     })
     return new Response('DB error', { status: 500 })
@@ -116,7 +125,7 @@ export default async function handler(req: Request): Promise<Response> {
   if (!updated || updated.length === 0) {
     console.error(`[payment-callback] STEP 3 — TIADA profile row dikemaskini untuk id=${userId}. Kemungkinan order_id tak padan dengan mana-mana profiles.id (contoh: bil dicipta manual di dashboard ToyyibPay dengan External Reference No yang salah/kosong).`)
     await logPaymentEvent(supabase, {
-      billcode, orderId: userId, statusId, amount, transactionId,
+      billcode, orderId: rawOrderId, statusId, amount, transactionId,
       matchedProfileId: null, subscriptionTierApplied: null, outcome: 'no_matching_profile', rawForm,
     })
     return new Response('OK', { status: 200 })
@@ -124,9 +133,28 @@ export default async function handler(req: Request): Promise<Response> {
 
   console.log(`[payment-callback] STEP 3 — BERJAYA: profile dikemaskini`, JSON.stringify(updated[0]))
   await logPaymentEvent(supabase, {
-    billcode, orderId: userId, statusId, amount, transactionId,
+    billcode, orderId: rawOrderId, statusId, amount, transactionId,
     matchedProfileId: userId, subscriptionTierApplied: subscriptionTier, outcome: 'updated', rawForm,
   })
-  console.log(`[payment-callback] STEP 4 — selesai: User ${userId} upgraded to ${subscriptionTier} (expiry ${expiry}), billcode=${billcode}, txn=${transactionId}`)
+
+  // Program rujukan: (a) jana referral_code untuk pelanggan Pro/Pro+ kali pertama,
+  // (b) kalau user ni sendiri dirujuk oleh orang lain, aktifkan rujukan tu sekarang.
+  const referralCode = await ensureReferralCode(supabase, userId)
+  console.log(`[payment-callback] STEP 4 — referral_code untuk ${userId}: ${referralCode ?? '(gagal jana)'}`)
+
+  const { data: activatedReferral, error: referralError } = await supabase
+    .from('referrals')
+    .update({ status: 'active', activated_at: new Date().toISOString() })
+    .eq('referred_id', userId)
+    .in('status', ['pending', 'churned'])
+    .select('id, referrer_id, status')
+
+  if (referralError) {
+    console.error('[payment-callback] STEP 4 — gagal aktifkan referral row:', referralError.message)
+  } else if (activatedReferral && activatedReferral.length > 0) {
+    console.log(`[payment-callback] STEP 4 — referral diaktifkan: referred=${userId} referrer=${activatedReferral[0].referrer_id}`)
+  }
+
+  console.log(`[payment-callback] STEP 5 — selesai: User ${userId} upgraded to ${subscriptionTier} (expiry ${expiry}), billcode=${billcode}, txn=${transactionId}`)
   return new Response('OK', { status: 200 })
 }

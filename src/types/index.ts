@@ -17,6 +17,7 @@ export interface User {
   language?: AppLanguage | null
   tier: UserTier
   role?: AdminRole | null
+  referral_code?: string | null
   onboarded?: boolean | null
   talqin_completed?: boolean | null
   solat_tarekat_unlocked?: boolean | null

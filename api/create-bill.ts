@@ -1,7 +1,10 @@
 // Vercel Edge Function — cipta bil ToyyibPay untuk upgrade Pro/Pro Plus.
 // Kunci rahsia (TOYYIBPAY_SECRET_KEY, TOYYIBPAY_CATEGORY_CODE) kekal di server.
 
+import { createClient } from '@supabase/supabase-js'
+import type { Database } from '../src/types/database'
 import { APP_URL } from './_config'
+import { getReferralTier } from '../src/config/referral'
 
 export const config = { runtime: 'edge' }
 
@@ -53,7 +56,37 @@ export default async function handler(req: Request): Promise<Response> {
   if (requestOrigin !== APP_URL) {
     console.warn(`[create-bill] requestOrigin (${requestOrigin}) != APP_URL (${APP_URL}) — bill tetap guna APP_URL untuk return/callback URL, bukan requestOrigin`)
   }
-  console.log(`[create-bill] request: user_id=${user_id} package=${pkg} amount=${pkgConfig.amount} requestOrigin=${requestOrigin} appUrl=${APP_URL}`)
+
+  // Diskaun program rujukan — dikira LIVE dari kiraan rujukan aktif semasa, bukan
+  // field pending_discount_pct yang perlu disegerak/dikosongkan (elak stale state,
+  // punca banyak bug session ni: coherence, used_real_rr, silent no-op writes).
+  // Tahap 100% (10 rujukan aktif) tak sampai sini langsung — dibypass terus di cron.
+  let billAmount = pkgConfig.amount
+  let appliedDiscountPct = 0
+  const supabaseUrl = process.env.VITE_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (supabaseUrl && serviceKey) {
+    const supabase = createClient<Database>(supabaseUrl, serviceKey)
+    const { count, error: countError } = await supabase
+      .from('referrals')
+      .select('id', { count: 'exact', head: true })
+      .eq('referrer_id', user_id)
+      .eq('status', 'active')
+
+    if (countError) {
+      console.error('[create-bill] gagal kira rujukan aktif, teruskan tanpa diskaun:', countError.message)
+    } else {
+      const tier = getReferralTier(count ?? 0)
+      if (tier) {
+        appliedDiscountPct = tier.discountPct
+        billAmount = Math.round(pkgConfig.amount * (1 - tier.discountPct / 100))
+      }
+    }
+  } else {
+    console.warn('[create-bill] Supabase env vars tiada — langkau pengiraan diskaun rujukan')
+  }
+
+  console.log(`[create-bill] request: user_id=${user_id} package=${pkg} baseAmount=${pkgConfig.amount} appliedDiscountPct=${appliedDiscountPct} billAmount=${billAmount} requestOrigin=${requestOrigin} appUrl=${APP_URL}`)
 
   const params = new URLSearchParams({
     userSecretKey: secretKey,
@@ -62,10 +95,10 @@ export default async function handler(req: Request): Promise<Response> {
     billDescription: pkgConfig.desc,
     billPriceSetting: '1',
     billPayorInfo: '1',
-    billAmount: String(pkgConfig.amount),
+    billAmount: String(billAmount),
     billReturnUrl: `${APP_URL}/payment-success`,
     billCallbackUrl: `${APP_URL}/api/payment-callback`,
-    billExternalReferenceNo: user_id,
+    billExternalReferenceNo: `${user_id}::${pkg}`,
     billTo: nama,
     billEmail: email,
     billPhone: phone ?? '60100000000',

@@ -491,6 +491,32 @@
       "lain": "Lain-lain"
     }
   },
+  "rujukan": {
+    "tajuk": "Program Rujukan",
+    "sub": "Kongsi Audit Jiwa, dapatkan ganjaran",
+    "kod_rujukan": "Kod Rujukan Anda",
+    "pautan": "Pautan Kongsi",
+    "salin": "Salin",
+    "salin_done": "Disalin!",
+    "rujukan_aktif": "Rujukan Aktif",
+    "tahap_semasa": "Tahap Semasa",
+    "tiada_tahap": "Belum ada tahap",
+    "lagi_untuk": "{{count}} lagi rujukan aktif untuk",
+    "senarai_tajuk": "Senarai Rujukan Anda",
+    "senarai_kosong": "Belum ada rujukan lagi. Kongsi kod anda untuk mula!",
+    "hanya_pro": "Kod rujukan hanya tersedia untuk pelanggan Pro / Pro Plus",
+    "memuatkan": "Memuatkan...",
+    "tahap": {
+      "dua_puluh": "Diskaun 20%",
+      "lima_puluh": "Diskaun 50%",
+      "seratus": "Percuma Selamanya"
+    },
+    "status": {
+      "pending": "Menunggu",
+      "active": "Aktif",
+      "churned": "Tamat"
+    }
+  },
   "ayat": {
     "ali_imran_112": "...kecuali dengan tali hubungan dari Allah dan tali hubungan dari manusia",
     "zariyat_55": "Dan tetaplah memberi peringatan, kerana sesungguhnya peringatan itu bermanfaat bagi orang-orang yang beriman."

@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import Layout from '@/components/layout/Layout'
@@ -43,17 +44,45 @@ function LoadingScreen() {
   )
 }
 
+// Tangkap ?ref=AJ-XXXXX dari pautan rujukan, simpan ke localStorage supaya
+// bertahan merentasi navigasi/email-confirmation redirect sehingga signup selesai
+// (lihat consumption di useAuth.ts syncProfileImpl — satu-satunya tempat row
+// 'profiles' baharu dicipta, untuk email/password DAN Google OAuth).
+function ReferralCapture() {
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) {
+      try {
+        localStorage.setItem('madrasah_referral_code', ref)
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [searchParams])
+
+  return null
+}
+
 function AppRoutes() {
   const { loading } = useAuth()
   const { isAuthenticated, user } = useAuthStore()
 
-  if (loading) return <LoadingScreen />
+  if (loading) return (
+    <>
+      <ReferralCapture />
+      <LoadingScreen />
+    </>
+  )
 
   // Only require onboarding if explicitly set to false (new accounts created after onboarding was added).
   // undefined/null = existing user or tables not yet created → skip onboarding.
   const needsOnboarding = isAuthenticated && user?.onboarded === false
 
   return (
+    <>
+    <ReferralCapture />
     <Routes>
       {/* Public: Login */}
       <Route
@@ -61,6 +90,17 @@ function AppRoutes() {
         element={
           !isAuthenticated
             ? <LoginPage />
+            : <Navigate to={needsOnboarding ? '/onboarding' : '/dashboard'} replace />
+        }
+      />
+
+      {/* Pautan rujukan (?ref=AJ-XXXXX) — ReferralCapture (di atas Routes) sudah
+          simpan kod tu ke localStorage sebelum redirect ni jalan. */}
+      <Route
+        path="/join"
+        element={
+          !isAuthenticated
+            ? <Navigate to="/login" replace />
             : <Navigate to={needsOnboarding ? '/onboarding' : '/dashboard'} replace />
         }
       />
@@ -117,6 +157,7 @@ function AppRoutes() {
         }
       />
     </Routes>
+    </>
   )
 }
 
