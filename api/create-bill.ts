@@ -14,6 +14,8 @@ const TOYYIBPAY_BASE = 'https://toyyibpay.com'
 const PACKAGES: Record<string, { amount: number; name: string; desc: string }> = {
   pro: { amount: 1990, name: 'Madrasah I AM — Pro', desc: 'Akses Pro Madrasah I AM (30 hari)' },
   pro_plus: { amount: 2990, name: 'Madrasah I AM — Pro Plus', desc: 'Akses Pro Plus Madrasah I AM (30 hari)' },
+  // SEMENTARA — untuk ujian end-to-end RM1 sebenar (referral program). Buang selepas test selesai.
+  test_rm1: { amount: 100, name: 'Madrasah I AM — Test RM1', desc: 'Ujian pembayaran end-to-end (RM1)' },
 }
 
 function json(body: unknown, status = 200) {
