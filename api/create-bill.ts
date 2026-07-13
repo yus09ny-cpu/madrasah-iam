@@ -1,6 +1,8 @@
 // Vercel Edge Function — cipta bil ToyyibPay untuk upgrade Pro/Pro Plus.
 // Kunci rahsia (TOYYIBPAY_SECRET_KEY, TOYYIBPAY_CATEGORY_CODE) kekal di server.
 
+import { APP_URL } from './_config'
+
 export const config = { runtime: 'edge' }
 
 const TOYYIBPAY_BASE = 'https://toyyibpay.com'
@@ -49,8 +51,11 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: { message: `Pakej tidak sah: ${pkg}` } }, 400)
   }
 
-  const origin = req.headers.get('origin') ?? new URL(req.url).origin
-  console.log(`[create-bill] request: user_id=${user_id} package=${pkg} amount=${pkgConfig.amount} origin=${origin}`)
+  const requestOrigin = req.headers.get('origin') ?? new URL(req.url).origin
+  if (requestOrigin !== APP_URL) {
+    console.warn(`[create-bill] requestOrigin (${requestOrigin}) != APP_URL (${APP_URL}) — bill tetap guna APP_URL untuk return/callback URL, bukan requestOrigin`)
+  }
+  console.log(`[create-bill] request: user_id=${user_id} package=${pkg} amount=${pkgConfig.amount} requestOrigin=${requestOrigin} appUrl=${APP_URL}`)
 
   const params = new URLSearchParams({
     userSecretKey: secretKey,
@@ -60,8 +65,8 @@ export default async function handler(req: Request): Promise<Response> {
     billPriceSetting: '1',
     billPayorInfo: '1',
     billAmount: String(pkgConfig.amount),
-    billReturnUrl: `${origin}/payment-success`,
-    billCallbackUrl: `${origin}/api/payment-callback`,
+    billReturnUrl: `${APP_URL}/payment-success`,
+    billCallbackUrl: `${APP_URL}/api/payment-callback`,
     billExternalReferenceNo: user_id,
     billTo: nama,
     billEmail: email,
@@ -86,6 +91,6 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: { message: 'Gagal mencipta bil ToyyibPay', detail: data } }, 502)
   }
 
-  console.log(`[create-bill] bil dicipta: billCode=${billCode} callbackUrl=${origin}/api/payment-callback`)
+  console.log(`[create-bill] bil dicipta: billCode=${billCode} callbackUrl=${APP_URL}/api/payment-callback`)
   return json({ url: `${TOYYIBPAY_BASE}/${billCode}`, billCode })
 }

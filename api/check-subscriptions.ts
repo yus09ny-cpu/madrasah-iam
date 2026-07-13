@@ -6,11 +6,12 @@
 
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../src/types/database'
+import { APP_URL } from './_config'
 
 export const config = { runtime: 'edge' }
 
 const RESEND_FROM = 'Madrasah I AM <noreply@madrasahiam.com>'
-const RENEW_URL = 'https://madrasahiam.com/rezeki'
+const RENEW_URL = `${APP_URL}/rezeki`
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
