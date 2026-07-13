@@ -196,6 +196,35 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['audit_jiwa_entries']['Insert']>
       }
+      payment_events: {
+        Row: {
+          id: string
+          billcode: string | null
+          order_id: string | null
+          status_id: string | null
+          amount: number
+          transaction_id: string | null
+          matched_profile_id: string | null
+          subscription_tier_applied: string | null
+          outcome: string
+          raw_form: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          billcode?: string | null
+          order_id?: string | null
+          status_id?: string | null
+          amount: number
+          transaction_id?: string | null
+          matched_profile_id?: string | null
+          subscription_tier_applied?: string | null
+          outcome: string
+          raw_form: Json
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['payment_events']['Insert']>
+      }
     }
   }
 }
