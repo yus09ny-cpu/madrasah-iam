@@ -102,7 +102,7 @@ export default async function handler(req: Request): Promise<Response> {
       subscription_expiry: expiry,
     })
     .eq('id', userId)
-    .select('id, email, tier, subscription_tier, subscription_expiry')
+    .select('id, tier, subscription_tier, subscription_expiry')
 
   if (error) {
     console.error('[payment-callback] STEP 3 — Supabase update error:', error.message)
