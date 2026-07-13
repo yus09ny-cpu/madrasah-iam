@@ -9,6 +9,8 @@ const TOYYIBPAY_BASE = 'https://toyyibpay.com'
 const PACKAGES: Record<string, { amount: number; name: string; desc: string }> = {
   pro: { amount: 1990, name: 'Madrasah I AM — Pro', desc: 'Akses Pro Madrasah I AM (30 hari)' },
   pro_plus: { amount: 2990, name: 'Madrasah I AM — Pro Plus', desc: 'Akses Pro Plus Madrasah I AM (30 hari)' },
+  // SEMENTARA — untuk ujian end-to-end RM1 sebenar. Buang selepas test selesai.
+  test_rm1: { amount: 100, name: 'Madrasah I AM — Test RM1', desc: 'Ujian pembayaran end-to-end (RM1)' },
 }
 
 function json(body: unknown, status = 200) {
@@ -48,6 +50,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const origin = req.headers.get('origin') ?? new URL(req.url).origin
+  console.log(`[create-bill] request: user_id=${user_id} package=${pkg} amount=${pkgConfig.amount} origin=${origin}`)
 
   const params = new URLSearchParams({
     userSecretKey: secretKey,
@@ -79,8 +82,10 @@ export default async function handler(req: Request): Promise<Response> {
   const billCode = Array.isArray(data) ? data[0]?.BillCode : undefined
 
   if (!billCode) {
+    console.error('[create-bill] Gagal cipta bil, respons ToyyibPay:', JSON.stringify(data))
     return json({ error: { message: 'Gagal mencipta bil ToyyibPay', detail: data } }, 502)
   }
 
+  console.log(`[create-bill] bil dicipta: billCode=${billCode} callbackUrl=${origin}/api/payment-callback`)
   return json({ url: `${TOYYIBPAY_BASE}/${billCode}`, billCode })
 }
