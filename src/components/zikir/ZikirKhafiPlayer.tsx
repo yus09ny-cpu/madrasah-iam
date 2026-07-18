@@ -6,6 +6,7 @@ import WakeLockBadge from '@/components/zikir/WakeLockBadge'
 import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRateMonitor'
 import { useAudioPulse } from '@/hooks/useAudioPulse'
 import BleStatusBadge from '@/components/zikir/BleStatusBadge'
+import GuidedOrb from '@/components/zikir/GuidedOrb'
 import { classifyBpmTier, TIER_META, type BpmTier } from '@/lib/bpmTiers'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -569,11 +570,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     wakeLock.release()
   }
 
-  // ── Orb animation ──────────────────────────────────────────────────
-
-  const orbScale = 0.85 + pulse * 0.35
-  const orbOpacity = 0.5 + pulse * 0.5
-
   const mmss = useMemo(() => {
     const s = isInfinity ? Math.floor(elapsed) : Math.ceil(remaining)
     const m = Math.floor(s / 60)
@@ -843,20 +839,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
           aria-hidden="true"
           tabIndex={-1}
         >
-          <div
-            className="rounded-full transition-all ease-out pointer-events-none"
-            style={{
-              width: 260, height: 260,
-              transform: `scale(${orbScale})`,
-              opacity: orbOpacity,
-              background: currentLabel === 'Allah'
-                ? 'radial-gradient(circle at center, rgba(201,169,110,0.9), rgba(201,169,110,0.1) 55%, rgba(0,0,0,0) 75%)'
-                : 'radial-gradient(circle at center, rgba(167,139,250,0.7), rgba(167,139,250,0.1) 55%, rgba(0,0,0,0) 75%)',
-              filter: 'blur(0.5px)',
-              willChange: 'transform, opacity',
-              transitionDuration: '150ms',
-            }}
-          />
+          <GuidedOrb pulse={pulse} label={currentLabel} />
         </button>
 
         {/* Stats + End button */}

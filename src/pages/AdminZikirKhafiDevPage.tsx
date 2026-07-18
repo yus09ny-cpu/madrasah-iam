@@ -1,12 +1,13 @@
 /**
  * PROTOTYPE / SIMULASI SEPARA
  *
- * - Tap detection: sebenar (timestamp-based)
- * - Progressive pacing: sebenar (scheduleNext + linear BPM decay)
+ * - Progressive pacing: sebenar (scheduleNext + linear BPM decay), mula dari
+ *   BPM peranti sebenar (jika disambung) atau DEFAULT_START_BPM tetap (jika
+ *   tiada peranti — tap calibration dibuang 2026-07-18)
  * - Web Bluetooth (Magene H64 / GATT heart_rate): sebenar, via useHeartRateMonitor
  * - BLE hex log: bytes literal dari characteristic.value setiap notification GATT
  *   0x2A37 sebenar (bukan reconstruction) — hanya muncul semasa peranti BLE
- *   disambung, bukan semasa tap-tempo (tiada packet BLE sebenar untuk itu)
+ *   disambung
  * - BpmSmoother + computeCoherence: diadaptasi dari Sahamhalal/zikirkhafi
  * - fireAllah/fireHu + scheduleNext: diadaptasi dari Sahamhalal/zikirkhafi
  *
@@ -18,14 +19,15 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, ArrowLeft, FlaskConical, RotateCcw, Play, Square } from 'lucide-react'
+import { Shield, ArrowLeft, FlaskConical, Play, Square } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAuthStore } from '@/store/authStore'
 import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRateMonitor'
 import { useWakeLock } from '@/hooks/useWakeLock'
+import { useAudioPulse } from '@/hooks/useAudioPulse'
 import { supabase } from '@/lib/supabase'
-import ZikirKhafiPlayer from '@/components/zikir/ZikirKhafiPlayer'
 import WakeLockBadge from '@/components/zikir/WakeLockBadge'
+import GuidedOrb from '@/components/zikir/GuidedOrb'
 import HrvSessionsReview from '@/components/admin/HrvSessionsReview'
 
 // ---------------------------------------------------------------------------
@@ -138,6 +140,14 @@ type SessionPhase = 'idle' | 'running'
 
 const TARGET_BPM = 50  // midpoint of 40–60 Zikir Khafi range
 const SESSION_OPTS = [5, 10, 20] as const
+// Seeds bpmRef/pacing when no BPM device is connected at session start (tap
+// calibration was removed 2026-07-18 — the guided orb/audio/haptic pacing
+// now carries the user without a manual pre-session reading). Never affects
+// a BLE session's real starting BPM (handleHrReading keeps bpmRef.current
+// live from the moment a device connects, independent of this), and never
+// reaches hrv_sessions — that table only ever saves when
+// sessionUsedDeviceRef is true, i.e. a real device was involved.
+const DEFAULT_START_BPM = 75
 
 // Some budget HR straps set the GATT R-R-present flag but internally derive
 // the "R-R" field from their own averaged BPM rather than true beat-to-beat
@@ -180,16 +190,15 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
 
   // ── Tap calibration state ──
   const [tapBpm, setTapBpm] = useState<number | null>(null)
-  const [, setBpm] = useState(60)              // smoothed tap BPM (dipapar via bpmRef)
+  const [, setBpm] = useState(60)              // smoothed BPM (dipapar via bpmRef)
   const [coherence, setCoherence] = useState<number | null>(0)
   const [currentRr, setCurrentRr] = useState(0)
-  const [tapCount, setTapCount] = useState(0)
   const [logs, setLogs] = useState<string[]>([])
-  // 'real' = genuine R-R (device GATT or real tap timestamps), 'fallback' =
-  // BLE connected but device sent no R-R this packet (BPM-derived estimate
-  // only), 'suspect' = device claims real R-R but is repeating the same value
-  // (likely device-derived-from-BPM, see DUPLICATE_RR_STREAK_THRESHOLD) —
-  // only 'real' should ever be presented to the user as genuine HRV data.
+  // 'real' = genuine device R-R (GATT), 'fallback' = BLE connected but
+  // device sent no R-R this packet (BPM-derived estimate only), 'suspect' =
+  // device claims real R-R but is repeating the same value (likely
+  // device-derived-from-BPM, see DUPLICATE_RR_STREAK_THRESHOLD) — only
+  // 'real' should ever be presented to the user as genuine HRV data.
   const [rrSource, setRrSource] = useState<'real' | 'fallback' | 'suspect' | null>(null)
 
   // ── Session state ──
@@ -202,6 +211,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const [pendingSave, setPendingSave] = useState<PendingSave | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveResult, setSaveResult] = useState<'idle' | 'success' | 'error'>('idle')
+  const [saveErrorDetail, setSaveErrorDetail] = useState<string | null>(null)
   const [sessionNotes, setSessionNotes] = useState('')
 
   // ── Session-aggregate refs (real device readings only, for hrv_sessions) ──
@@ -217,8 +227,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const sessionRrSuspectRef = useRef(false)
   const beatCountRef = useRef(0)
 
-  // ── Tap refs (animation loop) ──
-  const tapsRef = useRef<number[]>([])
+  // ── Beat refs (animation loop) ──
   const intervalsRef = useRef<number[]>([])
   const smootherRef = useRef(new BpmSmoother())
   const bpmRef = useRef(60)
@@ -339,7 +348,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     setCoherence(coh)
 
     // Accumulate real-device stats for the running session only — this is
-    // what distinguishes an "experiment" row from tap-tempo calibration.
+    // what distinguishes an "experiment" row from a no-device guided session.
     if (sessionPhaseRef.current === 'running') {
       sessionUsedDeviceRef.current = true
       if (hasRealRr) sessionUsedRealRrRef.current = true
@@ -387,32 +396,47 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     return () => window.clearInterval(id)
   }, [hr.state])
 
-  const inZikirRange = tapBpm !== null && tapBpm >= 40 && tapBpm <= 60
-  const canStart = tapCount >= 3 || hr.state === 'connected'
+  // Gates the "Peringkat Kemajuan Zikir" stage list — without this, Stage 1
+  // shows as falsely "active" from page load (coherence defaults to 0, not
+  // null, so `(coherence ?? 0) < 71` is true even with zero live BLE data).
+  // tapBpm can now only be set by a real device reading (tap calibration was
+  // removed 2026-07-18), so this is effectively a BLE-data gate.
+  const hasLiveData = tapBpm !== null || hr.state === 'connected'
 
   // Keep sessionPhaseRef in sync for use inside closures
   useEffect(() => { sessionPhaseRef.current = sessionPhase }, [sessionPhase])
 
   // ---------------------------------------------------------------------------
   // Screen Wake Lock — keep the display on for the duration of a running
-  // session (tap-tempo or BLE) so the screen doesn't sleep/dim mid-zikir.
+  // session (guided or BLE) so the screen doesn't sleep/dim mid-zikir.
   // ---------------------------------------------------------------------------
   const wakeLock = useWakeLock()
+
+  // ---------------------------------------------------------------------------
+  // Guided orb + soft audio pulse — shared with ZikirKhafiPlayer.tsx (see
+  // GuidedOrb.tsx / useAudioPulse.ts). Driven by scheduleNext's Allah/Hu
+  // haptic loop below, same as ZikirKhafiPlayer's firePulseTick, minus the
+  // beat-interval bookkeeping that only matters for the real user-facing save
+  // path (this simulator tracks its own session stats separately already).
+  // ---------------------------------------------------------------------------
+  const audioPulse = useAudioPulse()
+  const [currentLabel, setCurrentLabel] = useState<'Allah' | 'Hu' | ''>('')
+  const [pulse, setPulse] = useState(0)
 
   // ---------------------------------------------------------------------------
   // BLE auto-reconnect on visibilitychange — BLE-mode only. A wake lock keeps
   // the screen on but does NOT guarantee the BLE link itself survives the tab
   // being backgrounded (OS may still tear down the radio). Gated on
-  // sessionUsedDeviceRef (this session actually received real device readings)
-  // rather than hr.state alone or rrSource — a tap-tempo-only session also
-  // reports rrSource 'real' and would otherwise falsely trigger this.
+  // sessionUsedDeviceRef (this session actually received real device
+  // readings) rather than hr.state alone — a no-device guided session has no
+  // device to reconnect at all.
   // ---------------------------------------------------------------------------
   const [reconnecting, setReconnecting] = useState(false)
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return
       if (sessionPhaseRef.current !== 'running') return
-      if (!sessionUsedDeviceRef.current) return  // tap-tempo-only session — no device to reconnect
+      if (!sessionUsedDeviceRef.current) return  // no-device guided session — no device to reconnect
       if (hr.state === 'connected' || hr.state === 'connecting' || hr.state === 'unsupported') return
       console.warn('[H64] tab visible again mid-session with BLE disconnected — attempting reconnect')
       setReconnecting(true)
@@ -427,89 +451,34 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   }, [hr.state, hr.reconnect])
 
   // ---------------------------------------------------------------------------
-  // Tap handler — timestamp intervals → smooth BPM → RMSSD coherence
-  // ---------------------------------------------------------------------------
-  const handleTap = useCallback(() => {
-    const now = performance.now()
-    if (tapsRef.current.length && now - tapsRef.current[tapsRef.current.length - 1] > 2500) {
-      tapsRef.current = []
-      intervalsRef.current = []
-    }
-    tapsRef.current.push(now)
-    if (tapsRef.current.length > 8) tapsRef.current.shift()
-    setTapCount(tapsRef.current.length)
-
-    if (tapsRef.current.length >= 2) {
-      const diffs: number[] = []
-      for (let i = 1; i < tapsRef.current.length; i++) diffs.push(tapsRef.current[i] - tapsRef.current[i - 1])
-      intervalsRef.current = diffs.slice(-7)
-      // Real tap-to-tap timings — genuine intervals, safe for the tachogram.
-      rrHistoryRef.current = [...rrHistoryRef.current, ...diffs.slice(-1)].slice(-40)
-      rrSourceRef.current = 'real'
-      setRrSource('real')
-
-      const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length
-      const rawBpm = Math.round(60000 / avg)
-      if (rawBpm >= 30 && rawBpm <= 200) {
-        const smoothed = Math.round(smootherRef.current.add(rawBpm))
-        setTapBpm(rawBpm)
-        setBpm(smoothed)
-        bpmRef.current = smoothed
-        const rr = Math.round(60000 / smoothed)
-        rrRef.current = rr
-        setCurrentRr(rr)
-        const coh = Math.round(computeCoherence(intervalsRef.current) * 100)
-        coherenceRef.current = coh
-        setCoherence(coh)
-      }
-    }
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(8)
-  }, [])
-
-  const adjustBpm = useCallback((delta: number) => {
-    setBpm(prev => {
-      const next = Math.max(30, Math.min(200, prev + delta))
-      bpmRef.current = next
-      const rr = Math.round(60000 / next)
-      rrRef.current = rr
-      setCurrentRr(rr)
-      return next
-    })
-    setTapBpm(prev => prev !== null ? Math.max(30, Math.min(200, prev + delta)) : prev)
-  }, [])
-
-  const handleReset = useCallback(() => {
-    tapsRef.current = []
-    intervalsRef.current = []
-    rrHistoryRef.current = []
-    smootherRef.current.reset()
-    setTapBpm(null)
-    setTapCount(0)
-    setBpm(60)
-    setCoherence(0)
-    setCurrentRr(0)
-    bpmRef.current = 60
-    rrRef.current = 1000
-    coherenceRef.current = 0
-    rrSourceRef.current = null
-    setRrSource(null)
-    duplicateRrStreakRef.current = 0
-    lastRealRrValueRef.current = null
-  }, [])
-
-  // ---------------------------------------------------------------------------
   // Session control
   // ---------------------------------------------------------------------------
   const startSession = useCallback(() => {
-    if (!canStart) return
+    // Must run synchronously here, inside the same click handler that called
+    // startSession — same contract as ZikirKhafiPlayer's startSession (see
+    // useAudioPulse.ts), otherwise the browser blocks audio playback for
+    // lacking a user gesture.
+    audioPulse.init()
+    // No BPM device connected — tap calibration was removed 2026-07-18, so
+    // seed a fixed default instead of a manually-detected reading. Never
+    // touches a real BLE session's starting BPM: handleHrReading already
+    // keeps bpmRef.current live from the moment a device connects.
+    if (hr.state !== 'connected') {
+      smootherRef.current.reset()
+      smootherRef.current.add(DEFAULT_START_BPM)
+      bpmRef.current = DEFAULT_START_BPM
+    }
     startBpmRef.current = bpmRef.current
     startedAtRef.current = performance.now()
     intervalMsRef.current = 60000 / bpmRef.current
     phaseRef.current = 'Allah'
+    setCurrentLabel('')
+    setPulse(0)
     setRemaining(sessionMin * 60)
     setPacingBpm(bpmRef.current)
     setPendingSave(null)
     setSaveResult('idle')
+    setSaveErrorDetail(null)
     setSessionNotes('')
     minBpmRef.current = null
     maxBpmRef.current = null
@@ -524,7 +493,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     beatCountRef.current = 0
     setSessionPhase('running')
     wakeLock.request()
-  }, [canStart, sessionMin, wakeLock.request])
+  }, [hr.state, sessionMin, wakeLock.request, audioPulse.init])
 
   const stopSession = useCallback(() => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current)
@@ -533,7 +502,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     wakeLock.release()
 
     // Only offer to save when the session actually received real Magene H64
-    // readings — tap-tempo-only calibration never produces an hrv_sessions row.
+    // readings — a no-device guided session never produces an hrv_sessions row.
     if (sessionUsedDeviceRef.current && bpmSamplesRef.current > 0) {
       setPendingSave({
         device_name: hr.deviceName ?? 'Magene H64',
@@ -563,6 +532,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const handleSaveSession = useCallback(async () => {
     if (!pendingSave || !user || saving) return
     setSaving(true)
+    setSaveErrorDetail(null)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
@@ -574,9 +544,17 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
       })
       if (error) throw error
       setSaveResult('success')
-      window.setTimeout(() => { setPendingSave(null); setSaveResult('idle'); setSessionNotes('') }, 2000)
+      window.setTimeout(() => { setPendingSave(null); setSaveResult('idle'); setSessionNotes(''); setSaveErrorDetail(null) }, 2000)
     } catch (err) {
       console.error('[hrv_sessions] save error:', err)
+      // Supabase/PostgREST errors carry message/details/hint/code — surface all
+      // of it instead of a generic fallback, so a schema-cache miss ("column X
+      // does not exist"), an RLS denial, or a type mismatch is distinguishable
+      // right here without needing to reproduce again.
+      const pgError = err as { message?: string; details?: string; hint?: string; code?: string } | null
+      const parts = [pgError?.message, pgError?.details, pgError?.hint, pgError?.code ? `(code ${pgError.code})` : null]
+        .filter(Boolean)
+      setSaveErrorDetail(parts.length > 0 ? parts.join(' — ') : String(err))
       setSaveResult('error')
     } finally {
       setSaving(false)
@@ -587,6 +565,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     setPendingSave(null)
     setSessionNotes('')
     setSaveResult('idle')
+    setSaveErrorDetail(null)
   }, [])
 
   // ---------------------------------------------------------------------------
@@ -605,8 +584,12 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         const isAllah = phaseRef.current === 'Allah'
         if (isAllah) fireAllah()
         else fireHu()
+        audioPulse.play()
 
         beatCountRef.current += 1
+        setCurrentLabel(phaseRef.current)
+        setPulse(isAllah ? 1 : 0.55)
+        window.setTimeout(() => setPulse(0), isAllah ? 220 : 320)
         phaseRef.current = isAllah ? 'Hu' : 'Allah'
         scheduleNext()
       }, intervalMsRef.current)
@@ -618,7 +601,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
       cancelled = true
       if (timerRef.current !== null) window.clearTimeout(timerRef.current)
     }
-  }, [sessionPhase])
+  }, [sessionPhase, audioPulse.play])
 
   // ---------------------------------------------------------------------------
   // Progressive BPM deceleration — linear dari startBpm → TARGET_BPM
@@ -756,7 +739,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         .zk-scroll::-webkit-scrollbar { width: 6px; }
         .zk-scroll::-webkit-scrollbar-track { background: transparent; }
         .zk-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 999px; }
-        .tap-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
       `}</style>
 
       {/* Header */}
@@ -828,7 +810,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         <div className="border-b border-red-800/50 bg-red-950/40 px-6 py-3">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-sm text-red-300 text-center sm:text-left">
-              ⚠️ Magene H64 terputus! Data BPM sekarang dari tap-tempo (bukan sebenar)
+              ⚠️ Magene H64 terputus! Data BPM/R-R sebenar terhenti — pacing berpandu diteruskan tanpa data peranti
             </p>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
@@ -850,21 +832,21 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
 
       <main className="flex-grow max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* ── KIRI: Tap calibration + pacing orb + BLE log ── */}
+        {/* ── KIRI: BPM device connect + pacing orb + BLE log ── */}
         <div className="lg:col-span-5 flex flex-col gap-6">
 
-          {/* TAP CALIBRATION PANEL */}
+          {/* SESSION PANEL */}
           <div className="zk-glass rounded-2xl p-6 zk-gold-glow flex flex-col items-center gap-5">
             <div className="w-full text-left">
               <h2 className="text-lg font-medium text-amber-300 mb-1">
-                {isRunning ? 'Sesi Aktif' : hr.state === 'connected' ? 'Peranti BPM Disambung' : 'Tap With Your Pulse'}
+                {isRunning ? 'Sesi Aktif' : hr.state === 'connected' ? 'Peranti BPM Disambung' : 'Sedia untuk Mula'}
               </h2>
               <p className="text-sm text-gray-400 leading-relaxed">
                 {isRunning
                   ? <>Pacing turun perlahan dari <span className="text-amber-300">{startBpmRef.current} BPM</span> → <span className="text-emerald-400">50 BPM</span> dalam {sessionMin} minit.</>
                   : hr.state === 'connected'
                   ? <>Menerima BPM &amp; R-R interval sebenar dari <span className="text-emerald-400">{hr.deviceName}</span>.</>
-                  : <>Tap ikut detik nadi anda. Sasaran: <span className="text-emerald-400 font-semibold">40–60 BPM</span> untuk Zikir Khafi.</>
+                  : <>Orb dan nada akan membimbing degupan anda turun ke <span className="text-emerald-400 font-semibold">40–60 BPM</span> untuk Zikir Khafi — sambung peranti BPM (pilihan) atau terus mula.</>
                 }
               </p>
             </div>
@@ -905,50 +887,6 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               </div>
             )}
 
-            {/* Tap circle + +/- (sembunyikan semasa sesi berjalan atau bila peranti disambung) */}
-            {!isRunning && hr.state !== 'connected' && (
-              <>
-                <div className="flex items-center gap-4">
-                  <button onClick={() => adjustBpm(-1)} className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white transition text-xl select-none tap-btn" aria-label="Kurang BPM">−</button>
-                  <button
-                    onPointerDown={handleTap}
-                    className="tap-btn relative rounded-full flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
-                    style={{
-                      width: 200, height: 200,
-                      background: inZikirRange
-                        ? 'radial-gradient(circle at center, rgba(16,185,129,0.18), rgba(16,185,129,0) 70%)'
-                        : tapBpm !== null
-                        ? 'radial-gradient(circle at center, rgba(245,158,11,0.12), rgba(245,158,11,0) 70%)'
-                        : 'radial-gradient(circle at center, rgba(245,235,210,0.08), rgba(245,235,210,0) 70%)',
-                      border: inZikirRange ? '1px solid rgba(16,185,129,0.5)' : tapBpm !== null ? '1px solid rgba(245,158,11,0.4)' : '1px solid rgba(255,255,255,0.12)',
-                    }}
-                  >
-                    <span className={`text-4xl font-extralight tracking-widest ${inZikirRange ? 'text-emerald-300' : tapBpm !== null ? 'text-amber-200' : 'text-gray-500'}`}>
-                      {tapBpm ?? '—'}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-[0.3em] text-gray-500">{tapBpm ? 'BPM' : 'Tap to detect'}</span>
-                  </button>
-                  <button onClick={() => adjustBpm(1)} className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white transition text-xl select-none tap-btn" aria-label="Tambah BPM">+</button>
-                </div>
-
-                <p className="text-[11px] text-gray-500 text-center">
-                  {tapCount < 2 ? 'Mula tap untuk detect nadi anda...' : tapCount < 5 ? `${tapCount} taps · teruskan untuk bacaan lebih stabil` : `${tapCount} taps · bacaan stabil`}
-                </p>
-
-                {tapBpm !== null && (
-                  <div className={`text-xs font-medium px-4 py-1.5 rounded-full border ${inZikirRange ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : tapBpm < 40 ? 'text-blue-400 bg-blue-500/10 border-blue-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30'}`}>
-                    {inZikirRange ? '✓ Dalam julat Zikir Khafi (40–60 BPM)' : tapBpm < 40 ? '↑ Terlalu perlahan — sasaran 40–60 BPM' : '↓ Terlalu laju — perlahan sedikit'}
-                  </div>
-                )}
-
-                {tapCount > 0 && (
-                  <button onClick={handleReset} className="flex items-center gap-1.5 text-[11px] text-gray-600 hover:text-gray-400 transition-colors">
-                    <RotateCcw size={11} /> Reset tap data
-                  </button>
-                )}
-              </>
-            )}
-
             {/* Pending experiment save — real Magene H64 session just stopped */}
             {!isRunning && pendingSave && (
               <div className="w-full space-y-3 p-4 rounded-xl border border-purple-500/30 bg-purple-500/5">
@@ -985,7 +923,9 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                   />
                 )}
                 {saveResult === 'error' && (
-                  <p className="text-xs text-red-400">Gagal simpan — semak console &amp; pastikan table hrv_sessions wujud.</p>
+                  <p className="text-xs text-red-400 break-words">
+                    Gagal simpan: {saveErrorDetail ?? 'Ralat tidak diketahui — semak console.'}
+                  </p>
                 )}
                 {saveResult === 'success' ? (
                   <p className="text-xs text-emerald-400">✓ Disimpan ke hrv_sessions</p>
@@ -1008,7 +948,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
 
             {/* Session duration + Start/Stop */}
             <div className="w-full space-y-3">
-              {!isRunning && !pendingSave && canStart && (
+              {!isRunning && !pendingSave && (
                 <div className="flex gap-2 justify-center">
                   {SESSION_OPTS.map(min => (
                     <button
@@ -1022,17 +962,38 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
+              {/* Soft audio pulse toggle — shared localStorage preference
+                  with ZikirKhafiPlayer.tsx's "Nada Lembut" toggle (see
+                  useAudioPulse.ts), so it stays in sync across both. */}
+              {!isRunning && !pendingSave && (
+                <div className="flex items-center justify-between w-full px-1">
+                  <span className="text-gray-400 text-xs">Nada Lembut</span>
+                  <button
+                    onClick={() => audioPulse.setEnabled(!audioPulse.enabled)}
+                    disabled={!audioPulse.isSupported}
+                    className={`w-11 h-6 rounded-full relative transition-all disabled:opacity-30 ${audioPulse.enabled ? 'bg-emerald-500' : 'bg-gray-800'}`}
+                  >
+                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${audioPulse.enabled ? 'left-[22px]' : 'left-0.5'}`} />
+                  </button>
+                </div>
+              )}
+
               {!isRunning && !pendingSave ? (
                 <button
                   onClick={startSession}
-                  disabled={!canStart}
-                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium border transition-all ${canStart ? 'border-emerald-600/50 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20' : 'border-gray-800 text-gray-600 cursor-not-allowed'}`}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium border transition-all border-emerald-600/50 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
                 >
                   <Play size={14} />
-                  {canStart ? `Mulakan Sesi (${sessionMin} min)` : 'Tap sekurang-kurang 3x untuk mula'}
+                  {`Mulakan Sesi (${sessionMin} min)`}
                 </button>
               ) : isRunning ? (
                 <div className="space-y-2">
+                  {/* Guided orb — same visual (GuidedOrb.tsx) and Allah/Hu
+                      cadence as ZikirKhafiPlayer.tsx's running phase, driven
+                      here by this simulator's own scheduleNext loop above. */}
+                  <div className="flex justify-center py-2">
+                    <GuidedOrb pulse={pulse} label={currentLabel} size={120} />
+                  </div>
                   {/* Progress bar */}
                   <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
                     <div
@@ -1090,12 +1051,21 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
           {/* HUD gauges */}
           <div className="grid grid-cols-3 gap-4">
             <div className="zk-glass rounded-2xl p-4 text-center">
-              <span className="text-xs text-gray-400 block mb-1">Heart BPM</span>
-              <span className={`text-3xl font-bold ${tapBpm ? 'text-white' : 'text-gray-600'}`}>{tapBpm ?? '—'}</span>
+              {/* No device connected + running: nothing measures a real BPM
+                  anymore (tap calibration removed 2026-07-18), so this falls
+                  back to displaying the pacing target — never let a synthetic
+                  number sit under a label implying it's a real reading, so
+                  the label itself changes too, not just the value. */}
+              <span className="text-xs text-gray-400 block mb-1">
+                {tapBpm === null && isRunning && hr.state !== 'connected' ? 'Pacing (sasaran)' : 'Heart BPM'}
+              </span>
+              <span className={`text-3xl font-bold ${tapBpm ? 'text-white' : tapBpm === null && isRunning && hr.state !== 'connected' ? 'text-amber-300' : 'text-gray-600'}`}>
+                {tapBpm ?? (isRunning && hr.state !== 'connected' ? pacingBpm : '—')}
+              </span>
               <span className={`text-[10px] block mt-1 font-medium ${hr.state === 'connected' ? 'text-emerald-400' : 'text-gray-500'}`}>
                 {isRunning
                   ? `Pacing: ${pacingBpm}`
-                  : hr.state === 'connected' ? `🫀 BLE sebenar — ${hr.deviceName}` : '⌨️ Tap-tempo (simulasi)'}
+                  : hr.state === 'connected' ? `🫀 BLE sebenar — ${hr.deviceName}` : '🌊 Mod berpandu (tiada peranti)'}
               </span>
             </div>
             <div className="zk-glass rounded-2xl p-4 text-center border-l-2 border-l-emerald-500">
@@ -1110,7 +1080,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                     : rrSource === 'suspect'
                     ? '⚠️ R-R disyaki tetap (device)'
                     : 'Tiada R-R sebenar — anggaran BPM'
-                  : rrSource === 'real' ? 'RMSSD tap sebenar' : 'Simulasi'}
+                  : 'Simulasi'}
               </span>
             </div>
             <div className="zk-glass rounded-2xl p-4 text-center">
@@ -1129,9 +1099,9 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                 <h2 className="text-lg font-medium text-white">Live Heart Rhythm Waveform (HRV)</h2>
                 <p className={`text-xs ${rrSource === 'suspect' ? 'text-red-400' : 'text-gray-400'}`}>
                   {!tapBpm
-                    ? 'Tap nadi anda untuk aktifkan waveform'
+                    ? 'Sambung peranti BPM untuk aktifkan waveform'
                     : rrSource === 'real'
-                    ? (hr.state === 'connected' ? 'Tachogram R-R sebenar dari peranti' : 'Tachogram dari tap sebenar (kalibrasi)')
+                    ? 'Tachogram R-R sebenar dari peranti'
                     : rrSource === 'suspect'
                     ? '⚠️ R-R kelihatan tetap/berulang — kemungkinan bukan bacaan sebenar'
                     : 'Peranti tidak hantar R-R sebenar — tiada visualisasi ditunjukkan'}
@@ -1148,9 +1118,14 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
             </div>
             <div className="relative w-full h-48 bg-black/40 rounded-xl overflow-hidden border border-gray-900">
               <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-              {!tapBpm && (
+              {/* Idle-only — once a guided session is running without a
+                  device, the canvas's own neutral flat-line fallback already
+                  communicates "no real R-R data" without needing this text
+                  (nothing to prompt the user to do mid-session anymore, tap
+                  calibration was removed 2026-07-18). */}
+              {!tapBpm && !isRunning && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <p className="text-xs text-gray-600 uppercase tracking-widest">Tap nadi anda untuk mula</p>
+                  <p className="text-xs text-gray-600 uppercase tracking-widest">Sambung peranti BPM untuk waveform sebenar</p>
                 </div>
               )}
             </div>
@@ -1164,64 +1139,58 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
             </div>
           </div>
 
-          {/* Spiritual milestones — label dalaman */}
-          <div className="zk-glass rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-medium text-amber-200">Peringkat Kemajuan Zikir</h2>
-              <span className="text-[10px] text-yellow-500/70 bg-yellow-900/20 border border-yellow-800/40 px-2 py-0.5 rounded-full">Label dalaman — dev only</span>
-            </div>
-            <div className="space-y-4">
-              {[
-                { stage: 1, label: 'Usaha Sedar / Zikir Hati', range: 'Coherence < 71%', active: (coherence ?? 0) < 71, color: 'blue' },
-                { stage: 2, label: 'Zikir Beresonans', range: 'Coherence 71%–85%', active: (coherence ?? 0) >= 71 && (coherence ?? 0) < 86, color: 'emerald' },
-                { stage: 3, label: 'Kesedaran Berterusan', range: 'Coherence > 85%', active: (coherence ?? 0) >= 86, color: 'amber' },
-              ].map(({ stage, label, range, active, color }) => (
-                <div key={stage} className={`p-3.5 rounded-xl border transition-all duration-300 ${
-                  active
-                    ? `border-${color}-500/30 bg-${color}-500/10 shadow-lg shadow-${color}-500/5`
-                    : 'border-gray-800 bg-gray-950/20 opacity-60'
-                }`}>
-                  <div className="flex justify-between items-start mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center border ${
-                        active ? `bg-${color}-500/20 border-${color}-500/50 text-${color}-300` : 'bg-gray-800 border-gray-700 text-gray-400'
-                      }`}>{stage}</span>
-                      <h3 className={`text-sm font-semibold ${active ? `text-${color}-300` : 'text-gray-300'}`}>Stage {stage}: {label}</h3>
-                    </div>
-                    <span className="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded">{range}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </main>
 
-      {/* ── SIMULASI ZIKIR KHAFI (komponen TQN sebenar, dari tab Amalan) ── */}
+      {/* Spiritual milestones — label dalaman, reference only. Placed after
+          <main>'s actionable start-session controls (Sambung Peranti BPM /
+          Mulakan Sesi, duration selector) — this list reflects the Live
+          Monitor panel's current tap/BLE coherence reading, which doesn't
+          exist yet until a session is active, so it stays greyed out /
+          inactive until then. (The separate "Simulasi Zikir Khafi" preview
+          of the real ZikirKhafiPlayer component that used to sit here was
+          removed 2026-07-18 — the Live Monitor panel above now has its own
+          GuidedOrb + audio pulse, making that preview redundant.) */}
       <div className="max-w-7xl w-full mx-auto px-4 lg:px-6 pb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-px bg-[#a78bfa30]" />
-          <span className="text-xs uppercase tracking-[0.3em] text-[#a78bfa] font-medium whitespace-nowrap">
-            Simulasi Zikir Khafi
-          </span>
-          <div className="flex-1 h-px bg-[#a78bfa30]" />
+        <div className="zk-glass rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-medium text-amber-200">Peringkat Kemajuan Zikir</h2>
+            <span className="text-[10px] text-yellow-500/70 bg-yellow-900/20 border border-yellow-800/40 px-2 py-0.5 rounded-full">Label dalaman — dev only</span>
+          </div>
+          {!hasLiveData && (
+            <p className="text-[11px] text-gray-500 mb-4">Tiada sesi aktif — mulakan sesi berpandu atau sambung peranti BPM di panel Live Monitor untuk lihat peringkat semasa.</p>
+          )}
+          <div className="space-y-4">
+            {[
+              { stage: 1, label: 'Usaha Sedar / Zikir Hati', range: 'Coherence < 71%', active: hasLiveData && (coherence ?? 0) < 71, color: 'blue' },
+              { stage: 2, label: 'Zikir Beresonans', range: 'Coherence 71%–85%', active: hasLiveData && (coherence ?? 0) >= 71 && (coherence ?? 0) < 86, color: 'emerald' },
+              { stage: 3, label: 'Kesedaran Berterusan', range: 'Coherence > 85%', active: hasLiveData && (coherence ?? 0) >= 86, color: 'amber' },
+            ].map(({ stage, label, range, active, color }) => (
+              <div key={stage} className={`p-3.5 rounded-xl border transition-all duration-300 ${
+                active
+                  ? `border-${color}-500/30 bg-${color}-500/10 shadow-lg shadow-${color}-500/5`
+                  : 'border-gray-800 bg-gray-950/20 opacity-60'
+              }`}>
+                <div className="flex justify-between items-start mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center border ${
+                      active ? `bg-${color}-500/20 border-${color}-500/50 text-${color}-300` : 'bg-gray-800 border-gray-700 text-gray-400'
+                    }`}>{stage}</span>
+                    <h3 className={`text-sm font-semibold ${active ? `text-${color}-300` : 'text-gray-300'}`}>Stage {stage}: {label}</h3>
+                  </div>
+                  <span className="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded">{range}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(17,24,39,0.7)', border: '1px solid rgba(167,139,250,0.15)' }}>
-          <ZikirKhafiPlayer
-            onSessionDone={async () => { /* dev simulation — sengaja tidak disimpan ke Supabase */ }}
-            onCancel={() => {}}
-          />
-        </div>
-        <p className="text-center text-[10px] text-yellow-500/70 mt-3">
-          ⚠️ Data simulasi tidak disimpan
-        </p>
       </div>
       </>
       )}
 
       <footer className="border-t border-gray-800 bg-gray-950/60 p-4 text-center text-xs text-gray-500">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
-          <p>Tap detection: timestamp-based · BpmSmoother: median+EMA · scheduleNext: setTimeout recursive · Pacing: linear decay → 50 BPM</p>
+          <p>Guided pacing: fixed-start decay curve · BpmSmoother: median+EMA · scheduleNext: setTimeout recursive · Pacing: linear decay → 50 BPM</p>
           <p className="text-yellow-500/60 font-medium">PROTOTYPE · Master Admin Only · Madrasah I AM Dev</p>
         </div>
       </footer>
