@@ -15,6 +15,10 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
+        // Default is 2 MiB — the main bundle just crossed that (2,098 KB),
+        // failing the build at the workbox precache step. Raised with
+        // headroom rather than tuned to the exact current size.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       manifest: {
         name: 'Madrasah I AM',
