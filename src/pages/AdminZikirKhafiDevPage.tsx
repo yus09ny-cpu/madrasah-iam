@@ -29,6 +29,13 @@ import { supabase } from '@/lib/supabase'
 import WakeLockBadge from '@/components/zikir/WakeLockBadge'
 import GuidedOrb from '@/components/zikir/GuidedOrb'
 import HrvSessionsReview from '@/components/admin/HrvSessionsReview'
+import {
+  computeSmoothedWave,
+  bpmReadingsToBeats,
+  type TimestampedBeat,
+  type TimestampedBpm,
+} from '@/lib/smoothedHeartWave'
+import { getEarnedZikirBadges, type ZikirBadgeSeriesPoint } from '@/config/zikirKhafiBadges'
 
 // ---------------------------------------------------------------------------
 // BpmSmoother — median window 5 + adaptive EMA (zikirkhafi)
@@ -158,6 +165,13 @@ const DEFAULT_START_BPM = 75
 // streak this long as a device-level fake, not a software bug on our side.
 const DUPLICATE_RR_STREAK_THRESHOLD = 5
 
+// Combined BPM+coherence badge series sampler — same cadence convention as
+// ZikirKhafiPlayer.tsx's bpmHistoryRef (2500ms), kept separate here since this
+// series also carries coherence (needed for the "sustained %" badge — see
+// src/config/zikirKhafiBadges.ts). Only meaningful for real-device sessions;
+// pendingSave/hrv_sessions save already gates on sessionUsedDeviceRef.
+const BADGE_SAMPLE_INTERVAL_MS = 2500
+
 function formatTime(s: number) {
   const m = Math.floor(s / 60)
   const sec = Math.floor(s % 60)
@@ -182,6 +196,7 @@ interface PendingSave {
   pacing_end_bpm: number
   used_real_rr: boolean
   rr_suspect: boolean
+  series: ZikirBadgeSeriesPoint[]
 }
 
 function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
@@ -226,6 +241,11 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const sessionUsedRealRrRef = useRef(false)
   const sessionRrSuspectRef = useRef(false)
   const beatCountRef = useRef(0)
+  // Timestamped BPM+coherence series for the combined badge system's
+  // "sustained %" check (badge 4) — see src/config/zikirKhafiBadges.ts.
+  // Sampled on a fixed interval (BADGE_SAMPLE_INTERVAL_MS), not per-reading,
+  // to keep the row's jsonb payload bounded regardless of device chattiness.
+  const sessionSeriesRef = useRef<ZikirBadgeSeriesPoint[]>([])
 
   // ── Beat refs (animation loop) ──
   const intervalsRef = useRef<number[]>([])
@@ -238,6 +258,20 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   // diffs) for the tachogram canvas — a BPM-derived fallback value is never
   // pushed here, so the plot never fabricates a beat-to-beat shape.
   const rrHistoryRef = useRef<number[]>([])
+  // Timestamped mirror of the same genuine beats, for the "Gelombang Licin"
+  // resample+smooth display (see src/lib/smoothedHeartWave.ts) — a SEPARATE
+  // array, never read by computeCoherence()/computeRmssdMs(). Unlike
+  // rrHistoryRef above, 'suspect' (duplicate-RR) beats are excluded entirely
+  // here rather than plotted in red — averaging a fabricated/duplicated
+  // value would still read as an artificially calm curve even with a
+  // warning tint. Capped as a rolling recent window (live monitor shows a
+  // scrolling recent trace, not the full session — same convention as
+  // rrHistoryRef's -40 cap, just wider since it feeds a 4s smoothing window).
+  const rawRrBeatSamplesRef = useRef<TimestampedBeat[]>([])
+  // Raw BPM-only fallback source (e.g. CYCPLUS-style straps that never send
+  // real R-R) — powers "Gelombang Licin" only when this session has no
+  // genuine R-R beats to draw from; must never be presented as HRV-derived.
+  const rawBpmSamplesRef = useRef<TimestampedBpm[]>([])
   // Duplicate-R-R detector (device-level fake-real-R-R, see DUPLICATE_RR_STREAK_THRESHOLD)
   const lastRealRrValueRef = useRef<number | null>(null)
   const duplicateRrStreakRef = useRef(0)
@@ -252,6 +286,15 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
 
   // ── Canvas refs (waveform only) ──
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  // 'tachogram' = existing raw per-beat plot (rrHistoryRef); 'smooth' =
+  // HeartMath-style resampled + low-pass wave (rawRrBeatSamplesRef/
+  // rawBpmSamplesRef, src/lib/smoothedHeartWave.ts). Mirrored into a ref
+  // because the canvas rAF loop below is set up once ([] deps) and reads
+  // this every frame — a plain state read there would close over a stale
+  // value.
+  const [waveMode, setWaveMode] = useState<'tachogram' | 'smooth'>('tachogram')
+  const waveModeRef = useRef(waveMode)
+  useEffect(() => { waveModeRef.current = waveMode }, [waveMode])
 
   // ── Signal quality (dry electrode detection) ──
   const [noSignal, setNoSignal] = useState(false)
@@ -281,6 +324,14 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     bpmRef.current = smoothed
 
     const hasRealRr = reading.rrIntervalsMs.length > 0
+
+    // Raw BPM-only mirror for "Gelombang Licin" — fed unconditionally
+    // (regardless of hasRealRr) since this is only ever consulted as a
+    // fallback source when the session has no genuine R-R beats at all.
+    rawBpmSamplesRef.current = [
+      ...rawBpmSamplesRef.current,
+      { tMs: performance.now(), bpm: reading.bpm },
+    ].slice(-200)
 
     let isSuspect = false
     if (hasRealRr) {
@@ -325,6 +376,16 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
       // data itself).
       intervalsRef.current = [...intervalsRef.current, ...reading.rrIntervalsMs].slice(-7)
       rrHistoryRef.current = [...rrHistoryRef.current, ...reading.rrIntervalsMs].slice(-40)
+      // Smoothed-wave source — unlike rrHistoryRef above, 'suspect' beats are
+      // excluded entirely rather than plotted in red (see rawRrBeatSamplesRef
+      // declaration comment).
+      if (!isSuspect) {
+        const nowMs = performance.now()
+        rawRrBeatSamplesRef.current = [
+          ...rawRrBeatSamplesRef.current,
+          ...reading.rrIntervalsMs.map(rr => ({ tMs: nowMs, rrMs: rr })),
+        ].slice(-200)
+      }
       const rr = Math.round(reading.rrIntervalsMs[reading.rrIntervalsMs.length - 1])
       rrRef.current = rr
       setCurrentRr(rr)
@@ -491,6 +552,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     sessionUsedRealRrRef.current = false
     sessionRrSuspectRef.current = false
     beatCountRef.current = 0
+    sessionSeriesRef.current = []
     setSessionPhase('running')
     wakeLock.request()
   }, [hr.state, sessionMin, wakeLock.request, audioPulse.init])
@@ -522,6 +584,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         pacing_end_bpm: pacingBpm,
         used_real_rr: sessionUsedRealRrRef.current,
         rr_suspect: sessionRrSuspectRef.current,
+        series: sessionSeriesRef.current,
       })
     }
   }, [hr.deviceName, hr.deviceId, pacingBpm, wakeLock.release])
@@ -629,6 +692,25 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   }, [sessionPhase, sessionMin])
 
   // ---------------------------------------------------------------------------
+  // Badge series sampler — timestamped {t, bpm, coherence} for the combined
+  // BPM+coherence badge system (src/config/zikirKhafiBadges.ts). Reads
+  // bpmRef/coherenceRef directly (mode-agnostic, same pattern as the canvas
+  // rAF loop) rather than depending on component state, since this only needs
+  // to run on a fixed cadence, not re-render anything itself.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (sessionPhase !== 'running') return
+    const id = window.setInterval(() => {
+      const elapsedSec = (performance.now() - startedAtRef.current) / 1000
+      sessionSeriesRef.current = [
+        ...sessionSeriesRef.current,
+        { t: Math.round(elapsedSec), bpm: bpmRef.current, coherence: coherenceRef.current },
+      ]
+    }, BADGE_SAMPLE_INTERVAL_MS)
+    return () => window.clearInterval(id)
+  }, [sessionPhase])
+
+  // ---------------------------------------------------------------------------
   // Countdown timer — update setiap 250ms
   // ---------------------------------------------------------------------------
   useEffect(() => {
@@ -677,46 +759,91 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
       ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(width, cy); ctx.stroke()
 
       const coh = coherenceRef.current
-      const history = rrHistoryRef.current
-      const source = rrSourceRef.current
-      const isPlottable = (source === 'real' || source === 'suspect') && history.length >= 2
 
-      if (!isPlottable) {
-        // No genuine interval data to plot right now — flat/dim line, not a
-        // fabricated shape.
-        ctx.strokeStyle = 'rgba(255,255,255,0.12)'
-        ctx.lineWidth = 2
-        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(width, cy); ctx.stroke()
+      if (waveModeRef.current === 'tachogram') {
+        const history = rrHistoryRef.current
+        const source = rrSourceRef.current
+        const isPlottable = (source === 'real' || source === 'suspect') && history.length >= 2
+
+        if (!isPlottable) {
+          // No genuine interval data to plot right now — flat/dim line, not a
+          // fabricated shape.
+          ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+          ctx.lineWidth = 2
+          ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(width, cy); ctx.stroke()
+        } else {
+          const values = history.slice(-40)
+          const min = Math.min(...values)
+          const max = Math.max(...values)
+          const range = Math.max(1, max - min)
+          const stepX = values.length > 1 ? width / (values.length - 1) : width
+
+          ctx.beginPath()
+          ctx.lineWidth = 3
+          // 'suspect' always renders in red regardless of the (unreliable) coherence
+          // number — this is what actually happened on the wire, flagged as fishy.
+          ctx.strokeStyle = source === 'suspect' ? '#ef4444' : coh === null ? '#6b7280' : coh >= 86 ? '#f59e0b' : coh >= 71 ? '#10b981' : '#3b82f6'
+          ctx.lineJoin = 'round'
+
+          values.forEach((v, i) => {
+            const norm = (v - min) / range
+            const y = height - padY - norm * (height - padY * 2)
+            const x = i * stepX
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+          })
+          ctx.stroke()
+
+          // Beat markers so individual R-R points are visible (genuine tachogram, not a curve fit).
+          ctx.fillStyle = ctx.strokeStyle as string
+          values.forEach((v, i) => {
+            const norm = (v - min) / range
+            const y = height - padY - norm * (height - padY * 2)
+            const x = i * stepX
+            ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill()
+          })
+        }
       } else {
-        const values = history.slice(-40)
-        const min = Math.min(...values)
-        const max = Math.max(...values)
-        const range = Math.max(1, max - min)
-        const stepX = values.length > 1 ? width / (values.length - 1) : width
+        // "Gelombang Licin" — HeartMath-style resample + low-pass wave,
+        // DISPLAY ONLY. rawRrBeatSamplesRef/rawBpmSamplesRef are separate
+        // refs from intervalsRef/rrHistoryRef (see their declarations) —
+        // this branch never touches computeCoherence()'s input.
+        const rrBeats = rawRrBeatSamplesRef.current
+        const usingBpmOnly = rrBeats.length < 2
+        const beats: TimestampedBeat[] = usingBpmOnly
+          ? bpmReadingsToBeats(rawBpmSamplesRef.current)
+          : rrBeats
+        const wave = computeSmoothedWave(beats)
 
-        ctx.beginPath()
-        ctx.lineWidth = 3
-        // 'suspect' always renders in red regardless of the (unreliable) coherence
-        // number — this is what actually happened on the wire, flagged as fishy.
-        ctx.strokeStyle = source === 'suspect' ? '#ef4444' : coh === null ? '#6b7280' : coh >= 86 ? '#f59e0b' : coh >= 71 ? '#10b981' : '#3b82f6'
-        ctx.lineJoin = 'round'
+        if (wave.length < 2) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+          ctx.lineWidth = 2
+          ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(width, cy); ctx.stroke()
+        } else {
+          const bpms = wave.map(p => p.bpm)
+          const min = Math.min(...bpms)
+          const max = Math.max(...bpms)
+          const range = Math.max(1, max - min)
+          const maxT = Math.max(0.001, wave[wave.length - 1].tSec)
+          const xFor = (tSec: number) => (tSec / maxT) * width
+          const yFor = (bpm: number) => height - padY - ((bpm - min) / range) * (height - padY * 2)
 
-        values.forEach((v, i) => {
-          const norm = (v - min) / range
-          const y = height - padY - norm * (height - padY * 2)
-          const x = i * stepX
-          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
-        })
-        ctx.stroke()
-
-        // Beat markers so individual R-R points are visible (genuine tachogram, not a curve fit).
-        ctx.fillStyle = ctx.strokeStyle as string
-        values.forEach((v, i) => {
-          const norm = (v - min) / range
-          const y = height - padY - norm * (height - padY * 2)
-          const x = i * stepX
-          ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill()
-        })
+          // Drawn as per-segment strokes (not one path) so each point can
+          // carry its own stable/unstable color — a single ctx.strokeStyle
+          // can't vary mid-path.
+          for (let i = 1; i < wave.length; i++) {
+            const prev = wave[i - 1]
+            const cur = wave[i]
+            ctx.beginPath()
+            ctx.lineWidth = cur.unstable ? 2 : 3
+            ctx.strokeStyle = cur.unstable
+              ? '#ef4444'
+              : coh === null ? '#6b7280' : coh >= 86 ? '#f59e0b' : coh >= 71 ? '#10b981' : '#3b82f6'
+            ctx.lineJoin = 'round'
+            ctx.moveTo(xFor(prev.tSec), yFor(prev.bpm))
+            ctx.lineTo(xFor(cur.tSec), yFor(cur.bpm))
+            ctx.stroke()
+          }
+        }
       }
 
       animationFrameId = requestAnimationFrame(animate)
@@ -891,6 +1018,29 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
             {!isRunning && pendingSave && (
               <div className="w-full space-y-3 p-4 rounded-xl border border-purple-500/30 bg-purple-500/5">
                 <p className="text-sm text-purple-300 font-medium">📊 Sesi eksperimen selesai — simpan data?</p>
+                {/* Combined BPM+coherence badges — computed live from
+                    src/config/zikirKhafiBadges.ts against this session's
+                    aggregates + series, NEVER stored as a frozen result, so
+                    re-tuning the thresholds later re-evaluates every past
+                    session automatically (see HrvSessionsReview.tsx). */}
+                {(() => {
+                  const earned = getEarnedZikirBadges({
+                    avgBpm: pendingSave.avg_bpm,
+                    coherenceScore: pendingSave.coherence_score,
+                    series: pendingSave.series,
+                  })
+                  return earned.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {earned.map(b => (
+                        <span key={b.id} className="text-[10px] px-2 py-0.5 rounded-full border border-purple-400/40 bg-purple-400/10 text-purple-200">
+                          🏅 {b.label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-gray-500">Tiada badge dicapai lagi (threshold PLACEHOLDER, belum dikalibrasi).</p>
+                  )
+                })()}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-gray-400">
                   <div>BPM: <span className="text-gray-200">{pendingSave.start_bpm} → {pendingSave.end_bpm}</span></div>
                   <div>Purata: <span className="text-gray-200">{pendingSave.avg_bpm} BPM</span></div>
@@ -1100,11 +1250,17 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                 <p className={`text-xs ${rrSource === 'suspect' ? 'text-red-400' : 'text-gray-400'}`}>
                   {!tapBpm
                     ? 'Sambung peranti BPM untuk aktifkan waveform'
-                    : rrSource === 'real'
-                    ? 'Tachogram R-R sebenar dari peranti'
-                    : rrSource === 'suspect'
-                    ? '⚠️ R-R kelihatan tetap/berulang — kemungkinan bukan bacaan sebenar'
-                    : 'Peranti tidak hantar R-R sebenar — tiada visualisasi ditunjukkan'}
+                    : waveMode === 'smooth'
+                    ? (rrSource === 'real'
+                        ? 'Gelombang licin dari R-R peranti sebenar (resample 500ms + purata bergerak 4s)'
+                        : rrSource === 'suspect'
+                        ? '⚠️ R-R disyaki tetap/berulang — data itu digugurkan, gelombang licin tunggu bacaan sebenar'
+                        : 'Peranti tiada R-R sebenar — anggaran dari BPM sahaja (BUKAN data HRV)')
+                    : (rrSource === 'real'
+                        ? 'Tachogram R-R sebenar dari peranti'
+                        : rrSource === 'suspect'
+                        ? '⚠️ R-R kelihatan tetap/berulang — kemungkinan bukan bacaan sebenar'
+                        : 'Peranti tidak hantar R-R sebenar — tiada visualisasi ditunjukkan')}
                 </p>
               </div>
               {/* Label dalaman — jangan tunjuk pengguna awam */}
@@ -1115,6 +1271,22 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               }`}>
                 {coherence === null ? 'Coherence tidak tersedia' : coherence >= 86 ? 'Stage 3: Kesedaran Berterusan' : coherence >= 71 ? 'Stage 2: Zikir Beresonans' : 'Stage 1: Zikir Hati'}
               </span>
+            </div>
+            <div className="flex justify-end mb-3">
+              <div className="flex items-center gap-1 p-0.5 rounded-lg bg-black/30 border border-gray-800 text-[10px]">
+                <button
+                  onClick={() => setWaveMode('tachogram')}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${waveMode === 'tachogram' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                  Tachogram Mentah
+                </button>
+                <button
+                  onClick={() => setWaveMode('smooth')}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${waveMode === 'smooth' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                  Gelombang Licin
+                </button>
+              </div>
             </div>
             <div className="relative w-full h-48 bg-black/40 rounded-xl overflow-hidden border border-gray-900">
               <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />

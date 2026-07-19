@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { format, parseISO, subDays } from 'date-fns'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '@/lib/supabase'
+import { ZIKIR_KHAFI_BADGES, getEarnedZikirBadges, isZikirBadgeEarned, type ZikirBadgeSeriesPoint } from '@/config/zikirKhafiBadges'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,10 @@ interface HrvSessionRow {
   device_id: string | null
   notes: string | null
   created_at: string
+  // Absent on rows saved before the badge series column existed (and on any
+  // row saved before the `series` jsonb column migration is run) — treat
+  // missing/undefined the same as null, badge computation already handles it.
+  series: ZikirBadgeSeriesPoint[] | null
 }
 
 type SubView = 'senarai' | 'graf' | 'rekod' | 'statistik'
@@ -120,6 +125,13 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
     }
 
     return { highestCoherence, longestSession, lowestBpm, stage3Count, streak }
+  }, [sessions])
+
+  const badgeCounts = useMemo(() => {
+    return ZIKIR_KHAFI_BADGES.map(badge => ({
+      badge,
+      count: sessions.filter(s => isZikirBadgeEarned(badge, { avgBpm: s.avg_bpm, coherenceScore: s.coherence_score, series: s.series ?? null })).length,
+    }))
   }, [sessions])
 
   const weeklyStats = useMemo(() => {
@@ -227,6 +239,18 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                           <p>🫀 BPM: {s.start_bpm} → {s.end_bpm} ({bpmDelta <= 0 ? '↓' : '↑'} {Math.abs(bpmDelta)} BPM) · Purata {s.avg_bpm} · Min/Max {s.min_bpm}–{s.max_bpm}</p>
                           <p>💜 Coherence: {s.coherence_score}% | RMSSD: {s.rmssd}ms{s.consistency_score !== null && ` | Konsistensi: ${s.consistency_score}%`}</p>
                           <p>⭐ {stageLabel(s.stage_achieved)}</p>
+                          {(() => {
+                            const earned = getEarnedZikirBadges({ avgBpm: s.avg_bpm, coherenceScore: s.coherence_score, series: s.series ?? null })
+                            return earned.length > 0 && (
+                              <p className="flex flex-wrap items-center gap-1.5">
+                                🏅 {earned.map(b => (
+                                  <span key={b.id} className="text-[10px] px-2 py-0.5 rounded-full border border-purple-400/40 bg-purple-400/10 text-purple-200">
+                                    {b.label}
+                                  </span>
+                                ))}
+                              </p>
+                            )
+                          })()}
                           <p>📱 {s.device_name}{s.device_id && ` (${s.device_id})`}{s.beat_count !== null && ` · Ketukan: ${s.beat_count}`}</p>
                           {s.pacing_start_bpm !== null && s.pacing_end_bpm !== null && (
                             <p>🎯 Pacing: {s.pacing_start_bpm} → {s.pacing_end_bpm} BPM</p>
@@ -356,6 +380,27 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                     <p className="text-2xl font-bold text-gray-200">{formatTotalTime(stats.totalSeconds)}</p>
                   </div>
                 )}
+
+                {/* Badge thresholds are still PLACEHOLDER (src/config/zikirKhafiBadges.ts)
+                    — this tile exists to help judge, from real sessions, whether the
+                    numbers are actually achievable/meaningful before finalizing them. */}
+                <div className="rounded-xl border border-gray-800 bg-gray-950/30 p-4 space-y-3">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500">Bilangan Sesi Mengikut Badge (threshold placeholder)</p>
+                  <div className="space-y-2">
+                    {badgeCounts.map(({ badge, count }) => {
+                      const pct = sessions.length ? (count / sessions.length) * 100 : 0
+                      return (
+                        <div key={badge.id} className="flex items-center gap-3">
+                          <span className="text-xs text-gray-400 w-32 flex-shrink-0 truncate">{badge.label}</span>
+                          <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-purple-500" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-xs text-gray-300 w-8 text-right">{count}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
             )}
           </>

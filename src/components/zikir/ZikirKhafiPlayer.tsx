@@ -8,6 +8,12 @@ import { useAudioPulse } from '@/hooks/useAudioPulse'
 import BleStatusBadge from '@/components/zikir/BleStatusBadge'
 import GuidedOrb from '@/components/zikir/GuidedOrb'
 import { classifyBpmTier, TIER_META, type BpmTier } from '@/lib/bpmTiers'
+import {
+  computeSmoothedWave,
+  bpmReadingsToBeats,
+  type TimestampedBeat,
+  type TimestampedBpm,
+} from '@/lib/smoothedHeartWave'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -212,6 +218,60 @@ function BpmHistoryGraph({ history, mode }: { history: { t: number; bpm: number 
   )
 }
 
+// ─── SmoothedWaveChart ───────────────────────────────────────────────────────
+// "Gelombang Licin" — HeartMath-style resample + low-pass summary chart,
+// BLE mode only (replaces BpmHistoryGraph for a BLE-mode session; tap mode
+// keeps BpmHistoryGraph unchanged since it has no genuine R-R/BPM stream to
+// draw from — see firePulseTick's isReal gating). DISPLAY ONLY: reads its
+// own rrBeats/bpmSamples props (rawRrBeatSamplesRef/rawBpmSamplesRef), never
+// beatIntervalsRef — computeCoherence()'s input is untouched by this chart.
+// No raw-tachogram toggle here on purpose: tap-per-beat jaggedness has no
+// value for a lay TQN user and stays exclusive to the admin research tool.
+
+function SmoothedWaveChart({ rrBeats, bpmSamples }: { rrBeats: TimestampedBeat[]; bpmSamples: TimestampedBpm[] }) {
+  const usingBpmOnly = rrBeats.length < 2
+  const source = usingBpmOnly ? bpmReadingsToBeats(bpmSamples) : rrBeats
+  const wave = computeSmoothedWave(source)
+  if (wave.length < 2) return null
+
+  const width = 280
+  const height = 110
+  const padX = 6
+  const padY = 14
+  const bpms = wave.map(p => p.bpm)
+  const minBpm = Math.min(...bpms, TARGET_BPM) - 4
+  const maxBpm = Math.max(...bpms) + 4
+  const maxT = Math.max(0.001, wave[wave.length - 1].tSec)
+  const x = (t: number) => padX + (t / maxT) * (width - padX * 2)
+  const y = (bpm: number) => height - padY - ((bpm - minBpm) / Math.max(1, maxBpm - minBpm)) * (height - padY * 2)
+  const refY = y(ZIKIR_RANGE_MAX)
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="w-full max-w-xs">
+        <line x1={padX} x2={width - padX} y1={refY} y2={refY} stroke="#8a7a6540" strokeDasharray="3 3" />
+        {wave.slice(1).map((pt, i) => {
+          const prev = wave[i]
+          // Unstable segments (motion artifact / signal gap — see
+          // computeSmoothedWave) always render red regardless of tier,
+          // same safeguard used on the admin monitor: a jittery stretch
+          // must never be smoothed into a falsely calm-looking curve.
+          const color = pt.unstable ? '#ef4444' : TIER_META[classifyBpmTier(pt.bpm)].color
+          return (
+            <line key={pt.tSec} x1={x(prev.tSec)} y1={y(prev.bpm)} x2={x(pt.tSec)} y2={y(pt.bpm)}
+              stroke={color} strokeWidth={pt.unstable ? 1.5 : 2} strokeLinecap="round" />
+          )
+        })}
+      </svg>
+      {usingBpmOnly && (
+        <p className="text-[9px] text-[#8a7a65] italic tracking-wide">
+          Anggaran dari BPM sahaja — bukan data HRV
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
@@ -242,6 +302,22 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const smootherRef = useRef(new BpmSmoother())
   const intervalMsRef = useRef<number>(1000)
   const beatIntervalsRef = useRef<number[]>([])
+  // Timestamped mirror of genuine beats, for the "Gelombang Licin" resample+
+  // smooth summary chart (see src/lib/smoothedHeartWave.ts) — a SEPARATE
+  // array from beatIntervalsRef, never read by computeCoherence(). Only
+  // ever populated in BLE mode (mirrors beatIntervalsRef's own isReal
+  // gating in firePulseTick below). Capped generously (not the tight
+  // rolling window used on the live admin monitor) since this powers a
+  // one-shot POST-SESSION chart that needs the whole session's beats, not
+  // just a recent scrolling slice — ~4000 beats covers well over an hour
+  // of continuous ~1Hz beats, more than any bounded session option needs,
+  // while still bounding worst-case memory for the ∞ session option.
+  const rawRrBeatSamplesRef = useRef<TimestampedBeat[]>([])
+  // Raw BPM-only fallback source (e.g. CYCPLUS-style straps that never send
+  // real R-R, so rawRrBeatSamplesRef stays empty all session) — powers the
+  // summary chart only when there are no genuine R-R beats to draw from;
+  // must never be presented as HRV-derived.
+  const rawBpmSamplesRef = useRef<TimestampedBpm[]>([])
   const bpmSumRef = useRef(0)
   const bpmSamplesRef = useRef(0)
   const lastTapRef = useRef(0)
@@ -318,6 +394,16 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     // synthetic pacing-decay effect is skipped entirely in BLE mode (see
     // the running-phase effects below).
     if (phase === 'running' && sessionMode === 'ble') {
+      // BPM-only fallback source for the summary chart (see
+      // rawBpmSamplesRef declaration) — fed every reading regardless of
+      // whether this packet carried real R-R, since it's only ever
+      // consulted when rawRrBeatSamplesRef ends up empty for the whole
+      // session (a device that never sends R-R at all).
+      rawBpmSamplesRef.current = [
+        ...rawBpmSamplesRef.current,
+        { tMs: performance.now(), bpm: reading.bpm },
+      ].slice(-4000)
+
       // Tier tally from the raw reading, before smoothing touches it — every
       // genuine reading counts toward the achievement, not just whatever the
       // damped display value happens to be at each 2.5s sample tick.
@@ -373,6 +459,8 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setPreBpm(initialBpm)
     setCoherence(0)
     beatIntervalsRef.current = []
+    rawRrBeatSamplesRef.current = []
+    rawBpmSamplesRef.current = []
     rrQueueRef.current = []
     finalBpmRef.current = null
     bpmHistoryRef.current = [{ t: 0, bpm: initialBpm }]
@@ -401,7 +489,15 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     const isAllah = phaseRef.current === 'Allah'
     isAllah ? fireAllah() : fireHu()
     audioPulse.play()
-    if (isReal) beatIntervalsRef.current.push(intervalMs)
+    if (isReal) {
+      beatIntervalsRef.current.push(intervalMs)
+      // Sibling push — same isReal gate as beatIntervalsRef above, just
+      // mirrored with a timestamp for the resample+smooth summary chart.
+      rawRrBeatSamplesRef.current = [
+        ...rawRrBeatSamplesRef.current,
+        { tMs: performance.now(), rrMs: intervalMs },
+      ].slice(-4000)
+    }
     setCurrentLabel(phaseRef.current)
     setBeatCount(c => c + 1)
     setPulse(isAllah ? 1 : 0.55)
@@ -915,12 +1011,17 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         </div>
       )}
 
-      {/* BPM history graph — both modes. Real fluctuations show in BLE mode
-          (losing/regaining focus mid-session); tap mode is the pacing
-          curve, smooth by construction, no artificial variance added. */}
-      {bpmHistoryRef.current.length >= 2 && (
-        <BpmHistoryGraph history={bpmHistoryRef.current} mode={sessionMode} />
-      )}
+      {/* Summary chart — BLE mode gets the "Gelombang Licin" resample+smooth
+          wave (real R-R/BPM stream to draw from); tap mode keeps the
+          existing BpmHistoryGraph pacing curve unchanged, since tap-tempo
+          never has genuine per-beat data (see firePulseTick's isReal gate). */}
+      {sessionMode === 'ble'
+        ? (rawRrBeatSamplesRef.current.length >= 2 || rawBpmSamplesRef.current.length >= 2) && (
+            <SmoothedWaveChart rrBeats={rawRrBeatSamplesRef.current} bpmSamples={rawBpmSamplesRef.current} />
+          )
+        : bpmHistoryRef.current.length >= 2 && (
+            <BpmHistoryGraph history={bpmHistoryRef.current} mode={sessionMode} />
+          )}
 
       {sessionMode === 'ble' && tierBreakdown ? (
         // Tier badges — BLE-only, deliberately: a value-add exclusive to
