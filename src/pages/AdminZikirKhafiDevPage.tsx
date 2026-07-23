@@ -4,7 +4,9 @@
  * - Progressive pacing: sebenar (scheduleNext + linear BPM decay), mula dari
  *   BPM peranti sebenar (jika disambung) atau DEFAULT_START_BPM tetap (jika
  *   tiada peranti — tap calibration dibuang 2026-07-18)
- * - Web Bluetooth (Magene H64 / GATT heart_rate): sebenar, via useHeartRateMonitor
+ * - Web Bluetooth (mana-mana peranti GATT heart_rate, contoh HeartMath HRV-Y7004,
+ *   Magene H64): sebenar, via useHeartRateMonitor — nama peranti dipaparkan
+ *   dinamik dari device.name (hr.deviceName), bukan ditetapkan pada satu jenama
  * - BLE hex log: bytes literal dari characteristic.value setiap notification GATT
  *   0x2A37 sebenar (bukan reconstruction) — hanya muncul semasa peranti BLE
  *   disambung
@@ -280,7 +282,8 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   const lastValidReadingRef = useRef<number>(0)
 
   // ---------------------------------------------------------------------------
-  // Heart rate monitor (Web Bluetooth) — Magene H64 or any GATT heart_rate device
+  // Heart rate monitor (Web Bluetooth) — any GATT heart_rate device (device
+  // name comes from the device itself at connect time, not hardcoded)
   // ---------------------------------------------------------------------------
   const handleHrReading = useCallback((reading: HeartRateReading) => {
     console.log('[H64] reading:', reading)
@@ -547,11 +550,11 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     setSessionPhase('idle')
     wakeLock.release()
 
-    // Only offer to save when the session actually received real Magene H64
+    // Only offer to save when the session actually received real BLE device
     // readings — a no-device guided session never produces an hrv_sessions row.
     if (sessionUsedDeviceRef.current && bpmSamplesRef.current > 0) {
       setPendingSave({
-        device_name: hr.deviceName ?? 'Magene H64',
+        device_name: hr.deviceName ?? 'Peranti BPM',
         device_id: hr.deviceId,
         duration_seconds: Math.max(1, Math.round((performance.now() - startedAtRef.current) / 1000)),
         start_bpm: startBpmRef.current,
@@ -921,7 +924,10 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         <div className="border-b border-red-800/50 bg-red-950/40 px-6 py-3">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-sm text-red-300 text-center sm:text-left">
-              ⚠️ Magene H64 terputus! Data BPM/R-R sebenar terhenti — pacing berpandu diteruskan tanpa data peranti
+              {/* handleGattDisconnected (unexpected drop) never clears hr.deviceName
+                  — only the manual disconnect() does — so this stays the real
+                  connected device's name here, not a hardcoded product name. */}
+              ⚠️ {hr.deviceName ?? 'Peranti'} terputus! Data BPM/R-R sebenar terhenti — pacing berpandu diteruskan tanpa data peranti
             </p>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
@@ -962,7 +968,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               </p>
             </div>
 
-            {/* Connect Magene H64 (Web Bluetooth) — sembunyikan semasa sesi berjalan */}
+            {/* Connect BPM device (Web Bluetooth) — sembunyikan semasa sesi berjalan */}
             {!isRunning && hr.state !== 'unsupported' && (
               <div className="w-full space-y-2">
                 {hr.state === 'connected' ? (
@@ -998,7 +1004,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               </div>
             )}
 
-            {/* Pending experiment save — real Magene H64 session just stopped */}
+            {/* Pending experiment save — real BLE device session just stopped */}
             {!isRunning && pendingSave && (
               <div className="w-full space-y-3 p-4 rounded-xl border border-purple-500/30 bg-purple-500/5">
                 <p className="text-sm text-purple-300 font-medium">📊 Sesi eksperimen selesai — simpan data?</p>
