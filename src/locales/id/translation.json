@@ -765,7 +765,7 @@
       "selepas": "Setelah",
       "lebih_tenang": "↓ {{n}} bpm lebih tenang",
       "stabil": "Denyut jantung stabil",
-      "koheren": "KOHERENSI",
+      "koheren": "SKOR HRV",
       "ketukan": "Ketukan",
       "purata_bpm": "Rata-rata BPM",
       "konsistensi": "Konsistensi",
@@ -797,7 +797,9 @@
       "riwayat_terkunci_desc": "Tingkatkan ke Pro untuk melihat riwayat sesi dan tren ketenangan Anda dari waktu ke waktu.",
       "riwayat_terkunci_btn": "Tingkatkan ke Pro",
       "data_lama": "Data Lama",
-      "data_lama_tooltip": "Direkam sebelum perbaikan akurasi koherensi pada 9 Juli 2026 — angka koherensi ini mungkin tidak akurat"
+      "data_lama_tooltip": "Direkam sebelum perbaikan akurasi skor HRV pada 9 Juli 2026 — angka skor HRV ini mungkin tidak akurat",
+      "formula_lama": "Formula Lama (v1)",
+      "formula_lama_tooltip": "Dihitung menggunakan formula rasio RMSSD/rata-rata-RR lama sebelum pembaruan ln(RMSSD) pada 23 Juli 2026 — angka valid tetapi tidak sebanding langsung dengan sesi terbaru"
     }
   },
   "ajv2": {

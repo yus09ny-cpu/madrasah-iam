@@ -16,7 +16,13 @@ interface HrvSessionRow {
   min_bpm: number
   max_bpm: number
   rmssd: number
-  coherence_score: number
+  coherence_score: number // v1 — original RMSSD/meanRR/0.15 ratio formula
+  // v2 — ln(RMSSD)/6.5 backfill for pre-existing rows (see
+  // hrv_sessions_coherence_v2.sql). Null until that migration runs. Rows
+  // saved AFTER the v2 code deploy have their (only) coherence_score already
+  // computed with the new formula, so this stays null for those — it's not
+  // "missing v2 data," v1 and v2 are simply the same number for them.
+  coherence_score_v2: number | null
   consistency_score: number | null
   beat_count: number | null
   stage_achieved: number
@@ -92,9 +98,11 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
   const stats = useMemo(() => {
     if (sessions.length === 0) return null
     const avgCoherence = sessions.reduce((a, s) => a + s.coherence_score, 0) / sessions.length
+    const withV2 = sessions.filter(s => s.coherence_score_v2 !== null)
+    const avgCoherenceV2 = withV2.length ? withV2.reduce((a, s) => a + (s.coherence_score_v2 as number), 0) / withV2.length : null
     const avgBpm = sessions.reduce((a, s) => a + s.avg_bpm, 0) / sessions.length
     const totalSeconds = sessions.reduce((a, s) => a + s.duration_seconds, 0)
-    return { avgCoherence, avgBpm, totalSeconds }
+    return { avgCoherence, avgCoherenceV2, avgBpm, totalSeconds }
   }, [sessions])
 
   const grafData = useMemo(() => {
@@ -105,12 +113,17 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
       .map(s => ({
         label: format(parseISO(s.created_at), 'd/M'),
         coherence: s.coherence_score,
+        coherenceV2: s.coherence_score_v2,
       }))
   }, [sessions, grafRange])
 
   const records = useMemo(() => {
     if (sessions.length === 0) return null
     const highestCoherence = sessions.reduce((best, s) => (s.coherence_score > best.coherence_score ? s : best), sessions[0])
+    const withV2 = sessions.filter(s => s.coherence_score_v2 !== null)
+    const highestCoherenceV2 = withV2.length
+      ? withV2.reduce((best, s) => ((s.coherence_score_v2 as number) > (best.coherence_score_v2 as number) ? s : best), withV2[0])
+      : null
     const longestSession = sessions.reduce((best, s) => (s.duration_seconds > best.duration_seconds ? s : best), sessions[0])
     const lowestBpm = sessions.reduce((best, s) => (s.min_bpm < best.min_bpm ? s : best), sessions[0])
     const stage3Count = sessions.filter(s => s.stage_achieved === 3).length
@@ -124,7 +137,7 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
       else break
     }
 
-    return { highestCoherence, longestSession, lowestBpm, stage3Count, streak }
+    return { highestCoherence, highestCoherenceV2, longestSession, lowestBpm, stage3Count, streak }
   }, [sessions])
 
   const badgeCounts = useMemo(() => {
@@ -145,10 +158,16 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
     })
     const avg = (arr: HrvSessionRow[], key: 'coherence_score' | 'start_bpm' | 'end_bpm') =>
       arr.length ? arr.reduce((a, s) => a + s[key], 0) / arr.length : null
+    const avgV2 = (arr: HrvSessionRow[]) => {
+      const withV2 = arr.filter(s => s.coherence_score_v2 !== null)
+      return withV2.length ? withV2.reduce((a, s) => a + (s.coherence_score_v2 as number), 0) / withV2.length : null
+    }
     const stageCounts = [1, 2, 3].map(stage => sessions.filter(s => s.stage_achieved === stage).length)
     return {
       thisWeekCoherence: avg(thisWeek, 'coherence_score'),
       lastWeekCoherence: avg(lastWeek, 'coherence_score'),
+      thisWeekCoherenceV2: avgV2(thisWeek),
+      lastWeekCoherenceV2: avgV2(lastWeek),
       avgStartBpm: avg(sessions, 'start_bpm'),
       avgEndBpm: avg(sessions, 'end_bpm'),
       stageCounts,
@@ -203,7 +222,7 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                 <div className="hidden md:grid grid-cols-12 gap-2 text-[10px] uppercase tracking-wider text-gray-500 px-3 pb-1">
                   <div className="col-span-2">Tarikh</div>
                   <div className="col-span-1">Tempoh</div>
-                  <div className="col-span-2">Coherence</div>
+                  <div className="col-span-2">Skor HRV (v1 / v2)</div>
                   <div className="col-span-3">BPM Permulaan → Selepas</div>
                   <div className="col-span-2">Stage</div>
                   <div className="col-span-2">Peranti</div>
@@ -219,7 +238,10 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                       >
                         <div className="md:col-span-2 text-sm text-gray-200">{format(parseISO(s.created_at), 'd/M/yy')}</div>
                         <div className="md:col-span-1 text-sm text-gray-400 font-mono">{formatDuration(s.duration_seconds)}</div>
-                        <div className="md:col-span-2 text-sm font-semibold text-emerald-400">{s.coherence_score}%</div>
+                        <div className="md:col-span-2 text-sm font-semibold text-emerald-400">
+                          {s.coherence_score}%
+                          <span className="text-gray-500 font-normal text-xs"> / {s.coherence_score_v2 !== null ? `${s.coherence_score_v2}%` : '—'}</span>
+                        </div>
                         <div className="md:col-span-3 text-sm text-gray-300">
                           {s.start_bpm} → {s.end_bpm} <span className={bpmDelta < 0 ? 'text-emerald-400' : 'text-gray-500'}>({bpmDelta <= 0 ? '↓' : '↑'}{Math.abs(bpmDelta)})</span>
                         </div>
@@ -237,7 +259,7 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                         <div className="px-4 pb-4 pt-1 border-t border-gray-800/60 space-y-1.5 text-xs text-gray-400">
                           <p>📅 {format(parseISO(s.created_at), 'd MMMM yyyy — HH:mm')}</p>
                           <p>🫀 BPM: {s.start_bpm} → {s.end_bpm} ({bpmDelta <= 0 ? '↓' : '↑'} {Math.abs(bpmDelta)} BPM) · Purata {s.avg_bpm} · Min/Max {s.min_bpm}–{s.max_bpm}</p>
-                          <p>💜 Coherence: {s.coherence_score}% | RMSSD: {s.rmssd}ms{s.consistency_score !== null && ` | Konsistensi: ${s.consistency_score}%`}</p>
+                          <p>💜 Skor Lama (v1): {s.coherence_score}% · Skor Baharu ln-RMSSD (v2): {s.coherence_score_v2 !== null ? `${s.coherence_score_v2}%` : '— (belum di-backfill)'} | RMSSD: {s.rmssd}ms{s.consistency_score !== null && ` | Konsistensi: ${s.consistency_score}%`}</p>
                           <p>⭐ {stageLabel(s.stage_achieved)}</p>
                           {(() => {
                             const earned = getEarnedZikirBadges({ avgBpm: s.avg_bpm, coherenceScore: s.coherence_score, series: s.series ?? null })
@@ -263,7 +285,8 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                 })}
                 {stats && (
                   <div className="flex flex-wrap gap-6 pt-3 mt-3 border-t border-gray-800 text-xs text-gray-400">
-                    <span>Avg Coherence: <span className="text-emerald-400 font-semibold">{stats.avgCoherence.toFixed(0)}%</span></span>
+                    <span>Avg Skor (v1): <span className="text-emerald-400 font-semibold">{stats.avgCoherence.toFixed(0)}%</span></span>
+                    <span>Avg Skor (v2): <span className="text-amber-400 font-semibold">{stats.avgCoherenceV2 !== null ? `${stats.avgCoherenceV2.toFixed(0)}%` : '—'}</span></span>
                     <span>Avg BPM: <span className="text-gray-200 font-semibold">{stats.avgBpm.toFixed(1)}</span></span>
                     <span>Total Masa: <span className="text-gray-200 font-semibold">{formatTotalTime(stats.totalSeconds)}</span></span>
                   </div>
@@ -286,6 +309,10 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                     </button>
                   ))}
                 </div>
+                <div className="flex items-center gap-4 text-[11px] text-gray-500">
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> v1 (lama)</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> v2 (ln-RMSSD, hanya baris di-backfill)</span>
+                </div>
                 <div className="h-72 bg-black/30 rounded-xl border border-gray-900 p-2">
                   {grafData.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-xs text-gray-600">Tiada data dalam julat ini</div>
@@ -298,9 +325,10 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                         <Tooltip
                           contentStyle={{ background: '#111827', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, fontSize: 12 }}
                           labelStyle={{ color: '#9ca3af' }}
-                          formatter={(value) => [`${value}%`, 'Coherence']}
+                          formatter={(value, name) => [`${value}%`, name === 'coherenceV2' ? 'v2 (ln-RMSSD)' : 'v1 (lama)']}
                         />
                         <Line type="monotone" dataKey="coherence" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: '#10b981' }} activeDot={{ r: 5 }} />
+                        <Line type="monotone" dataKey="coherenceV2" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3, fill: '#f59e0b' }} activeDot={{ r: 5 }} connectNulls={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   )}
@@ -311,7 +339,8 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
             {subView === 'rekod' && records && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  { label: 'Coherence Tertinggi', value: `${records.highestCoherence.coherence_score}%`, sub: format(parseISO(records.highestCoherence.created_at), 'd/M/yy'), color: 'text-emerald-400' },
+                  { label: 'Skor Tertinggi (v1 lama)', value: `${records.highestCoherence.coherence_score}%`, sub: format(parseISO(records.highestCoherence.created_at), 'd/M/yy'), color: 'text-emerald-400' },
+                  ...(records.highestCoherenceV2 ? [{ label: 'Skor Tertinggi (v2 ln-RMSSD)', value: `${records.highestCoherenceV2.coherence_score_v2}%`, sub: format(parseISO(records.highestCoherenceV2.created_at), 'd/M/yy'), color: 'text-amber-400' }] : []),
                   { label: 'Sesi Terpanjang', value: formatDuration(records.longestSession.duration_seconds), sub: format(parseISO(records.longestSession.created_at), 'd/M/yy'), color: 'text-blue-400' },
                   { label: 'BPM Terendah (Paling Tenang)', value: `${records.lowestBpm.min_bpm} BPM`, sub: format(parseISO(records.lowestBpm.created_at), 'd/M/yy'), color: 'text-purple-400' },
                   { label: 'Streak Terpanjang', value: `${records.streak} hari`, sub: 'berturut-turut', color: 'text-amber-400' },
@@ -330,7 +359,7 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="rounded-xl border border-gray-800 bg-gray-950/30 p-4 space-y-2">
-                    <p className="text-[10px] uppercase tracking-wider text-gray-500">Purata Coherence — Minggu Ini vs Lalu</p>
+                    <p className="text-[10px] uppercase tracking-wider text-gray-500">Purata Skor v1 (lama) — Minggu Ini vs Lalu</p>
                     <div className="flex items-center gap-3">
                       <span className="text-2xl font-bold text-emerald-400">
                         {weeklyStats.thisWeekCoherence !== null ? `${weeklyStats.thisWeekCoherence.toFixed(0)}%` : '—'}
@@ -338,6 +367,18 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                       <span className="text-gray-600">vs</span>
                       <span className="text-lg text-gray-500">
                         {weeklyStats.lastWeekCoherence !== null ? `${weeklyStats.lastWeekCoherence.toFixed(0)}%` : '—'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-gray-800 bg-gray-950/30 p-4 space-y-2">
+                    <p className="text-[10px] uppercase tracking-wider text-gray-500">Purata Skor v2 (ln-RMSSD) — Minggu Ini vs Lalu</p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl font-bold text-amber-400">
+                        {weeklyStats.thisWeekCoherenceV2 !== null ? `${weeklyStats.thisWeekCoherenceV2.toFixed(0)}%` : '—'}
+                      </span>
+                      <span className="text-gray-600">vs</span>
+                      <span className="text-lg text-gray-500">
+                        {weeklyStats.lastWeekCoherenceV2 !== null ? `${weeklyStats.lastWeekCoherenceV2.toFixed(0)}%` : '—'}
                       </span>
                     </div>
                   </div>

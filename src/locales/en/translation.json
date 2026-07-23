@@ -765,7 +765,7 @@
       "selepas": "After",
       "lebih_tenang": "↓ {{n}} bpm calmer",
       "stabil": "Steady heart rate",
-      "koheren": "COHERENCE",
+      "koheren": "HRV SCORE",
       "ketukan": "Beats",
       "purata_bpm": "Avg BPM",
       "konsistensi": "Consistency",
@@ -797,7 +797,9 @@
       "riwayat_terkunci_desc": "Upgrade to Pro to see your session history and calm trend over time.",
       "riwayat_terkunci_btn": "Upgrade to Pro",
       "data_lama": "Old Data",
-      "data_lama_tooltip": "Recorded before the coherence-accuracy fix on 9 July 2026 — this coherence number may not be accurate"
+      "data_lama_tooltip": "Recorded before the HRV-score accuracy fix on 9 July 2026 — this HRV score number may not be accurate",
+      "formula_lama": "Old Formula (v1)",
+      "formula_lama_tooltip": "Computed with the old RMSSD/mean-RR ratio formula before the ln(RMSSD) update on 23 July 2026 — a valid number, but not directly comparable to recent sessions"
     }
   },
   "ajv2": {

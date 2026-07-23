@@ -6,6 +6,14 @@
 // terhadap raw metrics tersimpan (avg_bpm/coherence_score/series) — bukan
 // disimpan sebagai boolean tetap dalam hrv_sessions — supaya sesi lama boleh
 // dinilai semula secara automatik bila nombor di sini ditukar kelak.
+//
+// EVEN MORE STALE now (2026-07-23, ln(RMSSD) formula switch — see
+// src/lib/hrvCoherence.ts): these coherenceFloor numbers were never
+// calibrated against EITHER formula, but they're especially unreachable
+// against the new one. coherenceFloor:88 ('zon_emas') needs an RMSSD in the
+// hundreds of ms under ln(RMSSD)/6.5 — essentially never happens at rest —
+// so that badge is likely now unearnable in practice. Left unchanged
+// pending a product decision on new thresholds rather than guessing.
 
 export interface ZikirBadgeSeriesPoint {
   t: number                 // saat berlalu sejak sesi mula

@@ -26,6 +26,7 @@ import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRate
 import { useWakeLock } from '@/hooks/useWakeLock'
 import { useAudioPulse } from '@/hooks/useAudioPulse'
 import { supabase } from '@/lib/supabase'
+import { computeCoherence, computeRmssdMs } from '@/lib/hrvCoherence'
 import WakeLockBadge from '@/components/zikir/WakeLockBadge'
 import GuidedOrb from '@/components/zikir/GuidedOrb'
 import HrvSessionsReview from '@/components/admin/HrvSessionsReview'
@@ -60,36 +61,9 @@ class BpmSmoother {
   reset() { this.window = []; this.ema = null }
 }
 
-// ---------------------------------------------------------------------------
-// computeCoherence — RMSSD-derived, 0 (chaotic) → 1 (coherent) (zikirkhafi)
-// Callers must only pass genuinely measured intervals (device R-R or real tap
-// timestamps) — a BPM-derived pseudo-interval has near-zero variance and will
-// falsely saturate this at a suspiciously clean 1.0 (100%).
-// ---------------------------------------------------------------------------
-function computeCoherence(intervalsMs: number[]): number {
-  if (intervalsMs.length < 4) return 0
-  const mean = intervalsMs.reduce((a, b) => a + b, 0) / intervalsMs.length
-  let sq = 0
-  for (let i = 1; i < intervalsMs.length; i++) {
-    const d = intervalsMs[i] - intervalsMs[i - 1]
-    sq += d * d
-  }
-  const rmssd = Math.sqrt(sq / (intervalsMs.length - 1))
-  return Math.max(0, Math.min(1, 1 - rmssd / mean / 0.15))
-}
-
-// ---------------------------------------------------------------------------
-// computeRmssdMs — raw RMSSD in ms (not normalized), for saved experiment rows
-// ---------------------------------------------------------------------------
-function computeRmssdMs(intervalsMs: number[]): number {
-  if (intervalsMs.length < 2) return 0
-  let sq = 0
-  for (let i = 1; i < intervalsMs.length; i++) {
-    const d = intervalsMs[i] - intervalsMs[i - 1]
-    sq += d * d
-  }
-  return Math.sqrt(sq / (intervalsMs.length - 1))
-}
+// computeCoherence/computeRmssdMs — moved to src/lib/hrvCoherence.ts (2026-07)
+// so both this file and ZikirKhafiPlayer.tsx share one formula instead of
+// two copies that can silently drift apart.
 
 // ---------------------------------------------------------------------------
 // computeConsistency — 0–100%, low variance in raw BPM samples = high score
@@ -374,6 +348,16 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
       // the tachogram history (even when flagged 'suspect': we plot what the
       // device actually reported, the warning label is what changes, not the
       // data itself).
+      //
+      // WINDOW-SIZE CAVEAT: this is a rolling ~7-beat window (~6-7s at rest),
+      // far shorter than the 60-second window the lnRMSSD academic validation
+      // (Esco & Flatt 2014) actually tested. This live HUD number is a fast,
+      // noisy real-time estimate, not a validated 60s measurement — the
+      // saved end-of-session score (sessionRrRef, computed over the whole
+      // session) is closer to the validated methodology. Left as-is for now
+      // (2026-07-23) pending a decision on the responsiveness/accuracy
+      // trade-off of widening this window — see "HRV Score Live vs Sesi" note
+      // in the UI below.
       intervalsRef.current = [...intervalsRef.current, ...reading.rrIntervalsMs].slice(-7)
       rrHistoryRef.current = [...rrHistoryRef.current, ...reading.rrIntervalsMs].slice(-40)
       // Smoothed-wave source — unlike rrHistoryRef above, 'suspect' beats are
@@ -1046,7 +1030,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                   <div>Purata: <span className="text-gray-200">{pendingSave.avg_bpm} BPM</span></div>
                   <div>Min/Max: <span className="text-gray-200">{pendingSave.min_bpm}–{pendingSave.max_bpm} BPM</span></div>
                   <div>RMSSD: <span className="text-gray-200">{pendingSave.rmssd} ms</span></div>
-                  <div>Coherence: <span className="text-gray-200">{pendingSave.coherence_score}%</span></div>
+                  <div>Skor HRV: <span className="text-gray-200">{pendingSave.coherence_score}%</span></div>
                   <div>Konsistensi: <span className="text-gray-200">{pendingSave.consistency_score}%</span></div>
                   <div>Ketukan: <span className="text-gray-200">{pendingSave.beat_count}</span></div>
                   <div>Stage tertinggi: <span className="text-gray-200">{pendingSave.stage_achieved}</span></div>
@@ -1219,7 +1203,19 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               </span>
             </div>
             <div className="zk-glass rounded-2xl p-4 text-center border-l-2 border-l-emerald-500">
-              <span className="text-xs text-gray-400 block mb-1">Coherence Score</span>
+              {/* Live HUD window caveat (Tugasan 4, 2026-07-23): this number
+                  updates from a rolling ~7-beat window, not the 60s window
+                  the lnRMSSD academic validation used — the tooltip is a
+                  low-footprint way to disclose that without changing the
+                  layout. The end-of-session saved score uses the full
+                  session instead (see computeCoherence call in
+                  handleSaveSession) and doesn't carry this caveat. */}
+              <span
+                className="text-xs text-gray-400 block mb-1 cursor-help"
+                title="Anggaran masa-nyata (tetingkap pendek, ~7 degupan) — skor akhir sesi yang disimpan guna tetingkap lebih panjang dan lebih tepat"
+              >
+                Skor HRV ⓘ
+              </span>
               <span className={`text-3xl font-bold ${coherence !== null && coherence >= 71 ? 'text-emerald-400' : coherence !== null && coherence > 0 ? 'text-blue-400' : 'text-gray-600'}`}>
                 {coherence !== null ? `${coherence}%` : '—'}
               </span>
@@ -1269,7 +1265,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                 : (coherence ?? 0) >= 71 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                 : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
               }`}>
-                {coherence === null ? 'Coherence tidak tersedia' : coherence >= 86 ? 'Stage 3: Kesedaran Berterusan' : coherence >= 71 ? 'Stage 2: Zikir Beresonans' : 'Stage 1: Zikir Hati'}
+                {coherence === null ? 'Skor HRV tidak tersedia' : coherence >= 86 ? 'Stage 3: Kesedaran Berterusan' : coherence >= 71 ? 'Stage 2: Zikir Beresonans' : 'Stage 1: Zikir Hati'}
               </span>
             </div>
             <div className="flex justify-end mb-3">
@@ -1302,12 +1298,12 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               )}
             </div>
             <div className="flex justify-between items-center mt-3 text-xs text-gray-400">
-              <span>Chaotic (Low Coherence)</span>
+              <span>Chaotic (Skor HRV Rendah)</span>
               <div className="flex gap-2 items-center">
                 <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${(coherence ?? 0) >= 86 ? 'bg-amber-500' : (coherence ?? 0) >= 71 ? 'bg-emerald-500' : 'bg-blue-500'}`} />
                 <span className="text-[11px]">Dhikr Resonant Wave</span>
               </div>
-              <span>Coherent (High Coherence)</span>
+              <span>Coherent (Skor HRV Tinggi)</span>
             </div>
           </div>
 
@@ -1332,11 +1328,19 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
           {!hasLiveData && (
             <p className="text-[11px] text-gray-500 mb-4">Tiada sesi aktif — mulakan sesi berpandu atau sambung peranti BPM di panel Live Monitor untuk lihat peringkat semasa.</p>
           )}
+          {/* NOT RECALIBRATED for the ln(RMSSD) formula switch (2026-07-23):
+              71%/86% were tuned against the OLD ratio formula's output
+              distribution. Under the new formula, reaching 86% requires an
+              RMSSD in the hundreds of ms — essentially unreachable at rest —
+              so Stage 3 (and likely Stage 2) will read as much harder to
+              reach than before, or never trigger. Left unchanged pending a
+              product decision (see final report) rather than guessing new
+              cutoffs. */}
           <div className="space-y-4">
             {[
-              { stage: 1, label: 'Usaha Sedar / Zikir Hati', range: 'Coherence < 71%', active: hasLiveData && (coherence ?? 0) < 71, color: 'blue' },
-              { stage: 2, label: 'Zikir Beresonans', range: 'Coherence 71%–85%', active: hasLiveData && (coherence ?? 0) >= 71 && (coherence ?? 0) < 86, color: 'emerald' },
-              { stage: 3, label: 'Kesedaran Berterusan', range: 'Coherence > 85%', active: hasLiveData && (coherence ?? 0) >= 86, color: 'amber' },
+              { stage: 1, label: 'Usaha Sedar / Zikir Hati', range: 'Skor HRV < 71%', active: hasLiveData && (coherence ?? 0) < 71, color: 'blue' },
+              { stage: 2, label: 'Zikir Beresonans', range: 'Skor HRV 71%–85%', active: hasLiveData && (coherence ?? 0) >= 71 && (coherence ?? 0) < 86, color: 'emerald' },
+              { stage: 3, label: 'Kesedaran Berterusan', range: 'Skor HRV > 85%', active: hasLiveData && (coherence ?? 0) >= 86, color: 'amber' },
             ].map(({ stage, label, range, active, color }) => (
               <div key={stage} className={`p-3.5 rounded-xl border transition-all duration-300 ${
                 active

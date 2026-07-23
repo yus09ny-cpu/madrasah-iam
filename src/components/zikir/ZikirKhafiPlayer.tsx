@@ -14,6 +14,7 @@ import {
   type TimestampedBeat,
   type TimestampedBpm,
 } from '@/lib/smoothedHeartWave'
+import { computeCoherence } from '@/lib/hrvCoherence'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,19 +128,9 @@ class BpmSmoother {
   }
 }
 
-// ─── Coherence (RMSSD-derived) ───────────────────────────────────────────────
-
-function computeCoherence(intervals: number[]): number {
-  if (intervals.length < 4) return 0
-  const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length
-  let sq = 0
-  for (let i = 1; i < intervals.length; i++) {
-    const d = intervals[i] - intervals[i - 1]
-    sq += d * d
-  }
-  const rmssd = Math.sqrt(sq / (intervals.length - 1))
-  return Math.max(0, Math.min(1, 1 - rmssd / mean / 0.15))
-}
+// computeCoherence — moved to src/lib/hrvCoherence.ts (2026-07) so this file
+// and AdminZikirKhafiDevPage.tsx share one formula instead of two copies
+// that can silently drift apart.
 
 // ─── Haptic ──────────────────────────────────────────────────────────────────
 
