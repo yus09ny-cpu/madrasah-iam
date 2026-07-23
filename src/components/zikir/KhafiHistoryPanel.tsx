@@ -14,6 +14,20 @@ import { TIER_META, type BpmTier } from '@/lib/bpmTiers'
 // that a session happened.
 const COHERENCE_FIX_CUTOFF = new Date('2026-07-09T17:02:40+08:00')
 
+// Rows between COHERENCE_FIX_CUTOFF and this cutoff are genuine measurements
+// (not fabricated), but computed with the old RMSSD/meanRR/0.15 ratio formula
+// (no scientific citation) instead of the ln(RMSSD)/6.5 formula that replaced
+// it — see src/lib/hrvCoherence.ts. zikir_khafi_sessions never stored raw
+// RMSSD-ms, only the derived value, so these rows CANNOT be recalculated —
+// they must stay flagged as v1/legacy rather than "fixed" retroactively.
+//
+// TODO before/at production deploy: update this timestamp to the actual
+// merge-to-main / production-deploy moment (mirrors how COHERENCE_FIX_CUTOFF
+// above was set to its exact commit timestamp after the fact). Currently set
+// to when this constant was authored (2026-07-23, feat/hrv-score-ln-rmssd
+// branch) as a placeholder — it is NOT yet the real production cutover time.
+const COHERENCE_FORMULA_V2_CUTOFF = new Date('2026-07-23T09:58:05+08:00')
+
 interface KhafiSession {
   session_date: string
   duration_min: number
@@ -169,6 +183,11 @@ export default function KhafiHistoryPanel({ userId, isPro, onUpgrade }: {
               // columns didn't exist), so a non-null coherence there is always
               // the old fabricated ~100% value, not a real measurement.
               const isLegacyCoherence = s.coherence !== null && new Date(s.created_at) < COHERENCE_FIX_CUTOFF
+              // Genuine measurement, but computed with the old v1 ratio
+              // formula rather than ln(RMSSD) — cannot be recalculated (see
+              // COHERENCE_FORMULA_V2_CUTOFF comment above), so flag rather
+              // than silently mixing v1/v2 numbers in the same list.
+              const isLegacyFormula = !isLegacyCoherence && s.coherence !== null && new Date(s.created_at) < COHERENCE_FORMULA_V2_CUTOFF
               return (
                 <div key={i} className="flex items-center justify-between py-2.5 border-b border-[#1e2d40] last:border-0">
                   <div className="space-y-0.5">
@@ -185,6 +204,14 @@ export default function KhafiHistoryPanel({ userId, isPro, onUpgrade }: {
                         className="inline-block px-1.5 py-0.5 rounded text-[9px] font-medium text-amber-400/80 bg-amber-400/10"
                       >
                         ⚠ {t('amalan.khafi_player.data_lama')}
+                      </span>
+                    )}
+                    {isLegacyFormula && (
+                      <span
+                        title={t('amalan.khafi_player.formula_lama_tooltip')}
+                        className="inline-block px-1.5 py-0.5 rounded text-[9px] font-medium text-blue-400/80 bg-blue-400/10"
+                      >
+                        {t('amalan.khafi_player.formula_lama')}
                       </span>
                     )}
                     {!isLegacyCoherence && isBle && s.dominant_tier !== null && (
