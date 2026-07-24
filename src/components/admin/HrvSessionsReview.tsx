@@ -3,6 +3,8 @@ import { format, parseISO, subDays } from 'date-fns'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { ZIKIR_KHAFI_BADGES, getEarnedZikirBadges, isZikirBadgeEarned, type ZikirBadgeSeriesPoint } from '@/config/zikirKhafiBadges'
+import { COHERENCE_FORMULA_V2_CUTOFF } from '@/lib/hrvCoherence'
+import CoherenceBandChart from '@/components/zikir/CoherenceBandChart'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -260,6 +262,26 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                           <p>📅 {format(parseISO(s.created_at), 'd MMMM yyyy — HH:mm')}</p>
                           <p>🫀 BPM: {s.start_bpm} → {s.end_bpm} ({bpmDelta <= 0 ? '↓' : '↑'} {Math.abs(bpmDelta)} BPM) · Purata {s.avg_bpm} · Min/Max {s.min_bpm}–{s.max_bpm}</p>
                           <p>💜 Skor Lama (v1): {s.coherence_score}% · Skor Baharu ln-RMSSD (v2): {s.coherence_score_v2 !== null ? `${s.coherence_score_v2}%` : '— (belum di-backfill)'} | RMSSD: {s.rmssd}ms{s.consistency_score !== null && ` | Konsistensi: ${s.consistency_score}%`}</p>
+                          {(() => {
+                            // Per-point series coherence is baked in at sample
+                            // time under whatever formula was live then — a
+                            // row saved before the v2 cutover has v1-formula
+                            // points that can't be recalculated (no raw R-R
+                            // stored per point, unlike coherence_score's own
+                            // v1/v2 pair). Never plot those against v2-
+                            // calibrated bands; fall back to a plain note.
+                            const seriesEligible = s.series && s.series.length > 0 && new Date(s.created_at) >= COHERENCE_FORMULA_V2_CUTOFF
+                            if (!seriesEligible) {
+                              return (
+                                <p className="text-gray-600 italic">
+                                  {s.series && s.series.length > 0
+                                    ? '📉 Carta jalur koheren tiada — series sesi ini formula lama (v1), tak boleh dibandingkan dengan jalur v2.'
+                                    : '📉 Carta jalur koheren tiada — sesi ini tiada data series tersimpan.'}
+                                </p>
+                              )
+                            }
+                            return <CoherenceBandChart series={s.series as ZikirBadgeSeriesPoint[]} className="py-1" />
+                          })()}
                           <p>⭐ {stageLabel(s.stage_achieved)}</p>
                           {(() => {
                             const earned = getEarnedZikirBadges({ avgBpm: s.avg_bpm, coherenceScore: s.coherence_score, series: s.series ?? null })

@@ -16,6 +16,8 @@ import {
 } from '@/lib/smoothedHeartWave'
 import { computeCoherence } from '@/lib/hrvCoherence'
 import { useGuidanceAudio } from '@/hooks/useGuidanceAudio'
+import CoherenceBandChart from '@/components/zikir/CoherenceBandChart'
+import type { ZikirBadgeSeriesPoint } from '@/config/zikirKhafiBadges'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -336,6 +338,18 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   // that the display EMA hasn't caught up to yet still registers.
   const rawTierCountsRef = useRef<Record<BpmTier, number>>({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 })
   const bestReachedTierRef = useRef<BpmTier>(1)
+  // Rolling window of REAL R-R intervals only (mirrors AdminZikirKhafiDevPage's
+  // live intervalsRef — last 7 beats), used to sample an approximate
+  // coherence value periodically during the run for the summary's tiered
+  // band chart (CoherenceBandChart). Separate from beatIntervalsRef, which
+  // accumulates the WHOLE session for the single end-of-session score.
+  const liveCoherenceIntervalsRef = useRef<number[]>([])
+  // Timestamped {t, bpm, coherence} samples, BLE mode only — live-computed
+  // for THIS session's summary render only, never persisted (zikir_khafi_sessions
+  // has no series column, unlike hrv_sessions — see COHERENCE_FORMULA_V2_CUTOFF
+  // comment in src/lib/hrvCoherence.ts for why that's a deliberate scope
+  // decision, not an oversight).
+  const coherenceHistoryRef = useRef<ZikirBadgeSeriesPoint[]>([])
 
   const isInfinity = sessionMin === 0
 
@@ -456,6 +470,8 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     rawRrBeatSamplesRef.current = []
     rawBpmSamplesRef.current = []
     rrQueueRef.current = []
+    liveCoherenceIntervalsRef.current = []
+    coherenceHistoryRef.current = []
     finalBpmRef.current = null
     bpmHistoryRef.current = [{ t: 0, bpm: initialBpm }]
     rawTierCountsRef.current = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
@@ -498,6 +514,9 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         ...rawRrBeatSamplesRef.current,
         { tMs: performance.now(), rrMs: intervalMs },
       ].slice(-4000)
+      // Same isReal gate again — rolling window for the periodic live-
+      // coherence sampler (coherenceHistoryRef), see its declaration above.
+      liveCoherenceIntervalsRef.current = [...liveCoherenceIntervalsRef.current, intervalMs].slice(-7)
     }
     setCurrentLabel(phaseRef.current)
     setBeatCount(c => c + 1)
@@ -598,9 +617,17 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     const id = window.setInterval(() => {
       const elapsedSec = Math.round((performance.now() - startedAtRef.current) / 1000)
       bpmHistoryRef.current = [...bpmHistoryRef.current, { t: elapsedSec, bpm: bpmRef.current }]
+      // Coherence sampling only ever makes sense in BLE mode — tap-tempo
+      // never has genuine R-R data (liveCoherenceIntervalsRef stays empty),
+      // so this would otherwise just append nulls the whole session.
+      if (sessionMode === 'ble') {
+        const intervals = liveCoherenceIntervalsRef.current
+        const coh = intervals.length >= 2 ? Math.round(computeCoherence(intervals) * 100) : null
+        coherenceHistoryRef.current = [...coherenceHistoryRef.current, { t: elapsedSec, bpm: bpmRef.current, coherence: coh }]
+      }
     }, BPM_SAMPLE_INTERVAL_MS)
     return () => window.clearInterval(id)
-  }, [phase])
+  }, [phase, sessionMode])
 
   // ── Finalize ───────────────────────────────────────────────────────
 
@@ -1086,7 +1113,15 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
           pacing curve (see firePulseTick's isReal contract). */}
       {sessionMode === 'ble' && (
         <>
-          <CoherenceRing value={coherence} label={t('amalan.khafi_player.koheren')} />
+          {/* Tiered band chart needs >=2 live-sampled points (see
+              coherenceHistoryRef) — a very short BLE session that ends
+              before the first 2.5s sample tick falls back to the plain
+              end-of-session ring rather than showing nothing. */}
+          {coherenceHistoryRef.current.length >= 2 ? (
+            <CoherenceBandChart series={coherenceHistoryRef.current} />
+          ) : (
+            <CoherenceRing value={coherence} label={t('amalan.khafi_player.koheren')} />
+          )}
           <div className="flex items-center gap-2 text-emerald-400/70 text-[10px] uppercase tracking-[0.3em]">
             🫀 {t('amalan.khafi_player.ble_data_sebenar')}
           </div>

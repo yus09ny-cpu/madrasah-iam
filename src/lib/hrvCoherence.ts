@@ -49,3 +49,23 @@ export function computeCoherence(intervalsMs: number[]): number {
   if (rmssd <= 0) return 0
   return Math.max(0, Math.min(1, Math.log(rmssd) / 6.5))
 }
+
+// ---------------------------------------------------------------------------
+// COHERENCE_FORMULA_V2_CUTOFF — the exact production cutover moment for the
+// v1 -> v2 (ln-RMSSD) formula switch above: commit 2161198 ("Merge
+// feat/hrv-score-ln-rmssd: ln(RMSSD) HRV formula update") into main.
+//
+// Any saved row/point with a timestamp before this was computed under the
+// old RMSSD/meanRR/0.15 ratio formula. Neither zikir_khafi_sessions.coherence
+// nor hrv_sessions.series' per-point coherence stored the raw R-R behind the
+// number, so pre-cutoff values CANNOT be recalculated to v2 after the fact —
+// they must stay flagged as legacy rather than silently mixed with v2 values
+// in the same chart/threshold. (hrv_sessions.coherence_score is the one
+// exception: it has a separate raw `rmssd` column, which is what makes its
+// coherence_score_v2 backfill column possible — see
+// hrv_sessions_coherence_v2.sql.)
+//
+// Single source of truth — every call site needing this distinction (e.g.
+// src/components/zikir/KhafiHistoryPanel.tsx, HrvSessionsReview.tsx) should
+// import this constant rather than redeclaring its own copy of the timestamp.
+export const COHERENCE_FORMULA_V2_CUTOFF = new Date('2026-07-23T22:32:15+08:00')

@@ -5,6 +5,7 @@ import { format, subDays } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { TIER_META, type BpmTier } from '@/lib/bpmTiers'
+import { COHERENCE_FORMULA_V2_CUTOFF } from '@/lib/hrvCoherence'
 
 // Coherence/consistency were fabricated for every session before this fix
 // shipped (commit 1c674cc — BLE mode, and the null-gating for tap-tempo,
@@ -14,19 +15,13 @@ import { TIER_META, type BpmTier } from '@/lib/bpmTiers'
 // that a session happened.
 const COHERENCE_FIX_CUTOFF = new Date('2026-07-09T17:02:40+08:00')
 
-// Rows between COHERENCE_FIX_CUTOFF and this cutoff are genuine measurements
-// (not fabricated), but computed with the old RMSSD/meanRR/0.15 ratio formula
-// (no scientific citation) instead of the ln(RMSSD)/6.5 formula that replaced
-// it — see src/lib/hrvCoherence.ts. zikir_khafi_sessions never stored raw
-// RMSSD-ms, only the derived value, so these rows CANNOT be recalculated —
-// they must stay flagged as v1/legacy rather than "fixed" retroactively.
-//
-// TODO before/at production deploy: update this timestamp to the actual
-// merge-to-main / production-deploy moment (mirrors how COHERENCE_FIX_CUTOFF
-// above was set to its exact commit timestamp after the fact). Currently set
-// to when this constant was authored (2026-07-23, feat/hrv-score-ln-rmssd
-// branch) as a placeholder — it is NOT yet the real production cutover time.
-const COHERENCE_FORMULA_V2_CUTOFF = new Date('2026-07-23T09:58:05+08:00')
+// Rows between COHERENCE_FIX_CUTOFF and COHERENCE_FORMULA_V2_CUTOFF are
+// genuine measurements (not fabricated), but computed with the old
+// RMSSD/meanRR/0.15 ratio formula (no scientific citation) instead of the
+// ln(RMSSD)/6.5 formula that replaced it — see src/lib/hrvCoherence.ts.
+// zikir_khafi_sessions never stored raw RMSSD-ms, only the derived value, so
+// these rows CANNOT be recalculated — they must stay flagged as v1/legacy
+// rather than "fixed" retroactively.
 
 interface KhafiSession {
   session_date: string
