@@ -27,6 +27,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useHeartRateMonitor, type HeartRateReading } from '@/hooks/useHeartRateMonitor'
 import { useWakeLock } from '@/hooks/useWakeLock'
 import { useAudioPulse } from '@/hooks/useAudioPulse'
+import { useGuidanceAudio } from '@/hooks/useGuidanceAudio'
 import { supabase } from '@/lib/supabase'
 import { computeCoherence, computeRmssdMs } from '@/lib/hrvCoherence'
 import WakeLockBadge from '@/components/zikir/WakeLockBadge'
@@ -468,6 +469,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   // path (this simulator tracks its own session stats separately already).
   // ---------------------------------------------------------------------------
   const audioPulse = useAudioPulse()
+  const guidanceAudio = useGuidanceAudio()
   const [currentLabel, setCurrentLabel] = useState<'Allah' | 'Hu' | ''>('')
   const [pulse, setPulse] = useState(0)
 
@@ -507,6 +509,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     // useAudioPulse.ts), otherwise the browser blocks audio playback for
     // lacking a user gesture.
     audioPulse.init()
+    guidanceAudio.start()
     // No BPM device connected — tap calibration was removed 2026-07-18, so
     // seed a fixed default instead of a manually-detected reading. Never
     // touches a real BLE session's starting BPM: handleHrReading already
@@ -542,13 +545,14 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     sessionSeriesRef.current = []
     setSessionPhase('running')
     wakeLock.request()
-  }, [hr.state, sessionMin, wakeLock.request, audioPulse.init])
+  }, [hr.state, sessionMin, wakeLock.request, audioPulse.init, guidanceAudio.start])
 
   const stopSession = useCallback(() => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current)
     timerRef.current = null
     setSessionPhase('idle')
     wakeLock.release()
+    guidanceAudio.stop()
 
     // Only offer to save when the session actually received real BLE device
     // readings — a no-device guided session never produces an hrv_sessions row.
@@ -574,7 +578,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         series: sessionSeriesRef.current,
       })
     }
-  }, [hr.deviceName, hr.deviceId, pacingBpm, wakeLock.release])
+  }, [hr.deviceName, hr.deviceId, pacingBpm, wakeLock.release, guidanceAudio.stop])
 
   // ---------------------------------------------------------------------------
   // hrv_sessions save — admin-only real-device experiment data
@@ -634,7 +638,11 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         const isAllah = phaseRef.current === 'Allah'
         if (isAllah) fireAllah()
         else fireHu()
-        audioPulse.play()
+        // Read the ref, not guidanceAudio.isNarrating — this closure is
+        // captured once by the [sessionPhase] effect below and re-runs for
+        // the whole session, so a plain state read would freeze at
+        // whatever isNarrating was at session start. See useGuidanceAudio.ts.
+        if (!guidanceAudio.isNarratingRef.current) audioPulse.play()
 
         beatCountRef.current += 1
         setCurrentLabel(phaseRef.current)
@@ -704,12 +712,13 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
     if (sessionPhase !== 'running') return
     const id = window.setInterval(() => {
       const elapsed = (performance.now() - startedAtRef.current) / 1000
+      guidanceAudio.onElapsedTick(elapsed)
       const left = Math.max(0, sessionMin * 60 - elapsed)
       setRemaining(left)
       if (left <= 0) stopSession()
     }, 250)
     return () => window.clearInterval(id)
-  }, [sessionPhase, sessionMin, stopSession])
+  }, [sessionPhase, sessionMin, stopSession, guidanceAudio.onElapsedTick])
 
   // ---------------------------------------------------------------------------
   // Canvas rAF — real tachogram plotted from rrHistoryRef (genuinely measured
@@ -1115,6 +1124,31 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
                   >
                     <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${audioPulse.enabled ? 'left-[22px]' : 'left-0.5'}`} />
                   </button>
+                </div>
+              )}
+
+              {/* Spoken guidance narration — independent of the pulse tone
+                  above, shared localStorage preference with
+                  ZikirKhafiPlayer.tsx (see useGuidanceAudio.ts). */}
+              {!isRunning && !pendingSave && (
+                <div className="flex items-center justify-between w-full px-1">
+                  <span className="text-gray-400 text-xs">Bimbingan Suara</span>
+                  <div className="flex items-center gap-1 p-0.5 rounded-lg bg-black/30 border border-gray-800">
+                    {([
+                      ['off', 'Tutup'],
+                      ['first3min', '3 Minit Pertama'],
+                      ['full', 'Sepanjang Sesi'],
+                    ] as const).map(([m, label]) => (
+                      <button
+                        key={m}
+                        onClick={() => guidanceAudio.setMode(m)}
+                        disabled={!guidanceAudio.isAvailable}
+                        className={`px-2.5 py-1 rounded-md text-[10px] transition-colors disabled:opacity-30 ${guidanceAudio.mode === m ? 'bg-emerald-500 text-black font-medium' : 'text-gray-500 hover:text-gray-300'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
