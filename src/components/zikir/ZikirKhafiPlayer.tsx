@@ -15,6 +15,7 @@ import {
   type TimestampedBpm,
 } from '@/lib/smoothedHeartWave'
 import { computeCoherence } from '@/lib/hrvCoherence'
+import { useGuidanceAudio } from '@/hooks/useGuidanceAudio'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -285,6 +286,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const [sessionMode, setSessionMode] = useState<SessionMode>('tap')
   const wakeLock = useWakeLock()
   const audioPulse = useAudioPulse()
+  const guidanceAudio = useGuidanceAudio()
 
   const tapsRef = useRef<number[]>([])
   const phaseRef = useRef<'Allah' | 'Hu'>('Allah')
@@ -444,6 +446,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     // called startSession — this is the one gesture-covered entry point
     // shared by both modes' "Mula Sesi" buttons and repeatSession().
     audioPulse.init()
+    guidanceAudio.start()
     smootherRef.current = new BpmSmoother()
     smootherRef.current.add(initialBpm)
     setBpm(initialBpm)
@@ -479,7 +482,14 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   function firePulseTick(intervalMs: number, isReal: boolean) {
     const isAllah = phaseRef.current === 'Allah'
     isAllah ? fireAllah() : fireHu()
-    audioPulse.play()
+    // Guidance narration and the pulse tone never compete for attention —
+    // pause the tone's audio (haptic + orb keep pulsing normally) while
+    // narration has the floor. See useGuidanceAudio.ts. Reads the ref (not
+    // the isNarrating state) because firePulseTick is captured once by the
+    // beat-scheduling effect below (deps [phase, sessionMode]) and re-runs
+    // for the whole session — a plain state read here would freeze at
+    // whatever isNarrating was at session start.
+    if (!guidanceAudio.isNarratingRef.current) audioPulse.play()
     if (isReal) {
       beatIntervalsRef.current.push(intervalMs)
       // Sibling push — same isReal gate as beatIntervalsRef above, just
@@ -543,6 +553,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
       const elapsedSec = (performance.now() - startedAtRef.current) / 1000
       setElapsed(elapsedSec)
       setConsistency(smootherRef.current.consistency())
+      guidanceAudio.onElapsedTick(elapsedSec)
       if (!isInfinity) {
         const left = Math.max(0, sessionMin * 60 - elapsedSec)
         setRemaining(left)
@@ -603,6 +614,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     // that predates the latest bpm update (effect deps don't include bpm),
     // so only the ref is guaranteed current.
     finalBpmRef.current = bpmRef.current
+    guidanceAudio.stop()
     const c = computeCoherence(beatIntervalsRef.current)
     setCoherence(c)
     const avg = bpmSamplesRef.current > 0 ? bpmSumRef.current / bpmSamplesRef.current : bpm
@@ -644,6 +656,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   }
 
   function resetAll() {
+    guidanceAudio.stop()
     if (sessionMode === 'ble') hr.disconnect()
     setSessionMode('tap')
     setPhase('idle')
@@ -730,6 +743,28 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
             <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all',
               audioPulse.enabled ? 'left-[22px]' : 'left-0.5')} />
           </button>
+        </div>
+
+        {/* Spoken guidance narration — independent of the pulse tone above */}
+        <div className="flex items-center justify-between w-full max-w-xs px-1">
+          <span className="text-[#8a7a65] text-xs">{t('amalan.khafi_player.bimbingan_label')}</span>
+          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[#0d1821] border border-[#1e2d40]">
+            {([
+              ['off', 'bimbingan_tutup'],
+              ['first3min', 'bimbingan_3min'],
+              ['full', 'bimbingan_penuh'],
+            ] as const).map(([m, key]) => (
+              <button
+                key={m}
+                onClick={() => guidanceAudio.setMode(m)}
+                disabled={!guidanceAudio.isAvailable}
+                className={cn('px-2.5 py-1 rounded-md text-[10px] transition-colors disabled:opacity-30',
+                  guidanceAudio.mode === m ? 'bg-[#a78bfa] text-[#060d16] font-medium' : 'text-[#8a7a65] hover:text-[#e8dcc8]')}
+              >
+                {t(`amalan.khafi_player.${key}`)}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-col items-center gap-3 w-full max-w-xs">

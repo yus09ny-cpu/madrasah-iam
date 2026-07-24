@@ -189,6 +189,8 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
   const [showGuide, setShowGuide] = useState(false)
   const [audioOn, setAudioOn] = useState(false)
   const [audioAvail, setAudioAvail] = useState(false)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const videoFetchedRef = useRef(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const lastTapRef = useRef<number>(0)
 
@@ -208,6 +210,18 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
         }
       }).catch(() => {})
   }, [])
+
+  // Technique orientation video — one-time watch, not looped/background
+  // like the chant audio above, so it's fetched lazily the first time the
+  // Movement Guide panel is opened rather than eagerly on mount.
+  useEffect(() => {
+    if (!showGuide || videoFetchedRef.current) return
+    videoFetchedRef.current = true
+    supabase.storage.from('madrasah-audio').createSignedUrl('zikir-jahar/pemula.mp4', 3600)
+      .then(({ data }) => {
+        if (data?.signedUrl) setVideoUrl(data.signedUrl)
+      }).catch(() => {})
+  }, [showGuide])
 
   useEffect(() => {
     if (!audioRef.current) return
@@ -419,6 +433,13 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
               </button>
               {showGuide && (
                 <div className="px-4 pb-4 space-y-3">
+                  {videoUrl && (
+                    <video
+                      controls
+                      className="w-full rounded-xl bg-black"
+                      src={videoUrl}
+                    />
+                  )}
                   {[
                     { arab: 'لَا', gKey: 'amalan.gerakan_la' },
                     { arab: 'إِلَٰهَ', gKey: 'amalan.gerakan_ilaha' },
