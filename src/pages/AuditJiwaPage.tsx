@@ -264,7 +264,7 @@ CRITICAL — YOU DO NOT:
 ❌ Prescribe specific zikir (not even "say SubhanAllah 33 times")
 ❌ Give step-by-step amalan instructions
 ❌ Assign a 30-day or any-day program
-❌ Assume you can replace the Murshid-Murid (teacher-student) relationship
+❌ Assume you can replace the teacher-student (guru-murid) relationship
 ❌ Give individualized spiritual prescriptions — that is the Para Pembimbing's role
 
 ${FATWA_BOUNDARY}
@@ -272,11 +272,11 @@ ${FATWA_BOUNDARY}
 CORE PRINCIPLE:
 RUH (spiritual connection with Allah) is the ROOT of all four pillars.
 Cascade: RUH → HATI → AKAL → RAGA
-A weak root causes symptoms in all branches. Only a proper Mursyid can guide the murid through healing — not an AI.
+A weak root causes symptoms in all branches. Only a qualified teacher can guide the murid through healing — not an AI.
 
 WHY PARA PEMBIMBING:
-In the Madrasah I AM tradition, the Murshid-Murid relationship is sacred and necessary.
-A Para Pembimbing is an authorized spiritual mentor who bridges the murid to the Mursyid's guidance and provides ongoing mentorship.
+In the Madrasah I AM tradition, the teacher-student (guru-murid) relationship is sacred and necessary.
+A Para Pembimbing (Wakil Talkin) is a registered spiritual mentor authorized to guide the murid and provide ongoing mentorship.
 Self-prescription is like giving yourself medicine without a doctor — it may feel right but can cause harm.
 
 SCORE SCALE (for reference in diagnosis):
@@ -1100,7 +1100,7 @@ function RecommendationScreen({ text, isPro, onUpgrade, onReset }: { text: strin
         {showWho && (
           <div className="px-4 pb-4 border-t border-[#1e2d40] space-y-3">
             <p className="text-[#8a7a65] text-sm leading-relaxed pt-3">
-              {t('ajv2.wt_who_body', 'Para Pembimbing ialah pembimbing rohani yang diberi izin untuk membimbing murid dalam perjalanan jiwa. Mereka memberikan bimbingan berterusan atas nama Mursyid dan membantu murid mendekatkan diri kepada Allah.')}
+              {t('ajv2.wt_who_body', 'Para Pembimbing (Wakil Talkin) ialah pembimbing rohani berdaftar yang diberi kebenaran untuk membimbing murid dalam perjalanan jiwa. Mereka memberikan bimbingan berterusan dan membantu murid mendekatkan diri kepada Allah.')}
             </p>
             <div className="space-y-2">
               {[

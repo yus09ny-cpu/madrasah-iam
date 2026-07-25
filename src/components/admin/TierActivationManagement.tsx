@@ -20,7 +20,7 @@ const PRO_FEATURES = [
   'Amalan Jiwa lanjutan',
   'Sesi 1-on-1 dengan Para Pembimbing',
   'Penjejakan perkembangan terperinci',
-  'Panduan peribadi dari Mursyid',
+  'Panduan peribadi daripada Wakil Talkin',
 ]
 
 export default function TierActivationManagement() {
