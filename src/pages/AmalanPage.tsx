@@ -213,6 +213,13 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
           setAudioAvail(true)
         }
       }).catch(() => {})
+
+    // Native Audio() keeps playing after unmount unless explicitly paused —
+    // catches the infinity-target "Selesai" path (which skips the isDone
+    // effect below) and navigating away mid-session.
+    return () => {
+      audioRef.current?.pause()
+    }
   }, [])
 
   // Technique orientation video — one-time watch, not looped/background
@@ -380,9 +387,9 @@ function Fasa2({ item, onDone }: { item: AmalanItem | null; onDone: (count: numb
 
       {/* Settings bottom sheet */}
       {showSettings && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowSettings(false)}>
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowSettings(false)}>
           <div
-            className="bg-[#0d1821] border-t border-x border-[#1e2d40] rounded-t-3xl w-full max-w-md p-6 space-y-5"
+            className="bg-[#0d1821] border-t border-x border-[#1e2d40] rounded-t-3xl w-full max-w-md max-h-[85vh] overflow-y-auto p-6 space-y-5"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
