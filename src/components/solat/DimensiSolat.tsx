@@ -765,20 +765,20 @@ function HakikatPanel({ user, onUpgrade }: { user: User | null; onUpgrade: () =>
   const isActivated = user?.solat_hakikat_unlocked === true
 
   const T = lang === 'en' ? {
-    preparedMsg: 'Your Ihsan Dimension is being prepared by Nine.',
+    preparedMsg: 'Your Ihsan Dimension is being prepared with guidance from a registered Wakil Talkin.',
     soonMsg: 'InsyaAllah, this journey will continue very soon.',
     title: 'Prayer Rooted in Ihsan',
     duaTr: '"O Allah, You are my purpose and Your pleasure is what I seek"',
     desc: 'The Ihsan Dimension is the highest dimension — why humanity was brought into the world and its connection with prayer.',
-    noText: 'This cannot be taught through text. It must be opened through a direct meeting with Nine.',
+    noText: 'The Ihsan Dimension requires direct guidance from an authorized teacher within this lineage — not because it is a secret being withheld, but because each person\'s path differs and needs personal observation and correction. Contact a registered Wakil Talkin for further guidance.',
     cta: '✦ Open the Ihsan Dimension',
   } : {
-    preparedMsg: 'Dimensi Ihsan anda sedang disediakan oleh Nine.',
+    preparedMsg: 'Dimensi Ihsan anda sedang disediakan dengan bimbingan Wakil Talkin berdaftar.',
     soonMsg: 'InsyaAllah, perjalanan ini akan diteruskan tidak lama lagi.',
     title: 'Solat Berteraskan Ihsan',
     duaTr: '"Ya Allah, Engkaulah Tujuanku dan keredhaan-Mu yang aku cari"',
     desc: 'Dimensi Ihsan adalah dimensi tertinggi — mengapa manusia dihadirkan di dunia dan apa hubungannya dengan solat.',
-    noText: 'Ini tidak boleh diajar melalui teks. Ia perlu dibuka melalui pertemuan langsung dengan Nine.',
+    noText: 'Dimensi Ihsan memerlukan bimbingan langsung daripada guru bertauliah dalam silsilah ini, kerana sifatnya yang memerlukan pemerhatian dan teguran peribadi — bukan kerana ia rahsia yang disembunyikan, tetapi kerana setiap insan berbeza jalannya. Hubungi Wakil Talkin berdaftar untuk bimbingan lanjut.',
     cta: '✦ Buka Dimensi Ihsan',
   }
 

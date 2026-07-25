@@ -430,7 +430,8 @@
     "lihat_semua": "View All",
     "atau": "or",
     "sahabat": "Friend",
-    "soalan": "questions"
+    "soalan": "questions",
+    "fatwa_disclaimer": "I AM Interaktif is for spiritual questions — not Islamic rulings (fatwa). For matters of Islamic law, please consult a qualified ustaz or Wakil Talkin."
   },
   "bahasa": {
     "tajuk": "Bahasa / Language",
@@ -789,6 +790,8 @@
       "pacing_selesai": "Reached the Zikir Khafi range",
       "pacing_belum": "Didn't reach the range this time — keep at it",
       "ble_data_sebenar": "Real HRV Data",
+      "graf_tunjuk": "📈 View Coherence Graph",
+      "graf_sembunyi": "Hide Graph",
       "tier_1": "Focus Lost",
       "tier_2": "Still Elevated",
       "tier_3": "Approaching Calm",
@@ -892,7 +895,7 @@
     "wt_event": "Join a Live Zikir Session",
     "wt_event_desc": "Attend online or in person",
     "wt_who_title": "Who are the Para Pembimbing?",
-    "wt_who_body": "Para Pembimbing are authorized spiritual mentors who guide murids in their soul journey. They provide continuous mentorship on behalf of the Mursyid and help murids draw closer to Allah.",
+    "wt_who_body": "Para Pembimbing (Wakil Talkin) are registered spiritual mentors authorized to guide murids in their soul journey. They provide continuous mentorship and help murids draw closer to Allah.",
     "wt_step1": "Para Pembimbing listens to your condition and background",
     "wt_step2": "A personalized spiritual assessment is made together",
     "wt_step3": "Guidance and practice are given at the right time",

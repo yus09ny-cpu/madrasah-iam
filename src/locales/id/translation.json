@@ -430,7 +430,8 @@
     "lihat_semua": "Lihat Semua",
     "atau": "atau",
     "sahabat": "Sahabat",
-    "soalan": "pertanyaan"
+    "soalan": "pertanyaan",
+    "fatwa_disclaimer": "I AM Interaktif untuk pertanyaan rohani — bukan hukum syariat. Untuk hukum syariat, silakan rujuk ustaz atau Wakil Talkin."
   },
   "bahasa": {
     "tajuk": "Bahasa / Language",
@@ -789,6 +790,8 @@
       "pacing_selesai": "Berhasil turun ke rentang Zikir Khafi",
       "pacing_belum": "Belum sempat turun ke rentang Zikir Khafi kali ini — tetap istiqamah",
       "ble_data_sebenar": "Data HRV Nyata",
+      "graf_tunjuk": "📈 Lihat Grafik Koherensi",
+      "graf_sembunyi": "Sembunyikan Grafik",
       "tier_1": "Kehilangan Fokus",
       "tier_2": "Masih Tinggi",
       "tier_3": "Mendekati Tenang",
@@ -892,7 +895,7 @@
     "wt_event": "Ikuti Majelis Zikir Live",
     "wt_event_desc": "Hadir secara online atau langsung",
     "wt_who_title": "Siapakah Para Pembimbing?",
-    "wt_who_body": "Para Pembimbing adalah pembimbing rohani yang diberi izin untuk memandu murid dalam perjalanan jiwa. Mereka memberikan bimbingan berkelanjutan atas nama Mursyid dan membantu murid mendekatkan diri kepada Allah.",
+    "wt_who_body": "Para Pembimbing (Wakil Talkin) adalah pembimbing rohani terdaftar yang diberi kewenangan untuk memandu murid dalam perjalanan jiwa. Mereka memberikan bimbingan berkelanjutan dan membantu murid mendekatkan diri kepada Allah.",
     "wt_step1": "Para Pembimbing mendengarkan kondisi dan latar belakang Anda",
     "wt_step2": "Penilaian rohani pribadi dibuat bersama",
     "wt_step3": "Panduan amalan diberikan pada waktu yang tepat",

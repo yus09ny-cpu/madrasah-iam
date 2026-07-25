@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
 import { sendIAMMessage } from '@/lib/iam-chat'
 import { buildPintuRezekiSystemPrompt, FORMAT_CONTROL } from '@/lib/systemPrompts'
+import FatwaDisclaimerBanner from '@/components/FatwaDisclaimerBanner'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
 
@@ -1063,6 +1064,7 @@ function PintuTab() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
+      <FatwaDisclaimerBanner />
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
         {selectedSituasi && (
           <div className="flex justify-center">

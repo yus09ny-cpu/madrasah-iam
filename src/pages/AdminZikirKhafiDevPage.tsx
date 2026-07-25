@@ -19,7 +19,7 @@
  * Akses: Master Admin sahaja.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useReducer } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Shield, ArrowLeft, FlaskConical, Play, Square } from 'lucide-react'
 import { format } from 'date-fns'
@@ -33,6 +33,7 @@ import { computeCoherence, computeRmssdMs } from '@/lib/hrvCoherence'
 import WakeLockBadge from '@/components/zikir/WakeLockBadge'
 import GuidedOrb from '@/components/zikir/GuidedOrb'
 import HrvSessionsReview from '@/components/admin/HrvSessionsReview'
+import CoherenceBandChart from '@/components/zikir/CoherenceBandChart'
 import {
   computeSmoothedWave,
   bpmReadingsToBeats,
@@ -223,6 +224,13 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   // Sampled on a fixed interval (BADGE_SAMPLE_INTERVAL_MS), not per-reading,
   // to keep the row's jsonb payload bounded regardless of device chattiness.
   const sessionSeriesRef = useRef<ZikirBadgeSeriesPoint[]>([])
+  // Forces a re-render on the same cadence sessionSeriesRef actually grows
+  // (BADGE_SAMPLE_INTERVAL_MS, see that effect below) — mutating a ref alone
+  // never triggers React to re-render, so without this the live coherence
+  // band chart below would just show its initial (empty) snapshot for the
+  // whole session. Piggybacks on the existing sampler interval rather than
+  // adding a new one.
+  const [, bumpLiveSeriesTick] = useReducer((c: number) => c + 1, 0)
 
   // ── Beat refs (animation loop) ──
   const intervalsRef = useRef<number[]>([])
@@ -690,8 +698,10 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
   // Badge series sampler — timestamped {t, bpm, coherence} for the combined
   // BPM+coherence badge system (src/config/zikirKhafiBadges.ts). Reads
   // bpmRef/coherenceRef directly (mode-agnostic, same pattern as the canvas
-  // rAF loop) rather than depending on component state, since this only needs
-  // to run on a fixed cadence, not re-render anything itself.
+  // rAF loop) rather than depending on component state. Also drives the live
+  // coherence band chart below (bumpLiveSeriesTick) — ref mutation alone
+  // doesn't cause a re-render, so that tick is what actually surfaces each
+  // new point on screen.
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (sessionPhase !== 'running') return
@@ -701,6 +711,7 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
         ...sessionSeriesRef.current,
         { t: Math.round(elapsedSec), bpm: bpmRef.current, coherence: coherenceRef.current },
       ]
+      bumpLiveSeriesTick()
     }, BADGE_SAMPLE_INTERVAL_MS)
     return () => window.clearInterval(id)
   }, [sessionPhase])
@@ -1346,6 +1357,28 @@ function ZikirKhafiSimulator({ onBack }: { onBack: () => void }) {
               <span>Coherent (Skor HRV Tinggi)</span>
             </div>
           </div>
+
+          {/* Live coherence band chart — mirrors ZikirKhafiPlayer.tsx's
+              summary-screen chart, but rendered continuously during the
+              session on the same BADGE_SAMPLE_INTERVAL_MS cadence
+              (sessionSeriesRef, see the sampler effect above). Gated on
+              hr.state === 'connected', NOT on isRunning alone — coherenceRef
+              is only ever assigned inside handleHrReading (real BLE packets),
+              so a tap-only guided session (no device) never updates it and
+              it sits at its initial value 0 the whole time. Rendering
+              unconditionally would show a flat line pinned at 0% coherence,
+              indistinguishable from a genuinely bad reading, when it
+              actually means "no device, never measured" — sessionSeriesRef
+              itself isn't changed here (it also feeds badge computation on
+              save), only this display is gated. Always visible (no
+              collapse) — this is the researcher-facing panel, not the
+              eyes-closed practitioner screen. */}
+          {hr.state === 'connected' && sessionSeriesRef.current.length >= 2 && (
+            <div className="zk-glass rounded-2xl p-6 flex flex-col items-center gap-3">
+              <h2 className="text-lg font-medium text-white self-start">Coherence Band Chart (Live)</h2>
+              <CoherenceBandChart series={sessionSeriesRef.current} />
+            </div>
+          )}
 
         </div>
       </main>
