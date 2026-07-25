@@ -12,6 +12,8 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
 import { sendIAMMessage } from '@/lib/iam-chat'
+import { FATWA_BOUNDARY } from '@/lib/systemPrompts'
+import FatwaDisclaimerBanner from '@/components/FatwaDisclaimerBanner'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -58,6 +60,8 @@ ARAHAN RESPONS:
 3. Sebut: Allah berfirman dalam Surah Al-A'raf: 17 bahawa syaitan berjanji memasuki hati manusia dari segala penjuru — dan Zikir Jahar yang istiqamah adalah benteng pertama yang menghalang kemasukan ini
 4. Hubungkan: apabila benteng Jahar tidak kukuh, was-was lebih mudah mengganggu sewaktu Zikir Khafi yang lebih dalam. Ini bukan kelemahan, tapi tanda perlu memperkukuh asas
 5. Akhiri dengan SATU soalan balik: "Bagaimana amalan Zikir Jahar anda hari-hari ini? Sejauh mana anda mengamalkannya dengan istiqamah dan penuh penghayatan?"
+
+${FATWA_BOUNDARY}
 
 PENTING:
 - Hanya guna dalil yang disahkan: Quran, hadith sahih (Bukhari/Muslim/Ahmad/dll), atau Miftahus Shudur (Abah Anom)
@@ -857,6 +861,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
       {/* Sub-phase: ai_done */}
       {subPhase === 'ai_done' && (
         <div className="space-y-4">
+          <FatwaDisclaimerBanner />
           <div className="bg-[#0d1821] border border-[#a78bfa30] rounded-2xl p-5 space-y-3">
             <p className="text-[#a78bfa] text-xs font-medium uppercase tracking-wider">{t('amalan.khafi_balas_tajuk')}</p>
             <p className="text-[#e8dcc8] text-sm leading-relaxed" style={{ whiteSpace: 'pre-wrap' }}>{aiReply}</p>

@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { FREE_SYSTEM_PROMPT, PRO_SYSTEM_PROMPT } from '@/lib/systemPrompts'
 import { sendIAMMessage } from '@/lib/iam-chat'
 import { IAM_QUESTIONS_BY_LANG } from '@/data/iam-questions'
+import FatwaDisclaimerBanner from '@/components/FatwaDisclaimerBanner'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 
@@ -478,6 +479,8 @@ export default function IAMChatPage() {
           </p>
         </div>
       </div>
+
+      <FatwaDisclaimerBanner />
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-5 md:px-8 py-4 space-y-4 min-h-0">

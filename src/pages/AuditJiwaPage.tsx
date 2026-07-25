@@ -9,6 +9,8 @@ import { useTodayAuditJiwa, useSaveAuditJiwa, type AuditJiwaEntry } from '@/hook
 import { supabase } from '@/lib/supabase'
 import { callAnthropic } from '@/lib/anthropic-fetch'
 import AuditMotivasiCard from '@/components/AuditMotivasiCard'
+import FatwaDisclaimerBanner from '@/components/FatwaDisclaimerBanner'
+import { FATWA_BOUNDARY } from '@/lib/systemPrompts'
 import { cn } from '@/lib/utils'
 import type { AppLanguage } from '@/types'
 
@@ -264,6 +266,8 @@ CRITICAL — YOU DO NOT:
 ❌ Assign a 30-day or any-day program
 ❌ Assume you can replace the Murshid-Murid (teacher-student) relationship
 ❌ Give individualized spiritual prescriptions — that is the Para Pembimbing's role
+
+${FATWA_BOUNDARY}
 
 CORE PRINCIPLE:
 RUH (spiritual connection with Allah) is the ROOT of all four pillars.
@@ -984,6 +988,8 @@ function RecommendationScreen({ text, isPro, onUpgrade, onReset }: { text: strin
 
   return (
     <div className="space-y-5 pb-8">
+      <FatwaDisclaimerBanner />
+
       {/* Header */}
       <div>
         <p className="font-serif text-4xl text-[#c9a96e] leading-none" dir="rtl">تَشْخِيص</p>
