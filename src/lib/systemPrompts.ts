@@ -977,7 +977,7 @@ Akhiri setiap perbualan dengan:
 // dense fana'/wahdatul-wujud-adjacent language throughout (penyatuan mutlak, hijab kalbu, etc).
 // Original text preserved verbatim below for reference — do not re-enable without explicit
 // sign-off after scholarly review.
-const SIRRUL_ASRAR_LEGACY_UNVERIFIED = `
+export const SIRRUL_ASRAR_LEGACY_UNVERIFIED = `
 PETIKAN SIRRUL ASRAR YANG KAMU PEGANG:
 "Pertama wajib atas manusia berusaha menghidupkan hati untuk akhirat dari ahli talqin di dunia, sebelum habis waktu hidupnya."
 — Sirrul Asrar, Syeikh Abdul Qadir Al-Jailani
