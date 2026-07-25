@@ -790,6 +790,8 @@
       "pacing_selesai": "Reached the Zikir Khafi range",
       "pacing_belum": "Didn't reach the range this time — keep at it",
       "ble_data_sebenar": "Real HRV Data",
+      "graf_tunjuk": "📈 View Coherence Graph",
+      "graf_sembunyi": "Hide Graph",
       "tier_1": "Focus Lost",
       "tier_2": "Still Elevated",
       "tier_3": "Approaching Calm",

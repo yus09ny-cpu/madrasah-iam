@@ -3,8 +3,11 @@ import { format, parseISO, subDays } from 'date-fns'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '@/lib/supabase'
 import { ZIKIR_KHAFI_BADGES, getEarnedZikirBadges, isZikirBadgeEarned, type ZikirBadgeSeriesPoint } from '@/config/zikirKhafiBadges'
+import { COHERENCE_BANDS } from '@/config/coherenceBands'
 import { COHERENCE_FORMULA_V2_CUTOFF } from '@/lib/hrvCoherence'
+import { computeZoneBreakdown, computeAvgCoherence, getEvaluativeLabel, computeAchievementScore } from '@/lib/zikirKhafiSummary'
 import CoherenceBandChart from '@/components/zikir/CoherenceBandChart'
+import BpmOverTimeChart from '@/components/zikir/BpmOverTimeChart'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -68,6 +71,28 @@ function stageColorClasses(stage: number): string {
   return 'bg-blue-500/15 text-blue-300 border-blue-500/30'
 }
 
+// coherence_score_v2 stays null FOREVER for any row saved after the formula
+// cutover — not "not yet backfilled". For those rows coherence_score (v1)
+// IS the v2 number already (see HrvSessionRow's own coherence_score_v2
+// comment); the backfill column only ever applied to pre-cutover rows.
+// Reading coherence_score_v2 directly anywhere in this file was therefore
+// silently wrong for every post-cutover row — this is the one place that
+// distinction is made, everything else in the file should call these two
+// functions instead of touching the column directly.
+type V2Status = 'is_v2' | 'backfilled' | 'pending'
+
+function getV2Status(row: Pick<HrvSessionRow, 'coherence_score_v2' | 'created_at'>): V2Status {
+  if (new Date(row.created_at) >= COHERENCE_FORMULA_V2_CUTOFF) return 'is_v2'
+  return row.coherence_score_v2 !== null ? 'backfilled' : 'pending'
+}
+
+// The number to treat as "this row's v2 score" regardless of which of the
+// three states above it's in — null only for the genuinely-pending case.
+function getEffectiveV2Score(row: Pick<HrvSessionRow, 'coherence_score' | 'coherence_score_v2' | 'created_at'>): number | null {
+  if (new Date(row.created_at) >= COHERENCE_FORMULA_V2_CUTOFF) return row.coherence_score
+  return row.coherence_score_v2
+}
+
 // ─── Main component ─────────────────────────────────────────────────────
 
 export default function HrvSessionsReview({ userId }: { userId: string }) {
@@ -100,8 +125,8 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
   const stats = useMemo(() => {
     if (sessions.length === 0) return null
     const avgCoherence = sessions.reduce((a, s) => a + s.coherence_score, 0) / sessions.length
-    const withV2 = sessions.filter(s => s.coherence_score_v2 !== null)
-    const avgCoherenceV2 = withV2.length ? withV2.reduce((a, s) => a + (s.coherence_score_v2 as number), 0) / withV2.length : null
+    const withV2 = sessions.map(s => getEffectiveV2Score(s)).filter((v): v is number => v !== null)
+    const avgCoherenceV2 = withV2.length ? withV2.reduce((a, v) => a + v, 0) / withV2.length : null
     const avgBpm = sessions.reduce((a, s) => a + s.avg_bpm, 0) / sessions.length
     const totalSeconds = sessions.reduce((a, s) => a + s.duration_seconds, 0)
     return { avgCoherence, avgCoherenceV2, avgBpm, totalSeconds }
@@ -115,16 +140,16 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
       .map(s => ({
         label: format(parseISO(s.created_at), 'd/M'),
         coherence: s.coherence_score,
-        coherenceV2: s.coherence_score_v2,
+        coherenceV2: getEffectiveV2Score(s),
       }))
   }, [sessions, grafRange])
 
   const records = useMemo(() => {
     if (sessions.length === 0) return null
     const highestCoherence = sessions.reduce((best, s) => (s.coherence_score > best.coherence_score ? s : best), sessions[0])
-    const withV2 = sessions.filter(s => s.coherence_score_v2 !== null)
+    const withV2 = sessions.filter(s => getEffectiveV2Score(s) !== null)
     const highestCoherenceV2 = withV2.length
-      ? withV2.reduce((best, s) => ((s.coherence_score_v2 as number) > (best.coherence_score_v2 as number) ? s : best), withV2[0])
+      ? withV2.reduce((best, s) => ((getEffectiveV2Score(s) as number) > (getEffectiveV2Score(best) as number) ? s : best), withV2[0])
       : null
     const longestSession = sessions.reduce((best, s) => (s.duration_seconds > best.duration_seconds ? s : best), sessions[0])
     const lowestBpm = sessions.reduce((best, s) => (s.min_bpm < best.min_bpm ? s : best), sessions[0])
@@ -161,8 +186,8 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
     const avg = (arr: HrvSessionRow[], key: 'coherence_score' | 'start_bpm' | 'end_bpm') =>
       arr.length ? arr.reduce((a, s) => a + s[key], 0) / arr.length : null
     const avgV2 = (arr: HrvSessionRow[]) => {
-      const withV2 = arr.filter(s => s.coherence_score_v2 !== null)
-      return withV2.length ? withV2.reduce((a, s) => a + (s.coherence_score_v2 as number), 0) / withV2.length : null
+      const withV2 = arr.map(s => getEffectiveV2Score(s)).filter((v): v is number => v !== null)
+      return withV2.length ? withV2.reduce((a, v) => a + v, 0) / withV2.length : null
     }
     const stageCounts = [1, 2, 3].map(stage => sessions.filter(s => s.stage_achieved === stage).length)
     return {
@@ -242,7 +267,7 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                         <div className="md:col-span-1 text-sm text-gray-400 font-mono">{formatDuration(s.duration_seconds)}</div>
                         <div className="md:col-span-2 text-sm font-semibold text-emerald-400">
                           {s.coherence_score}%
-                          <span className="text-gray-500 font-normal text-xs"> / {s.coherence_score_v2 !== null ? `${s.coherence_score_v2}%` : '—'}</span>
+                          <span className="text-gray-500 font-normal text-xs"> / {getEffectiveV2Score(s) !== null ? `${getEffectiveV2Score(s)}%` : '—'}</span>
                         </div>
                         <div className="md:col-span-3 text-sm text-gray-300">
                           {s.start_bpm} → {s.end_bpm} <span className={bpmDelta < 0 ? 'text-emerald-400' : 'text-gray-500'}>({bpmDelta <= 0 ? '↓' : '↑'}{Math.abs(bpmDelta)})</span>
@@ -261,7 +286,22 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                         <div className="px-4 pb-4 pt-1 border-t border-gray-800/60 space-y-1.5 text-xs text-gray-400">
                           <p>📅 {format(parseISO(s.created_at), 'd MMMM yyyy — HH:mm')}</p>
                           <p>🫀 BPM: {s.start_bpm} → {s.end_bpm} ({bpmDelta <= 0 ? '↓' : '↑'} {Math.abs(bpmDelta)} BPM) · Purata {s.avg_bpm} · Min/Max {s.min_bpm}–{s.max_bpm}</p>
-                          <p>💜 Skor Lama (v1): {s.coherence_score}% · Skor Baharu ln-RMSSD (v2): {s.coherence_score_v2 !== null ? `${s.coherence_score_v2}%` : '— (belum di-backfill)'} | RMSSD: {s.rmssd}ms{s.consistency_score !== null && ` | Konsistensi: ${s.consistency_score}%`}</p>
+                          {(() => {
+                            const v2Status = getV2Status(s)
+                            // 'is_v2': coherence_score (v1 column) already IS the
+                            // v2-formula number for this row — showing a "v1 / v2"
+                            // split here would just show the same number twice
+                            // under different labels, and "belum di-backfill" would
+                            // be flatly wrong (nothing is pending for this row).
+                            const skorLine = v2Status === 'is_v2'
+                              ? `💜 Skor HRV (ln-RMSSD): ${s.coherence_score}%`
+                              : `💜 Skor Lama (v1): ${s.coherence_score}% · Skor Baharu ln-RMSSD (v2): ${
+                                  v2Status === 'backfilled' ? `${s.coherence_score_v2}%` : '— (belum di-backfill)'
+                                }`
+                            return (
+                              <p>{skorLine} | RMSSD: {s.rmssd}ms{s.consistency_score !== null && ` | Konsistensi: ${s.consistency_score}%`}</p>
+                            )
+                          })()}
                           {(() => {
                             // Per-point series coherence is baked in at sample
                             // time under whatever formula was live then — a
@@ -269,7 +309,8 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                             // points that can't be recalculated (no raw R-R
                             // stored per point, unlike coherence_score's own
                             // v1/v2 pair). Never plot those against v2-
-                            // calibrated bands; fall back to a plain note.
+                            // calibrated bands (or derive zone/score/BPM-chart
+                            // from them); fall back to a plain note.
                             const seriesEligible = s.series && s.series.length > 0 && new Date(s.created_at) >= COHERENCE_FORMULA_V2_CUTOFF
                             if (!seriesEligible) {
                               return (
@@ -280,7 +321,38 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                                 </p>
                               )
                             }
-                            return <CoherenceBandChart series={s.series as ZikirBadgeSeriesPoint[]} className="py-1" />
+                            const series = s.series as ZikirBadgeSeriesPoint[]
+                            const zoneBreakdown = computeZoneBreakdown(series)
+                            const evaluativeLabel = getEvaluativeLabel({ avgBpm: s.avg_bpm, coherenceScore: s.coherence_score, series })
+                            const avgCoherence = computeAvgCoherence(series)
+                            const achievementScore = zoneBreakdown && avgCoherence !== null
+                              ? computeAchievementScore(avgCoherence, s.duration_seconds / 60, zoneBreakdown.high)
+                              : null
+                            return (
+                              <>
+                                <p className="flex items-center gap-2">
+                                  <span className="text-emerald-300 font-medium">✨ {evaluativeLabel}</span>
+                                  {achievementScore !== null && <span className="text-purple-300">· Skor: {achievementScore}</span>}
+                                </p>
+                                {/* Same segmented-bar idiom as the stage/badge
+                                    breakdowns in the Statistik tab below —
+                                    reused, not a new pattern. */}
+                                {zoneBreakdown && (
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden flex">
+                                      {COHERENCE_BANDS.map(band => zoneBreakdown[band.id] > 0 && (
+                                        <div key={band.id} style={{ width: `${zoneBreakdown[band.id]}%`, background: band.color }} />
+                                      ))}
+                                    </div>
+                                    <span className="text-[10px] text-gray-500 whitespace-nowrap font-mono">
+                                      {zoneBreakdown.low}/{zoneBreakdown.mid}/{zoneBreakdown.high}%
+                                    </span>
+                                  </div>
+                                )}
+                                <CoherenceBandChart series={series} className="py-1" />
+                                <BpmOverTimeChart series={series} className="py-1" />
+                              </>
+                            )
                           })()}
                           <p>⭐ {stageLabel(s.stage_achieved)}</p>
                           {(() => {
@@ -333,7 +405,7 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
                 </div>
                 <div className="flex items-center gap-4 text-[11px] text-gray-500">
                   <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> v1 (lama)</span>
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> v2 (ln-RMSSD, hanya baris di-backfill)</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> v2 (ln-RMSSD — sama dengan v1 untuk sesi selepas 23/7)</span>
                 </div>
                 <div className="h-72 bg-black/30 rounded-xl border border-gray-900 p-2">
                   {grafData.length === 0 ? (
@@ -362,7 +434,7 @@ export default function HrvSessionsReview({ userId }: { userId: string }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   { label: 'Skor Tertinggi (v1 lama)', value: `${records.highestCoherence.coherence_score}%`, sub: format(parseISO(records.highestCoherence.created_at), 'd/M/yy'), color: 'text-emerald-400' },
-                  ...(records.highestCoherenceV2 ? [{ label: 'Skor Tertinggi (v2 ln-RMSSD)', value: `${records.highestCoherenceV2.coherence_score_v2}%`, sub: format(parseISO(records.highestCoherenceV2.created_at), 'd/M/yy'), color: 'text-amber-400' }] : []),
+                  ...(records.highestCoherenceV2 ? [{ label: 'Skor Tertinggi (v2 ln-RMSSD)', value: `${getEffectiveV2Score(records.highestCoherenceV2)}%`, sub: format(parseISO(records.highestCoherenceV2.created_at), 'd/M/yy'), color: 'text-amber-400' }] : []),
                   { label: 'Sesi Terpanjang', value: formatDuration(records.longestSession.duration_seconds), sub: format(parseISO(records.longestSession.created_at), 'd/M/yy'), color: 'text-blue-400' },
                   { label: 'BPM Terendah (Paling Tenang)', value: `${records.lowestBpm.min_bpm} BPM`, sub: format(parseISO(records.lowestBpm.created_at), 'd/M/yy'), color: 'text-purple-400' },
                   { label: 'Streak Terpanjang', value: `${records.streak} hari`, sub: 'berturut-turut', color: 'text-amber-400' },

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useWakeLock } from '@/hooks/useWakeLock'
@@ -8,16 +8,13 @@ import { useAudioPulse } from '@/hooks/useAudioPulse'
 import BleStatusBadge from '@/components/zikir/BleStatusBadge'
 import GuidedOrb from '@/components/zikir/GuidedOrb'
 import { classifyBpmTier, TIER_META, type BpmTier } from '@/lib/bpmTiers'
-import {
-  computeSmoothedWave,
-  bpmReadingsToBeats,
-  type TimestampedBeat,
-  type TimestampedBpm,
-} from '@/lib/smoothedHeartWave'
 import { computeCoherence } from '@/lib/hrvCoherence'
 import { useGuidanceAudio } from '@/hooks/useGuidanceAudio'
 import CoherenceBandChart from '@/components/zikir/CoherenceBandChart'
+import BpmOverTimeChart from '@/components/zikir/BpmOverTimeChart'
 import type { ZikirBadgeSeriesPoint } from '@/config/zikirKhafiBadges'
+import { COHERENCE_BANDS } from '@/config/coherenceBands'
+import { computeZoneBreakdown, computeAvgCoherence, getEvaluativeLabel, computeAchievementScore } from '@/lib/zikirKhafiSummary'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -212,60 +209,6 @@ function BpmHistoryGraph({ history, mode }: { history: { t: number; bpm: number 
   )
 }
 
-// ─── SmoothedWaveChart ───────────────────────────────────────────────────────
-// "Gelombang Licin" — HeartMath-style resample + low-pass summary chart,
-// BLE mode only (replaces BpmHistoryGraph for a BLE-mode session; tap mode
-// keeps BpmHistoryGraph unchanged since it has no genuine R-R/BPM stream to
-// draw from — see firePulseTick's isReal gating). DISPLAY ONLY: reads its
-// own rrBeats/bpmSamples props (rawRrBeatSamplesRef/rawBpmSamplesRef), never
-// beatIntervalsRef — computeCoherence()'s input is untouched by this chart.
-// No raw-tachogram toggle here on purpose: tap-per-beat jaggedness has no
-// value for a lay TQN user and stays exclusive to the admin research tool.
-
-function SmoothedWaveChart({ rrBeats, bpmSamples }: { rrBeats: TimestampedBeat[]; bpmSamples: TimestampedBpm[] }) {
-  const usingBpmOnly = rrBeats.length < 2
-  const source = usingBpmOnly ? bpmReadingsToBeats(bpmSamples) : rrBeats
-  const wave = computeSmoothedWave(source)
-  if (wave.length < 2) return null
-
-  const width = 280
-  const height = 110
-  const padX = 6
-  const padY = 14
-  const bpms = wave.map(p => p.bpm)
-  const minBpm = Math.min(...bpms, TARGET_BPM) - 4
-  const maxBpm = Math.max(...bpms) + 4
-  const maxT = Math.max(0.001, wave[wave.length - 1].tSec)
-  const x = (t: number) => padX + (t / maxT) * (width - padX * 2)
-  const y = (bpm: number) => height - padY - ((bpm - minBpm) / Math.max(1, maxBpm - minBpm)) * (height - padY * 2)
-  const refY = y(ZIKIR_RANGE_MAX)
-
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="w-full max-w-xs">
-        <line x1={padX} x2={width - padX} y1={refY} y2={refY} stroke="#8a7a6540" strokeDasharray="3 3" />
-        {wave.slice(1).map((pt, i) => {
-          const prev = wave[i]
-          // Unstable segments (motion artifact / signal gap — see
-          // computeSmoothedWave) always render red regardless of tier,
-          // same safeguard used on the admin monitor: a jittery stretch
-          // must never be smoothed into a falsely calm-looking curve.
-          const color = pt.unstable ? '#ef4444' : TIER_META[classifyBpmTier(pt.bpm)].color
-          return (
-            <line key={pt.tSec} x1={x(prev.tSec)} y1={y(prev.bpm)} x2={x(pt.tSec)} y2={y(pt.bpm)}
-              stroke={color} strokeWidth={pt.unstable ? 1.5 : 2} strokeLinecap="round" />
-          )
-        })}
-      </svg>
-      {usingBpmOnly && (
-        <p className="text-[9px] text-[#8a7a65] italic tracking-wide">
-          Anggaran dari BPM sahaja — bukan data HRV
-        </p>
-      )}
-    </div>
-  )
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
@@ -286,6 +229,18 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const [coherence, setCoherence] = useState(0)
   const [selesaiLoading, setSelesaiLoading] = useState(false)
   const [sessionMode, setSessionMode] = useState<SessionMode>('tap')
+  // Eyes are typically closed during Zikir Khafi, so the live coherence
+  // chart is opt-in — collapsed by default, a small toggle away — rather
+  // than competing with GuidedOrb for attention. Reset per session so it
+  // doesn't carry over stale from a previous run.
+  const [showLiveChart, setShowLiveChart] = useState(false)
+  // Forces a re-render on the same cadence coherenceHistoryRef/bpmHistoryRef
+  // actually grow (BPM_SAMPLE_INTERVAL_MS, see that effect below) — mutating
+  // a ref alone never triggers React to re-render, so without this the live
+  // chart would just show its initial (empty) snapshot for the whole
+  // session. Piggybacks on the existing sampler interval rather than adding
+  // a new one.
+  const [, bumpLiveSeriesTick] = useReducer((c: number) => c + 1, 0)
   const wakeLock = useWakeLock()
   const audioPulse = useAudioPulse()
   const guidanceAudio = useGuidanceAudio()
@@ -297,22 +252,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   const smootherRef = useRef(new BpmSmoother())
   const intervalMsRef = useRef<number>(1000)
   const beatIntervalsRef = useRef<number[]>([])
-  // Timestamped mirror of genuine beats, for the "Gelombang Licin" resample+
-  // smooth summary chart (see src/lib/smoothedHeartWave.ts) — a SEPARATE
-  // array from beatIntervalsRef, never read by computeCoherence(). Only
-  // ever populated in BLE mode (mirrors beatIntervalsRef's own isReal
-  // gating in firePulseTick below). Capped generously (not the tight
-  // rolling window used on the live admin monitor) since this powers a
-  // one-shot POST-SESSION chart that needs the whole session's beats, not
-  // just a recent scrolling slice — ~4000 beats covers well over an hour
-  // of continuous ~1Hz beats, more than any bounded session option needs,
-  // while still bounding worst-case memory for the ∞ session option.
-  const rawRrBeatSamplesRef = useRef<TimestampedBeat[]>([])
-  // Raw BPM-only fallback source (e.g. CYCPLUS-style straps that never send
-  // real R-R, so rawRrBeatSamplesRef stays empty all session) — powers the
-  // summary chart only when there are no genuine R-R beats to draw from;
-  // must never be presented as HRV-derived.
-  const rawBpmSamplesRef = useRef<TimestampedBpm[]>([])
   const bpmSumRef = useRef(0)
   const bpmSamplesRef = useRef(0)
   const lastTapRef = useRef(0)
@@ -401,16 +340,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     // synthetic pacing-decay effect is skipped entirely in BLE mode (see
     // the running-phase effects below).
     if (phase === 'running' && sessionMode === 'ble') {
-      // BPM-only fallback source for the summary chart (see
-      // rawBpmSamplesRef declaration) — fed every reading regardless of
-      // whether this packet carried real R-R, since it's only ever
-      // consulted when rawRrBeatSamplesRef ends up empty for the whole
-      // session (a device that never sends R-R at all).
-      rawBpmSamplesRef.current = [
-        ...rawBpmSamplesRef.current,
-        { tMs: performance.now(), bpm: reading.bpm },
-      ].slice(-4000)
-
       // Tier tally from the raw reading, before smoothing touches it — every
       // genuine reading counts toward the achievement, not just whatever the
       // damped display value happens to be at each 2.5s sample tick.
@@ -467,8 +396,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setPreBpm(initialBpm)
     setCoherence(0)
     beatIntervalsRef.current = []
-    rawRrBeatSamplesRef.current = []
-    rawBpmSamplesRef.current = []
     rrQueueRef.current = []
     liveCoherenceIntervalsRef.current = []
     coherenceHistoryRef.current = []
@@ -484,6 +411,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setBeatCount(0)
     setRemaining(sessionMin * 60)
     setElapsed(0)
+    setShowLiveChart(false)
     startedAtRef.current = performance.now()
     setPhase('running')
     wakeLock.request()
@@ -508,12 +436,6 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     if (!guidanceAudio.isNarratingRef.current) audioPulse.play()
     if (isReal) {
       beatIntervalsRef.current.push(intervalMs)
-      // Sibling push — same isReal gate as beatIntervalsRef above, just
-      // mirrored with a timestamp for the resample+smooth summary chart.
-      rawRrBeatSamplesRef.current = [
-        ...rawRrBeatSamplesRef.current,
-        { tMs: performance.now(), rrMs: intervalMs },
-      ].slice(-4000)
       // Same isReal gate again — rolling window for the periodic live-
       // coherence sampler (coherenceHistoryRef), see its declaration above.
       liveCoherenceIntervalsRef.current = [...liveCoherenceIntervalsRef.current, intervalMs].slice(-7)
@@ -624,6 +546,10 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         const intervals = liveCoherenceIntervalsRef.current
         const coh = intervals.length >= 2 ? Math.round(computeCoherence(intervals) * 100) : null
         coherenceHistoryRef.current = [...coherenceHistoryRef.current, { t: elapsedSec, bpm: bpmRef.current, coherence: coh }]
+        // Only worth forcing a render for the live chart when there's
+        // actually BLE coherence data growing — tap mode never populates
+        // coherenceHistoryRef, so there'd be nothing new to show.
+        bumpLiveSeriesTick()
       }
     }, BPM_SAMPLE_INTERVAL_MS)
     return () => window.clearInterval(id)
@@ -722,6 +648,22 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
   // stops changing at that point, so this is stable for the summary render.
   const tierBreakdown = phase === 'summary'
     ? computeTierBreakdown(rawTierCountsRef.current, bestReachedTierRef.current)
+    : null
+
+  // Results-screen extras — BLE-only, same reasoning as tierBreakdown/
+  // coherence above: tap mode never populates coherenceHistoryRef, so
+  // there's no genuine data to summarize.
+  const zoneBreakdown = phase === 'summary' && sessionMode === 'ble'
+    ? computeZoneBreakdown(coherenceHistoryRef.current)
+    : null
+  const avgCoherenceForSummary = zoneBreakdown ? computeAvgCoherence(coherenceHistoryRef.current) : null
+  const evaluativeLabel = phase === 'summary' && sessionMode === 'ble'
+    ? getEvaluativeLabel({ avgBpm: bpm, coherenceScore: coherence, series: coherenceHistoryRef.current })
+    : null
+  // Needs an actual average to mean anything — no coherence samples at all
+  // (a very short BLE session) means no achievement score, not a score of 0.
+  const achievementScore = zoneBreakdown && avgCoherenceForSummary !== null
+    ? computeAchievementScore(avgCoherenceForSummary, elapsed / 60, zoneBreakdown.high)
     : null
 
   // ── Render ─────────────────────────────────────────────────────────
@@ -998,9 +940,35 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
             <span>{beatCount} {t('amalan.khafi_player.ketukan').toLowerCase()}</span>
             {/* Same BLE-only gate as the summary screen — this was the
                 exact live figure that first surfaced the synthetic-100%
-                issue, so it can't stay ungated here while summary is fixed. */}
-            {sessionMode === 'ble' && <span>{(consistency * 100).toFixed(0)}%</span>}
+                issue, so it can't stay ungated here while summary is fixed.
+                Explicitly labeled (unlike its two siblings' bare "bpm"/
+                "ketukan" suffix, this one needs it) — this is BpmSmoother's
+                short-window BPM-steadiness reading, a different metric from
+                the coherence chart's "Purata" below it; without a label the
+                two percentages on screen at once read as the same number. */}
+            {sessionMode === 'ble' && (
+              <span>{(consistency * 100).toFixed(0)}% {t('amalan.khafi_player.konsistensi').toLowerCase()}</span>
+            )}
           </div>
+
+          {/* Live coherence chart — opt-in, collapsed by default. Eyes are
+              typically closed during Zikir Khafi, so GuidedOrb stays the
+              primary/only-visible-by-default element; this is only for
+              anyone who keeps their eyes open or checks periodically.
+              BLE-only, same as the summary screen's version — tap mode
+              never populates coherenceHistoryRef (see the sampler above). */}
+          {sessionMode === 'ble' && coherenceHistoryRef.current.length >= 2 && (
+            <div className="flex flex-col items-center gap-2 w-full">
+              <button
+                onClick={() => setShowLiveChart(v => !v)}
+                className="text-[9px] uppercase tracking-[0.25em] text-[#8a7a65] hover:text-[#a78bfa] transition-colors"
+              >
+                {showLiveChart ? t('amalan.khafi_player.graf_sembunyi') : t('amalan.khafi_player.graf_tunjuk')}
+              </button>
+              {showLiveChart && <CoherenceBandChart series={coherenceHistoryRef.current} />}
+            </div>
+          )}
+
           <button
             onClick={finalizeSession}
             className="text-[10px] uppercase tracking-[0.4em] text-[#8a7a65] hover:text-[#e8dcc8] transition-colors"
@@ -1018,6 +986,18 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
       <p className="text-[#a78bfa] text-[10px] uppercase tracking-[0.4em]">
         {t('amalan.khafi_player.selesai_tajuk')}
       </p>
+
+      {/* Evaluative verdict + achievement score — headline, not buried near
+          the chart. BLE-only: both are derived from getBestZikirBadge,
+          which needs real coherence data (see zikirKhafiSummary.ts). */}
+      {evaluativeLabel && (
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-light text-[#e8dcc8]">{evaluativeLabel}</span>
+          {achievementScore !== null && (
+            <span className="text-2xl font-light text-[#a78bfa]">· {achievementScore}</span>
+          )}
+        </div>
+      )}
 
       {/* BPM decline — primary metric, honestly derived in BOTH modes (a
           real detected beat or a real tap, never the synthetic curve) */}
@@ -1064,61 +1044,64 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         </div>
       )}
 
-      {/* Summary chart — BLE mode gets the "Gelombang Licin" resample+smooth
-          wave (real R-R/BPM stream to draw from); tap mode keeps the
-          existing BpmHistoryGraph pacing curve unchanged, since tap-tempo
-          never has genuine per-beat data (see firePulseTick's isReal gate). */}
-      {sessionMode === 'ble'
-        ? (rawRrBeatSamplesRef.current.length >= 2 || rawBpmSamplesRef.current.length >= 2) && (
-            <SmoothedWaveChart rrBeats={rawRrBeatSamplesRef.current} bpmSamples={rawBpmSamplesRef.current} />
-          )
-        : bpmHistoryRef.current.length >= 2 && (
-            <BpmHistoryGraph history={bpmHistoryRef.current} mode={sessionMode} />
-          )}
+      {/* Summary chart — tap mode only here now. BLE mode's chart moved
+          below CoherenceBandChart (BpmOverTimeChart, same series/time axis
+          as the coherence chart, replacing "Gelombang Licin" — the two were
+          visually redundant with each other in a way coherence-vs-BPM
+          isn't; see the removed SmoothedWaveChart). Tap-tempo keeps this
+          pacing-curve chart unchanged, since it never has genuine per-beat
+          data (see firePulseTick's isReal gate). */}
+      {sessionMode === 'tap' && bpmHistoryRef.current.length >= 2 && (
+        <BpmHistoryGraph history={bpmHistoryRef.current} mode={sessionMode} />
+      )}
 
-      {sessionMode === 'ble' && tierBreakdown ? (
-        // Tier badges — BLE-only, deliberately: a value-add exclusive to
-        // users with a real device, not shown for tap-tempo since the
-        // underlying data isn't genuine biological measurement.
-        <div className="space-y-2 w-full">
-          <div className="inline-flex flex-col items-center gap-1 px-5 py-3 rounded-2xl border"
-            style={{ borderColor: TIER_META[tierBreakdown.dominant].color + '60', background: TIER_META[tierBreakdown.dominant].color + '15' }}>
-            <span className="text-sm font-medium" style={{ color: TIER_META[tierBreakdown.dominant].color }}>
-              {t(`amalan.khafi_player.${TIER_META[tierBreakdown.dominant].key}`)}
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.25em] text-[#8a7a65]">
-              {t('amalan.khafi_player.tahap_dominan')}
-            </span>
-          </div>
-          {tierBreakdown.bestReached > tierBreakdown.dominant && (
-            <p className="text-[10px] text-[#8a7a65]">
-              {t('amalan.khafi_player.tahap_terdalam', { tier: t(`amalan.khafi_player.${TIER_META[tierBreakdown.bestReached].key}`) })}
-            </p>
-          )}
-          {/* Compact time-in-tier breakdown */}
-          <div className="flex w-full h-1.5 rounded-full overflow-hidden">
-            {([1, 2, 3, 4, 5] as BpmTier[]).filter(tier => tierBreakdown.pct[tier] > 0).map(tier => (
-              <div key={tier} style={{ width: `${tierBreakdown.pct[tier]}%`, background: TIER_META[tier].color }} />
-            ))}
-          </div>
-        </div>
-      ) : sessionMode === 'tap' ? (
+      {/* BLE-mode dominant-tier badge removed from this screen (2026-07-25)
+          — it's bpmTiers.ts's BPM-only 5-tier system, shown alongside the
+          newer evaluative label above (zikirKhafiBadges.ts's combined
+          BPM+coherence 4-tier system) read as two contradicting verdicts
+          for the same session (e.g. "Ketenangan Mendalam" next to
+          "Permulaan Baik!"). tierBreakdown itself, rawTierCountsRef/
+          bestReachedTierRef, and the dominantTier/deepestTier save in
+          handleSelesai are UNTOUCHED — KhafiHistoryPanel.tsx still reads
+          those from the saved row (per-session badge + trend graph), only
+          this screen's own rendering of it was removed. */}
+      {sessionMode === 'tap' && (
         <p className="text-[#8a7a65] text-xs leading-relaxed max-w-xs">
           {t('amalan.khafi_player.ble_upsell')}
         </p>
-      ) : null}
+      )}
 
       {/* Coherence/consistency — BLE-connected sessions only, where they're
           finally computed from genuine R-R data instead of a synthetic
           pacing curve (see firePulseTick's isReal contract). */}
       {sessionMode === 'ble' && (
         <>
+          {/* Time-in-zone breakdown — summary before detail, sits above the
+              chart it summarizes. Same colors as the bands/legend below it
+              (COHERENCE_BANDS directly), so the tiles read as "the same
+              zones" rather than a fourth color language. */}
+          {zoneBreakdown && (
+            <div className="grid grid-cols-3 gap-4 w-full">
+              {COHERENCE_BANDS.map(band => (
+                <div key={band.id} className="flex flex-col items-center gap-1">
+                  <span className="text-2xl font-light" style={{ color: band.color }}>
+                    {zoneBreakdown[band.id]}%
+                  </span>
+                  <span className="text-[9px] uppercase tracking-[0.25em] text-[#8a7a65]">{band.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Tiered band chart needs >=2 live-sampled points (see
               coherenceHistoryRef) — a very short BLE session that ends
               before the first 2.5s sample tick falls back to the plain
               end-of-session ring rather than showing nothing. */}
           {coherenceHistoryRef.current.length >= 2 ? (
-            <CoherenceBandChart series={coherenceHistoryRef.current} />
+            <>
+              <CoherenceBandChart series={coherenceHistoryRef.current} />
+              <BpmOverTimeChart series={coherenceHistoryRef.current} />
+            </>
           ) : (
             <CoherenceRing value={coherence} label={t('amalan.khafi_player.koheren')} />
           )}

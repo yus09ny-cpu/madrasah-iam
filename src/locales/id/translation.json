@@ -790,6 +790,8 @@
       "pacing_selesai": "Berhasil turun ke rentang Zikir Khafi",
       "pacing_belum": "Belum sempat turun ke rentang Zikir Khafi kali ini — tetap istiqamah",
       "ble_data_sebenar": "Data HRV Nyata",
+      "graf_tunjuk": "📈 Lihat Grafik Koherensi",
+      "graf_sembunyi": "Sembunyikan Grafik",
       "tier_1": "Kehilangan Fokus",
       "tier_2": "Masih Tinggi",
       "tier_3": "Mendekati Tenang",
