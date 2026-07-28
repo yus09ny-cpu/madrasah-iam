@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
 import { sendIAMMessage } from '@/lib/iam-chat'
-import { buildPintuRezekiSystemPrompt, FORMAT_CONTROL } from '@/lib/systemPrompts'
+import { buildPintuRezekiSystemPrompt, FORMAT_CONTROL, FATWA_BOUNDARY } from '@/lib/systemPrompts'
 import FatwaDisclaimerBanner from '@/components/FatwaDisclaimerBanner'
 import FiqhWarningBar from '@/components/FiqhWarningBar'
 import { useFiqhGuard } from '@/hooks/useFiqhGuard'
@@ -314,6 +314,14 @@ function AuditFlow({ sifat, isPro, existing, onComplete, onClose }: AuditFlowPro
   const currentQ = phase === 'sedar' ? sedarQuestions[qIndex] : jagaQuestions[qIndex]
   const totalQ = phase === 'sedar' ? sedarQuestions.length : jagaQuestions.length
 
+  // Lapisan ketiga fatwa-boundary — sama pattern dengan PintuTab/IAMChatPage.
+  // onSend abaikan `text` param — cukup jalankan submit sebenar (nextSedarQ/
+  // nextJagaQ baca currentAnswer/currentJaga terus dari closure state).
+  const fiqhGuard = useFiqhGuard(() => {
+    if (phase === 'jaga') nextJagaQ()
+    else nextSedarQ()
+  })
+
   function nextSedarQ() {
     const newAnswers = [...answers, currentAnswer]
     setAnswers(newAnswers)
@@ -355,6 +363,8 @@ function AuditFlow({ sifat, isPro, existing, onComplete, onClose }: AuditFlowPro
     const systemPrompt = `Kamu adalah panduan rohani untuk Sistem Audit Sifat Allah dalam Madrasah I AM.
 
 ${FORMAT_CONTROL}
+
+${FATWA_BOUNDARY}
 
 Fasa: ${phaseLabel}
 Sifat diaudit: ${sifat.arabic} — ${sifat.name} (${sifat.fullName})
@@ -474,6 +484,7 @@ CARA MENJAWAB:
 
     return (
       <div className="flex flex-col flex-1 min-h-0">
+        <FatwaDisclaimerBanner />
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="text-[#8a7a65] hover:text-[#e8dcc8] transition-colors">
@@ -507,9 +518,12 @@ CARA MENJAWAB:
           />
         </div>
 
-        <div className="px-5 py-4 border-t border-[#1e2d40] flex-shrink-0">
+        <div className="px-5 py-4 border-t border-[#1e2d40] flex-shrink-0 space-y-3">
+          {fiqhGuard.isPending && (
+            <FiqhWarningBar onSendAnyway={fiqhGuard.confirmSendAnyway} onEdit={fiqhGuard.editInstead} />
+          )}
           <button
-            onClick={isJaga ? nextJagaQ : nextSedarQ}
+            onClick={() => fiqhGuard.guardedSend(val)}
             disabled={!val.trim()}
             className="w-full py-3.5 rounded-2xl text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ backgroundColor: val.trim() ? sifat.color : '#1e2d40', color: val.trim() ? '#060d16' : '#8a7a65' }}
@@ -536,7 +550,9 @@ CARA MENJAWAB:
   // ── AI Response
   if (screen === 'ai-response') {
     return (
-      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+      <div className="flex flex-col flex-1 min-h-0">
+        <FatwaDisclaimerBanner />
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: sifat.color + '20' }}>
             <span className="text-sm">🗝️</span>
@@ -585,6 +601,7 @@ CARA MENJAWAB:
             {t('pintu.flow.btn_fasa_jaga')}
           </button>
         )}
+        </div>
       </div>
     )
   }
