@@ -1085,7 +1085,8 @@
     "keluar_soalan": "Why do you want scores shown again?",
     "keluar_placeholder": "No need to answer if you don't want to — this is just a moment of reflection",
     "keluar_teruskan": "Continue",
-    "keluar_langkau": "Skip"
+    "keluar_langkau": "Skip",
+    "keluar_batal": "Stay in Servant Mode"
   },
   "audit_soalan": {
     "a1": {

@@ -1085,7 +1085,8 @@
     "keluar_soalan": "Kenapa Anda ingin skor ditampilkan lagi?",
     "keluar_placeholder": "Tidak perlu dijawab kalau tidak mau — ini sekadar perenungan",
     "keluar_teruskan": "Lanjutkan",
-    "keluar_langkau": "Lewati"
+    "keluar_langkau": "Lewati",
+    "keluar_batal": "Tetap di Mod Hamba"
   },
   "audit_soalan": {
     "a1": {

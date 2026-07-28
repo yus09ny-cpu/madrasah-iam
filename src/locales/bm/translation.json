@@ -1081,10 +1081,11 @@
     "refleksi_resah": "Masih Resah",
     "sejarah_sesi_link": "Sejarah Sesi",
     "togol_tajuk": "Mod Hamba",
-    "togol_desc": "Sembunyikan skor koheren dan streak — tumpu pada rasa, bukan angka.",
+    "togol_desc": "Sembunyikan skor koheren dan streak — fokus pada rasa, bukan angka.",
     "keluar_soalan": "Kenapa anda mahu papar semula skor?",
-    "keluar_placeholder": "Tak perlu jawab kalau tak nak — ini sekadar renungan",
+    "keluar_placeholder": "Tak perlu jawab kalau tak nak — ini sekadar detik renungan.",
     "keluar_teruskan": "Teruskan",
-    "keluar_langkau": "Langkau"
+    "keluar_langkau": "Langkau",
+    "keluar_batal": "Kekal di Mod Hamba"
   }
 }

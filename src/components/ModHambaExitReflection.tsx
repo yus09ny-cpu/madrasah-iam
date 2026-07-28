@@ -58,7 +58,7 @@ export default function ModHambaExitReflection({ onClose, onDone }: {
             disabled={loading}
             className="w-full text-[#8a7a65] text-xs text-center hover:text-[#e8dcc8] transition-colors"
           >
-            {t('umum.batal')}
+            {t('mod_hamba.keluar_batal')}
           </button>
         </div>
       </div>

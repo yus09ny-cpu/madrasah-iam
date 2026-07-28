@@ -1085,7 +1085,8 @@
     "keluar_soalan": "لماذا تريد إظهار الدرجات مرة أخرى؟",
     "keluar_placeholder": "لا حاجة للإجابة إن لم ترغب — هذه مجرد لحظة تأمل",
     "keluar_teruskan": "متابعة",
-    "keluar_langkau": "تخطي"
+    "keluar_langkau": "تخطي",
+    "keluar_batal": "البقاء في وضع العبد"
   },
   "audit_soalan": {
     "a1": {
