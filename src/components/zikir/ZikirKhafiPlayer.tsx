@@ -35,17 +35,35 @@ export interface KhafiSessionResult {
   consistency: number | null // 0–1
   dominantTier: BpmTier | null
   deepestTier: BpmTier | null
+  // Hanya wujud bila Mod Hamba aktif (lihat modHambaActive prop) — jawapan
+  // "Macam mana rasa hati sekarang?" pada skrin ringkasan, gantian kepada
+  // Skor Koheren untuk sesi ni.
+  modHambaReflection: string | null
 }
 
 interface Props {
   onSessionDone: (result: KhafiSessionResult) => Promise<void>
   onCancel: () => void
+  // Mod Hamba (Blind Mode) — sembunyi Skor Koheren/consistency%/chart,
+  // gantikan dengan soalan refleksi ringkas. BPM mentah/decline KEKAL
+  // dipaparkan (fakta fisiologi neutral, bukan "skor pencapaian").
+  modHambaActive: boolean
 }
 
 type Phase = 'idle' | 'connecting' | 'tapping' | 'running' | 'summary'
 type SessionMode = 'tap' | 'ble'
 
 const SESSION_OPTIONS = [5, 10, 20, 0] as const  // 0 = ∞
+
+// Mod Hamba's post-session pulse-check — preset (not free text), matching
+// AmalanPage's REFLEKSI_SOALAN pattern rather than AuditFlow's free-text
+// journaling: this is a low-friction check right after a meditative session,
+// not a deep self-audit, so a tap-and-done answer fits better.
+const MOD_HAMBA_REFLECTION_OPTIONS = [
+  { value: 'tenang', labelKey: 'mod_hamba.refleksi_tenang' },
+  { value: 'biasa', labelKey: 'mod_hamba.refleksi_biasa' },
+  { value: 'resah', labelKey: 'mod_hamba.refleksi_resah' },
+] as const
 
 // Tap-detected BPM is accepted across a natural physiological range (not
 // clamped to the Zikir Khafi target) — the pacing guide brings it down
@@ -211,9 +229,10 @@ function BpmHistoryGraph({ history, mode }: { history: { t: number; bpm: number 
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
+export default function ZikirKhafiPlayer({ onSessionDone, onCancel, modHambaActive }: Props) {
   const { t } = useTranslation()
 
+  const [modHambaReflectionAnswer, setModHambaReflectionAnswer] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('idle')
   const [sessionMin, setSessionMin] = useState(10)
   const [bpm, setBpm] = useState(60)
@@ -412,6 +431,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
     setRemaining(sessionMin * 60)
     setElapsed(0)
     setShowLiveChart(false)
+    setModHambaReflectionAnswer(null)
     startedAtRef.current = performance.now()
     setPhase('running')
     wakeLock.request()
@@ -598,6 +618,7 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         consistency: sessionMode === 'ble' ? consistency : null,
         dominantTier: sessionMode === 'ble' ? tierBreakdown?.dominant ?? null : null,
         deepestTier: sessionMode === 'ble' ? tierBreakdown?.bestReached ?? null : null,
+        modHambaReflection: modHambaActive ? modHambaReflectionAnswer : null,
       })
     } finally {
       setSelesaiLoading(false)
@@ -946,7 +967,10 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
                 short-window BPM-steadiness reading, a different metric from
                 the coherence chart's "Purata" below it; without a label the
                 two percentages on screen at once read as the same number. */}
-            {sessionMode === 'ble' && (
+            {/* Mod Hamba — consistency% is a score, hidden same as the
+                summary screen's version (see the KhafiSessionResult save
+                still happens regardless; this only gates display). */}
+            {!modHambaActive && sessionMode === 'ble' && (
               <span>{(consistency * 100).toFixed(0)}% {t('amalan.khafi_player.konsistensi').toLowerCase()}</span>
             )}
           </div>
@@ -956,8 +980,9 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
               primary/only-visible-by-default element; this is only for
               anyone who keeps their eyes open or checks periodically.
               BLE-only, same as the summary screen's version — tap mode
-              never populates coherenceHistoryRef (see the sampler above). */}
-          {sessionMode === 'ble' && coherenceHistoryRef.current.length >= 2 && (
+              never populates coherenceHistoryRef (see the sampler above).
+              Mod Hamba hides it too — it's the same score, just live. */}
+          {!modHambaActive && sessionMode === 'ble' && coherenceHistoryRef.current.length >= 2 && (
             <div className="flex flex-col items-center gap-2 w-full">
               <button
                 onClick={() => setShowLiveChart(v => !v)}
@@ -989,8 +1014,10 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
 
       {/* Evaluative verdict + achievement score — headline, not buried near
           the chart. BLE-only: both are derived from getBestZikirBadge,
-          which needs real coherence data (see zikirKhafiSummary.ts). */}
-      {evaluativeLabel && (
+          which needs real coherence data (see zikirKhafiSummary.ts).
+          Mod Hamba hides it — this IS the "skor pencapaian" the feature
+          exists to get people away from measuring themselves by. */}
+      {!modHambaActive && evaluativeLabel && (
         <div className="flex items-center gap-2">
           <span className="text-2xl font-light text-[#e8dcc8]">{evaluativeLabel}</span>
           {achievementScore !== null && (
@@ -1044,6 +1071,28 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
         </div>
       )}
 
+      {/* Mod Hamba — refleksi ringkas gantian kepada Skor Koheren/chart,
+          BUKAN gantian BPM decline di atas (kekal, lihat decision A1). */}
+      {modHambaActive && (
+        <div className="w-full space-y-2.5">
+          <p className="text-[#8a7a65] text-xs">{t('mod_hamba.refleksi_soalan')}</p>
+          <div className="flex gap-2">
+            {MOD_HAMBA_REFLECTION_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setModHambaReflectionAnswer(opt.value)}
+                className={cn('flex-1 py-2.5 rounded-xl text-xs font-medium border transition-colors',
+                  modHambaReflectionAnswer === opt.value
+                    ? 'border-[#a78bfa60] bg-[#a78bfa15] text-[#a78bfa]'
+                    : 'border-[#1e2d40] text-[#8a7a65] hover:text-[#e8dcc8]')}
+              >
+                {t(opt.labelKey)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Summary chart — tap mode only here now. BLE mode's chart moved
           below CoherenceBandChart (BpmOverTimeChart, same series/time axis
           as the coherence chart, replacing "Gelombang Licin" — the two were
@@ -1073,8 +1122,10 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
 
       {/* Coherence/consistency — BLE-connected sessions only, where they're
           finally computed from genuine R-R data instead of a synthetic
-          pacing curve (see firePulseTick's isReal contract). */}
-      {sessionMode === 'ble' && (
+          pacing curve (see firePulseTick's isReal contract). Mod Hamba
+          hides this entire block — zone breakdown %, both charts, and the
+          ring are all the same "skor koheren" in different shapes. */}
+      {!modHambaActive && sessionMode === 'ble' && (
         <>
           {/* Time-in-zone breakdown — summary before detail, sits above the
               chart it summarizes. Same colors as the bands/legend below it
@@ -1112,11 +1163,11 @@ export default function ZikirKhafiPlayer({ onSessionDone, onCancel }: Props) {
       )}
 
       {/* Stats */}
-      <div className={cn('grid gap-6', sessionMode === 'ble' ? 'grid-cols-3' : 'grid-cols-2')}>
+      <div className={cn('grid gap-6', !modHambaActive && sessionMode === 'ble' ? 'grid-cols-3' : 'grid-cols-2')}>
         {[
           { label: t('amalan.khafi_player.ketukan'), value: beatCount.toString() },
           { label: t('amalan.khafi_player.purata_bpm'), value: bpm.toFixed(0) },
-          ...(sessionMode === 'ble'
+          ...(!modHambaActive && sessionMode === 'ble'
             ? [{ label: t('amalan.khafi_player.konsistensi'), value: `${(consistency * 100).toFixed(0)}%` }]
             : []),
         ].map(s => (

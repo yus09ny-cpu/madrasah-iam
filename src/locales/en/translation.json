@@ -1071,6 +1071,22 @@
     "locked_ayat": "\"And those who strive in Our path — We will surely guide them to Our ways\" — Al-Ankabut: 69",
     "locked_wa": "📱 Contact Madrasah I AM"
   },
+  "mod_hamba": {
+    "cadangan_teks": "You've been consistent and your scores are often high. Mod Hamba (Servant Mode) might suit you — feel the dhikr without the numbers?",
+    "cadangan_cuba": "Try it",
+    "cadangan_tak_sekarang": "Not now",
+    "refleksi_soalan": "How does your heart feel right now?",
+    "refleksi_tenang": "Calm",
+    "refleksi_biasa": "Ordinary",
+    "refleksi_resah": "Still Restless",
+    "sejarah_sesi_link": "Session History",
+    "togol_tajuk": "Mod Hamba (Servant Mode)",
+    "togol_desc": "Hide coherence scores and streaks — focus on the feeling, not the number.",
+    "keluar_soalan": "Why do you want scores shown again?",
+    "keluar_placeholder": "No need to answer if you don't want to — this is just a moment of reflection",
+    "keluar_teruskan": "Continue",
+    "keluar_langkau": "Skip"
+  },
   "audit_soalan": {
     "a1": {
       "soalan": "During that prayer — at what moment did your thoughts begin to wander?",

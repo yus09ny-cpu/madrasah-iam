@@ -8,6 +8,9 @@ import { useAuthStore } from '@/store/authStore'
 import ZikirKhafiPlayer, { type KhafiSessionResult } from '@/components/zikir/ZikirKhafiPlayer'
 import KhafiHistoryPanel from '@/components/zikir/KhafiHistoryPanel'
 import KhatamanDzikirTQN from '@/components/zikir/KhatamanDzikirTQN'
+import ModHambaSuggestionCard from '@/components/ModHambaSuggestionCard'
+import ModHambaHistoryModal from '@/components/ModHambaHistoryModal'
+import { shouldSuggestModHamba } from '@/lib/modHambaSuggestion'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
@@ -648,6 +651,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
 }) {
   const { t } = useTranslation()
   const { user } = useAuthStore()
+  const modHambaActive = user?.mod_hamba_active === true
   const [subPhase, setSubPhase] = useState<'pembuka' | 'berzikir' | 'refleksi' | 'ai_done'>('pembuka')
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -699,6 +703,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
             pre_bpm: result.preBpm, final_bpm: result.finalBpm, avg_bpm: result.avgBpm,
             beat_count: result.beatCount, coherence: result.coherence, consistency: result.consistency,
             session_mode: result.sessionMode, dominant_tier: result.dominantTier, deepest_tier: result.deepestTier,
+            mod_hamba_reflection: result.modHambaReflection,
           })
         } catch { /* table/columns belum wujud — jangan halang amalan_sessions di bawah */ }
 
@@ -800,6 +805,7 @@ function KhafiSection({ userTier, onBack, onComplete }: {
         <ZikirKhafiPlayer
           onSessionDone={handlePlayerDone}
           onCancel={onBack}
+          modHambaActive={modHambaActive}
         />
       )}
 
@@ -896,9 +902,20 @@ function Dashboard({ onStartJahar, onStartKhafi, user, userTier, onUpgrade, refr
   refreshKey: number
 }) {
   const { t } = useTranslation()
+  // Narrow `user` prop above is { id: string } | null — mod_hamba_active
+  // lives on the full profile, read separately rather than widen that prop.
+  const { user: fullUser } = useAuthStore()
+  const modHambaActive = fullUser?.mod_hamba_active === true
   const [stats, setStats] = useState({ todayDone: false, streak: 0, totalJahar: 0, totalKhafiMins: 0 })
+  const [showSuggestion, setShowSuggestion] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const ayatIdx = new Date().getDate() % AYAT_LIST.length
   const ayat = AYAT_LIST[ayatIdx]
+
+  useEffect(() => {
+    if (!fullUser || modHambaActive || fullUser.mod_hamba_suggested_at) return
+    shouldSuggestModHamba(fullUser.id).then(should => { if (should) setShowSuggestion(true) })
+  }, [fullUser, modHambaActive])
 
 
   useEffect(() => {
@@ -959,12 +976,13 @@ function Dashboard({ onStartJahar, onStartKhafi, user, userTier, onUpgrade, refr
             value: stats.todayDone ? t('amalan.dashboard_selesai') : t('amalan.dashboard_belum'),
             color: stats.todayDone ? 'text-emerald-400' : 'text-[#8a7a65]',
           },
-          {
+          // Mod Hamba — streak disembunyikan, sama roh dengan Skor Koheren
+          ...(!modHambaActive ? [{
             icon: <Flame size={16} className="text-[#c9a96e]" />,
             label: t('amalan.dashboard_streak'),
             value: t('amalan.dashboard_hari', { count: stats.streak }),
             color: 'text-[#c9a96e]',
-          },
+          }] : []),
           {
             icon: '✦',
             label: t('amalan.dashboard_jumlah_jahar'),
@@ -1025,20 +1043,47 @@ function Dashboard({ onStartJahar, onStartKhafi, user, userTier, onUpgrade, refr
         </button>
       </div>
 
+      {/* Mod Hamba — cadangan lembut sekali sahaja, muncul bila corak
+          istiqamah+skor-tinggi dikesan (lihat shouldSuggestModHamba). */}
+      {showSuggestion && (
+        <ModHambaSuggestionCard onDismiss={() => setShowSuggestion(false)} />
+      )}
+
       {/* Zikir Khafi history/trend — moved here from Pintu Rezeki's Rekod
           tab so it lives alongside the practice itself, not tucked away on
-          the subscription page. */}
+          the subscription page.
+          Mod Hamba — "boleh dicari, tak auto-papar": gantikan panel auto-
+          papar dgn pautan rendah-profil yang buka modal yang sama. */}
       {user && (
         <div className="space-y-2">
           <p className="text-xs font-medium text-[#a78bfa] uppercase tracking-wider px-1">
             {t('amalan.khafi_player.riwayat_tajuk')}
           </p>
-          <KhafiHistoryPanel
-            userId={user.id}
-            isPro={userTier === 'pro' || userTier === 'pro_plus'}
-            onUpgrade={onUpgrade}
-          />
+          {modHambaActive ? (
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="w-full flex items-center gap-2 px-4 py-3 bg-[#0d1821] border border-[#1e2d40] rounded-xl text-[#8a7a65] hover:text-[#a78bfa] hover:border-[#a78bfa30] transition-colors text-xs"
+            >
+              <span>{t('mod_hamba.sejarah_sesi_link')}</span>
+              <span className="ml-auto">→</span>
+            </button>
+          ) : (
+            <KhafiHistoryPanel
+              userId={user.id}
+              isPro={userTier === 'pro' || userTier === 'pro_plus'}
+              onUpgrade={onUpgrade}
+            />
+          )}
         </div>
+      )}
+
+      {showHistoryModal && user && (
+        <ModHambaHistoryModal
+          userId={user.id}
+          isPro={userTier === 'pro' || userTier === 'pro_plus'}
+          onUpgrade={onUpgrade}
+          onClose={() => setShowHistoryModal(false)}
+        />
       )}
     </div>
   )

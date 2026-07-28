@@ -835,6 +835,7 @@ function ZikirProAnalytics() {
   }
 
   const maxBar = Math.max(...analytics.sevenDays.map(d => d.count), 1)
+  const modHambaActive = user?.mod_hamba_active === true
 
   return (
     <div className="space-y-4">
@@ -846,11 +847,14 @@ function ZikirProAnalytics() {
         <p className="text-[#8a7a65] text-xs italic">{t('zikir_khas.analitik_lifetime_sub')}</p>
       </div>
 
-      {/* Stats grid */}
+      {/* Stats grid — Mod Hamba sembunyikan streak dan "Rekod Terbaik"
+          (kedua-dua angka pencapaian personal-best) */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: t('zikir_khas.analitik_streak'), value: `${analytics.streak} hari`, icon: '🔥', color: '#f87171' },
-          { label: t('zikir_khas.analitik_rekod'), value: `${analytics.bestDay.toLocaleString()}/hari`, icon: '🏆', color: '#fbbf24' },
+          ...(!modHambaActive ? [
+            { label: t('zikir_khas.analitik_streak'), value: `${analytics.streak} hari`, icon: '🔥', color: '#f87171' },
+            { label: t('zikir_khas.analitik_rekod'), value: `${analytics.bestDay.toLocaleString()}/hari`, icon: '🏆', color: '#fbbf24' },
+          ] : []),
           { label: t('zikir_khas.analitik_kegemaran'), value: analytics.favoriteZikir.split(' ').slice(0, 2).join(' '), icon: '⭐', color: '#c9a96e' },
           { label: t('zikir_khas.analitik_waktu'), value: analytics.favoriteTime, icon: '⏰', color: '#60a5fa' },
         ].map(({ label, value, icon, color }) => (

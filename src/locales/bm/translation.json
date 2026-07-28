@@ -1070,5 +1070,21 @@
     "locked_body": "Zikir Khas perlu ditalkin (diajar secara langsung) oleh guru yang bersanad sebelum boleh diamalkan dengan betul.",
     "locked_ayat": "\"Dan orang-orang yang berjuang untuk Kami, nescaya Kami tunjukkan jalan-jalan Kami\" — Al-Ankabut: 69",
     "locked_wa": "📱 Hubungi Madrasah I AM"
+  },
+  "mod_hamba": {
+    "cadangan_teks": "Anda sudah istiqamah dan skor anda kerap tinggi. Mungkin sesuai cuba Mod Hamba — rasa zikir tanpa angka?",
+    "cadangan_cuba": "Cuba",
+    "cadangan_tak_sekarang": "Tak sekarang",
+    "refleksi_soalan": "Macam mana rasa hati sekarang?",
+    "refleksi_tenang": "Tenang",
+    "refleksi_biasa": "Biasa",
+    "refleksi_resah": "Masih Resah",
+    "sejarah_sesi_link": "Sejarah Sesi",
+    "togol_tajuk": "Mod Hamba",
+    "togol_desc": "Sembunyikan skor koheren dan streak — tumpu pada rasa, bukan angka.",
+    "keluar_soalan": "Kenapa anda mahu papar semula skor?",
+    "keluar_placeholder": "Tak perlu jawab kalau tak nak — ini sekadar renungan",
+    "keluar_teruskan": "Teruskan",
+    "keluar_langkau": "Langkau"
   }
 }

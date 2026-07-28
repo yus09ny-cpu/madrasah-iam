@@ -1251,6 +1251,8 @@ function AmalanTab() {
 
 function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void }) {
   const { t } = useTranslation()
+  const { user } = useAuthStore()
+  const modHambaActive = user?.mod_hamba_active === true
 
   if (!isPro) {
     return (
@@ -1304,9 +1306,10 @@ function RekodTab({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => void 
 
   return (
     <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className={cn('grid gap-3', modHambaActive ? 'grid-cols-2' : 'grid-cols-3')}>
         {[
-          { value: streak, label: t('pintu.rekod.hari_berturut') },
+          // Mod Hamba — streak disembunyikan
+          ...(!modHambaActive ? [{ value: streak, label: t('pintu.rekod.hari_berturut') }] : []),
           { value: auditedSifat.length, label: t('pintu.rekod.sifat_diaudit') },
           { value: totalAmalan, label: t('pintu.rekod.amalan_7hari') },
         ].map(s => (

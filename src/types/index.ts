@@ -23,6 +23,8 @@ export interface User {
   solat_tarekat_unlocked?: boolean | null
   solat_hakikat_unlocked?: boolean | null
   darajat_activated?: boolean | null
+  mod_hamba_active?: boolean | null
+  mod_hamba_suggested_at?: string | null
   created_at: string
 }
 

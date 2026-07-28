@@ -7,6 +7,8 @@ import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 import type { AppLanguage } from '@/types'
 import { getReferralTier, getNextReferralTier } from '@/config/referral'
+import { useModHamba } from '@/hooks/useModHamba'
+import ModHambaExitReflection from '@/components/ModHambaExitReflection'
 
 const LANGUAGES: { value: AppLanguage; label: string; flag: string }[] = [
   { value: 'bm', label: 'Bahasa Melayu', flag: '🇲🇾' },
@@ -52,6 +54,49 @@ type ReferralItem = {
   status: 'pending' | 'active' | 'churned'
   created_at: string
   activated_at: string | null
+}
+
+// Togol boleh ditemui (kad biasa dalam senarai tetapan), bukan tersorok
+// dalam sub-menu — tapi tak dipaksa/di-highlight pun. Diaktifkan terus
+// (tiada geseran); dinyahaktifkan lalu ModHambaExitReflection dulu.
+function ModHambaSection() {
+  const { t } = useTranslation()
+  const modHamba = useModHamba()
+  const [showExitReflection, setShowExitReflection] = useState(false)
+
+  function handleToggle() {
+    if (modHamba.isActive) {
+      setShowExitReflection(true)
+    } else {
+      modHamba.activate()
+    }
+  }
+
+  return (
+    <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 space-y-0.5">
+          <p className="text-[#e8dcc8] text-sm font-medium">{t('mod_hamba.togol_tajuk')}</p>
+          <p className="text-[#8a7a65] text-xs leading-relaxed">{t('mod_hamba.togol_desc')}</p>
+        </div>
+        <button
+          onClick={handleToggle}
+          className={cn('w-11 h-6 rounded-full relative transition-all flex-shrink-0',
+            modHamba.isActive ? 'bg-[#a78bfa]' : 'bg-[#1e2d40]')}
+        >
+          <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all',
+            modHamba.isActive ? 'left-[22px]' : 'left-0.5')} />
+        </button>
+      </div>
+
+      {showExitReflection && (
+        <ModHambaExitReflection
+          onClose={() => setShowExitReflection(false)}
+          onDone={() => setShowExitReflection(false)}
+        />
+      )}
+    </div>
+  )
 }
 
 function ReferralSection() {
@@ -428,6 +473,9 @@ export default function ProfileSettingsPage() {
           ← {t('umum.kembali')}
         </button>
       </div>
+
+      {/* Mod Hamba (Blind Mode) — semua tier, tiada sekatan Pro */}
+      <ModHambaSection />
 
       {/* Program rujukan — hanya untuk pelanggan Pro/Pro Plus */}
       {user?.tier === 'pro' && <ReferralSection />}

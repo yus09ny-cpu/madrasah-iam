@@ -23,6 +23,8 @@ export interface Database {
           last_reminder_sent: string | null
           referral_code: string | null
           onboarded: boolean
+          mod_hamba_active: boolean
+          mod_hamba_suggested_at: string | null
           created_at: string
           updated_at: string
         }
@@ -44,6 +46,8 @@ export interface Database {
           last_reminder_sent?: string | null
           referral_code?: string | null
           onboarded?: boolean
+          mod_hamba_active?: boolean
+          mod_hamba_suggested_at?: string | null
           created_at?: string
           updated_at?: string
         }

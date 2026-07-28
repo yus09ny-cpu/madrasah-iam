@@ -1071,6 +1071,22 @@
     "locked_ayat": "\"Dan orang-orang yang berjuang di jalan Kami, niscaya Kami tunjukkan kepada mereka jalan-jalan Kami\" — Al-Ankabut: 69",
     "locked_wa": "📱 Hubungi Madrasah I AM"
   },
+  "mod_hamba": {
+    "cadangan_teks": "Anda sudah konsisten dan skor Anda sering tinggi. Mungkin cocok mencoba Mod Hamba — rasakan zikir tanpa angka?",
+    "cadangan_cuba": "Coba",
+    "cadangan_tak_sekarang": "Belum sekarang",
+    "refleksi_soalan": "Bagaimana perasaan hati Anda sekarang?",
+    "refleksi_tenang": "Tenang",
+    "refleksi_biasa": "Biasa",
+    "refleksi_resah": "Masih Gelisah",
+    "sejarah_sesi_link": "Riwayat Sesi",
+    "togol_tajuk": "Mod Hamba",
+    "togol_desc": "Sembunyikan skor koherensi dan rentetan hari — fokus pada rasa, bukan angka.",
+    "keluar_soalan": "Kenapa Anda ingin skor ditampilkan lagi?",
+    "keluar_placeholder": "Tidak perlu dijawab kalau tidak mau — ini sekadar perenungan",
+    "keluar_teruskan": "Lanjutkan",
+    "keluar_langkau": "Lewati"
+  },
   "audit_soalan": {
     "a1": {
       "soalan": "Saat shalat tadi — pada momen apa pikiran mulai melayang ke hal lain?",

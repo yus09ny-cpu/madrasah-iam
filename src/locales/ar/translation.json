@@ -1071,6 +1071,22 @@
     "locked_ayat": "\"Dan orang-orang yang berjuang untuk Kami, nescaya Kami tunjukkan jalan-jalan Kami\" — Al-Ankabut: 69",
     "locked_wa": "📱 Hubungi Madrasah I AM"
   },
+  "mod_hamba": {
+    "cadangan_teks": "لقد كنت مواظبًا ونتائجك غالبًا مرتفعة. قد يناسبك «وضع العبد» — أن تشعر بالذكر دون أرقام؟",
+    "cadangan_cuba": "جرّب",
+    "cadangan_tak_sekarang": "ليس الآن",
+    "refleksi_soalan": "كيف تشعر قلبك الآن؟",
+    "refleksi_tenang": "هادئ",
+    "refleksi_biasa": "عادي",
+    "refleksi_resah": "لا يزال قلقًا",
+    "sejarah_sesi_link": "سجل الجلسات",
+    "togol_tajuk": "وضع العبد",
+    "togol_desc": "إخفاء درجة التناغم وسلسلة الأيام — التركيز على الشعور لا الرقم.",
+    "keluar_soalan": "لماذا تريد إظهار الدرجات مرة أخرى؟",
+    "keluar_placeholder": "لا حاجة للإجابة إن لم ترغب — هذه مجرد لحظة تأمل",
+    "keluar_teruskan": "متابعة",
+    "keluar_langkau": "تخطي"
+  },
   "audit_soalan": {
     "a1": {
       "soalan": "خلال تلك الصلاة — في أي لحظة بدأ ذهنك يشرد؟",
