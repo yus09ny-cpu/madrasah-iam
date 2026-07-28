@@ -9,6 +9,8 @@ import { FREE_SYSTEM_PROMPT, PRO_SYSTEM_PROMPT } from '@/lib/systemPrompts'
 import { sendIAMMessage } from '@/lib/iam-chat'
 import { IAM_QUESTIONS_BY_LANG } from '@/data/iam-questions'
 import FatwaDisclaimerBanner from '@/components/FatwaDisclaimerBanner'
+import FiqhWarningBar from '@/components/FiqhWarningBar'
+import { useFiqhGuard } from '@/hooks/useFiqhGuard'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 
@@ -436,6 +438,11 @@ export default function IAMChatPage() {
     }
   }, [input, isTyping, user, isLimitReached, messages, systemPrompt])
 
+  // Lapisan ketiga fatwa-boundary — hanya gate teks free-text yang pengguna
+  // taip sendiri (textarea), BUKAN soalan renungan preset atau ChoiceButtons
+  // (itu teks aplikasi, bukan soalan pengguna).
+  const fiqhGuard = useFiqhGuard(text => sendMessage(text))
+
   const handleTulisRenungan = useCallback(async (teks: string) => {
     if (!selectedSoalan || !user) return
     setSelectedSoalan(null)
@@ -584,6 +591,10 @@ export default function IAMChatPage() {
       {/* Input bar */}
       <div className="px-5 md:px-8 py-4 border-t border-[#1e2d40] flex-shrink-0 space-y-3">
 
+        {fiqhGuard.isPending && (
+          <FiqhWarningBar onSendAnyway={fiqhGuard.confirmSendAnyway} onEdit={fiqhGuard.editInstead} />
+        )}
+
         {/* Limit reached — rohani message */}
         {isLimitReached ? (
           <div className="space-y-3">
@@ -625,14 +636,14 @@ export default function IAMChatPage() {
                 e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`
               }}
               onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fiqhGuard.guardedSend(input) }
               }}
               placeholder={t('iam.placeholder')}
               rows={1}
               className="flex-1 bg-[#0d1821] border border-[#1e2d40] focus:border-[#c9a96e50] rounded-2xl px-4 py-3 text-sm text-[#e8dcc8] placeholder:text-[#8a7a65] outline-none resize-none transition-colors"
               style={{ maxHeight: '120px' }}
             />
-            <button onClick={() => sendMessage()} disabled={!input.trim() || isTyping}
+            <button onClick={() => fiqhGuard.guardedSend(input)} disabled={!input.trim() || isTyping}
               className="w-11 h-11 rounded-2xl flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
               style={{ backgroundColor: input.trim() && !isTyping ? '#c9a96e' : '#1e2d40' }}>
               {isTyping

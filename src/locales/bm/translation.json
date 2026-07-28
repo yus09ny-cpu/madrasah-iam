@@ -431,7 +431,10 @@
     "atau": "atau",
     "sahabat": "Sahabat",
     "soalan": "soalan",
-    "fatwa_disclaimer": "I AM Interaktif untuk soalan rohani — bukan hukum hakam. Untuk hukum hakam, rujuk ustaz/Wakil Talkin."
+    "fatwa_disclaimer": "I AM Interaktif untuk soalan rohani — bukan hukum hakam. Untuk hukum hakam, rujuk ustaz/Wakil Talkin.",
+    "fiqh_warning": "Nampaknya ini soalan hukum hakam. I AM Interaktif untuk soalan rohani — untuk hukum hakam, sila rujuk ustaz atau Wakil Talkin bertauliah.",
+    "fiqh_warning_hantar": "Hantar juga",
+    "fiqh_warning_ubah": "Ubah soalan"
   },
   "bahasa": {
     "tajuk": "Bahasa / Language",

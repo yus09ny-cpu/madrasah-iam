@@ -7,6 +7,8 @@ import { useAuthStore } from '@/store/authStore'
 import { sendIAMMessage } from '@/lib/iam-chat'
 import { buildPintuRezekiSystemPrompt, FORMAT_CONTROL } from '@/lib/systemPrompts'
 import FatwaDisclaimerBanner from '@/components/FatwaDisclaimerBanner'
+import FiqhWarningBar from '@/components/FiqhWarningBar'
+import { useFiqhGuard } from '@/hooks/useFiqhGuard'
 import { cn } from '@/lib/utils'
 import { format, subDays } from 'date-fns'
 
@@ -1028,6 +1030,10 @@ function PintuTab() {
     } finally { setIsTyping(false) }
   }, [input, isTyping, isMsgLimitReached, messages, selectedSituasi, tier])
 
+  // Lapisan ketiga fatwa-boundary — hanya gate teks free-text yang pengguna
+  // taip sendiri (textarea), BUKAN ChoiceButtons (itu teks aplikasi).
+  const fiqhGuard = useFiqhGuard(text => sendMessage(text))
+
   if (phase === 'select') {
     return (
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
@@ -1123,7 +1129,10 @@ function PintuTab() {
         )}
         <div ref={bottomRef} />
       </div>
-      <div className="px-5 py-4 border-t border-[#1e2d40] flex-shrink-0">
+      <div className="px-5 py-4 border-t border-[#1e2d40] flex-shrink-0 space-y-3">
+        {fiqhGuard.isPending && (
+          <FiqhWarningBar onSendAnyway={fiqhGuard.confirmSendAnyway} onEdit={fiqhGuard.editInstead} />
+        )}
         {isMsgLimitReached ? (
           <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-3">
             <div className="flex items-center gap-2">
@@ -1142,11 +1151,11 @@ function PintuTab() {
           <div className="flex gap-3 items-end">
             <textarea ref={textareaRef} value={input}
               onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px` }}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fiqhGuard.guardedSend(input) } }}
               placeholder={t('pintu.chat.placeholder')} rows={1}
               className="flex-1 bg-[#0d1821] border border-[#1e2d40] focus:border-[#c9a96e50] rounded-2xl px-4 py-3 text-sm text-[#e8dcc8] placeholder:text-[#8a7a65] outline-none resize-none transition-colors"
               style={{ maxHeight: '120px' }} />
-            <button onClick={() => sendMessage()} disabled={!input.trim() || isTyping}
+            <button onClick={() => fiqhGuard.guardedSend(input)} disabled={!input.trim() || isTyping}
               className="w-11 h-11 rounded-2xl flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
               style={{ backgroundColor: input.trim() && !isTyping ? '#c9a96e' : '#1e2d40' }}>
               {isTyping ? <Loader2 size={16} className="animate-spin" style={{ color: '#8a7a65' }} />

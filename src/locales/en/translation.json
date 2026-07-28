@@ -431,7 +431,10 @@
     "atau": "or",
     "sahabat": "Friend",
     "soalan": "questions",
-    "fatwa_disclaimer": "I AM Interaktif is for spiritual questions — not Islamic rulings (fatwa). For matters of Islamic law, please consult a qualified ustaz or Wakil Talkin."
+    "fatwa_disclaimer": "I AM Interaktif is for spiritual questions — not Islamic rulings (fatwa). For matters of Islamic law, please consult a qualified ustaz or Wakil Talkin.",
+    "fiqh_warning": "This looks like a question about Islamic rulings (fiqh). I AM Interaktif is for spiritual questions — for matters of Islamic law, please consult a qualified ustaz or Wakil Talkin.",
+    "fiqh_warning_hantar": "Send anyway",
+    "fiqh_warning_ubah": "Edit question"
   },
   "bahasa": {
     "tajuk": "Bahasa / Language",
