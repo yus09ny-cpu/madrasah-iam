@@ -17,6 +17,7 @@ import AdminPage from '@/pages/AdminPage'
 import AdminUsagePage from '@/pages/AdminUsagePage'
 import AdminZikirKhafiDevPage from '@/pages/AdminZikirKhafiDevPage'
 import AuditJiwaPage from '@/pages/AuditJiwaPage'
+import SoalHatiPage from '@/pages/SoalHatiPage'
 import LoginPage from '@/pages/LoginPage'
 import OnboardingPage from '@/pages/OnboardingPage'
 import PaymentSuccessPage from '@/pages/PaymentSuccessPage'
@@ -132,6 +133,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="muhasabah" element={<MuhasabahPage />} />
         <Route path="audit-jiwa" element={<AuditJiwaPage />} />
+        <Route path="soal-hati" element={<SoalHatiPage />} />
         <Route path="zikir" element={<ZikirPage />} />
         <Route path="solat" element={<SolatPage />} />
         <Route path="iam" element={<IAMChatPage />} />

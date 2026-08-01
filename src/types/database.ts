@@ -252,6 +252,29 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['referrals']['Insert']>
       }
+      soal_hati_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          bab_id: string
+          langkah_terakhir: number
+          jawapan_checkpoint: Json
+          completed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          bab_id: string
+          langkah_terakhir?: number
+          jawapan_checkpoint?: Json
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['soal_hati_sessions']['Insert']>
+      }
     }
   }
 }

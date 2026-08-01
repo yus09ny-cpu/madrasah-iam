@@ -9,15 +9,23 @@ import { useTodayAuditJiwa, useSaveAuditJiwa, type AuditJiwaEntry } from '@/hook
 import { supabase } from '@/lib/supabase'
 import { callAnthropic } from '@/lib/anthropic-fetch'
 import AuditMotivasiCard from '@/components/AuditMotivasiCard'
+import PillarLiveStatus from '@/components/PillarLiveStatus'
 import FatwaDisclaimerBanner from '@/components/FatwaDisclaimerBanner'
+import { ScoreBar } from '@/components/PillarScoreBar'
 import { FATWA_BOUNDARY } from '@/lib/systemPrompts'
 import { cn } from '@/lib/utils'
 import type { AppLanguage } from '@/types'
+import {
+  type PillarKey,
+  type PillarScores,
+  PILLAR_CONFIG,
+  PILLARS,
+  getWeakestPillar,
+} from '@/lib/pillars'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Phase = 'opening' | 'foundation' | 'assessment' | 'results' | 'recommendation' | 'done'
-type PillarKey = 'raga' | 'hati' | 'akal' | 'ruh'
 
 interface Question {
   id: string
@@ -25,13 +33,6 @@ interface Question {
   text: Record<AppLanguage, string>
   quran_ref?: string
   quran_text_bm?: string
-}
-
-interface PillarScores {
-  raga: number
-  hati: number
-  akal: number
-  ruh: number
 }
 
 type Responses = Record<string, number>
@@ -44,15 +45,6 @@ interface SavedSession {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const PILLAR_CONFIG: Record<PillarKey, { icon: string; border: string; bg: string; text: string }> = {
-  raga: { icon: '🫀', border: '#e85d75', bg: '#e85d7518', text: '#e85d75' },
-  hati: { icon: '💚', border: '#7dd3a8', bg: '#7dd3a818', text: '#7dd3a8' },
-  akal: { icon: '🔮', border: '#a78bfa', bg: '#a78bfa18', text: '#a78bfa' },
-  ruh:  { icon: '🕌', border: '#c9a96e', bg: '#c9a96e18', text: '#c9a96e' },
-}
-
-const PILLARS: PillarKey[] = ['raga', 'hati', 'akal', 'ruh']
 
 const EMOJI_SCALE = ['😞', '😕', '😐', '😊', '😄']
 
@@ -238,19 +230,6 @@ function calculateScores(responses: Responses, isPro: boolean): PillarScores {
   }
 }
 
-function getScoreStatus(score: number): { label: string; color: string } {
-  if (score < 4)   return { label: 'kritikal',  color: '#ef4444' }
-  if (score < 6)   return { label: 'perhatian', color: '#f97316' }
-  if (score < 7.5) return { label: 'stabil',    color: '#eab308' }
-  if (score < 9)   return { label: 'baik',      color: '#22c55e' }
-  return             { label: 'cemerlang', color: '#10b981' }
-}
-
-function getWeakestPillar(scores: PillarScores): PillarKey {
-  return (Object.entries(scores) as [PillarKey, number][])
-    .sort(([, a], [, b]) => a - b)[0][0]
-}
-
 // ─── AI recommendation call ───────────────────────────────────────────────────
 
 const AUDIT_JIWA_SYSTEM_PROMPT = `You are an insightful spiritual diagnostician for Madrasah I AM, rooted in the vision "Ilahi Anta Maqsudi" (I AM — Your only goal is Allah).
@@ -423,44 +402,6 @@ function ScaleSelector({ value, onChange }: { value: number | null; onChange: (v
   )
 }
 
-// ─── ScoreBar ─────────────────────────────────────────────────────────────────
-
-function ScoreBar({ pillar, score }: { pillar: PillarKey; score: number }) {
-  const { t } = useTranslation()
-  const cfg = PILLAR_CONFIG[pillar]
-  const status = getScoreStatus(score)
-  const pct = Math.round((score / 10) * 100)
-
-  return (
-    <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{cfg.icon}</span>
-          <div>
-            <p className="text-sm font-medium" style={{ color: cfg.text }}>
-              {t(`ajv2.pillar_${pillar}`, pillar)}
-            </p>
-            <p className="text-[10px] text-[#8a7a65]">{t(`ajv2.pillar_${pillar}_sub`, '')}</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-lg font-bold tabular-nums" style={{ color: status.color }}>
-            {score.toFixed(1)}/10
-          </p>
-          <p className="text-[10px]" style={{ color: status.color }}>
-            {t(`ajv2.status_${status.label}`, status.label)}
-          </p>
-        </div>
-      </div>
-      <div className="h-2 bg-[#1e2d40] rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, backgroundColor: status.color }}
-        />
-      </div>
-    </div>
-  )
-}
 
 // ─── Phase: Opening ───────────────────────────────────────────────────────────
 
@@ -502,6 +443,9 @@ function OpeningScreen({
         <h1 className="font-serif text-2xl text-[#e8dcc8]">{t('ajv2.tajuk', 'Audit Jiwa')}</h1>
         <p className="text-[#8a7a65] text-sm">{t('ajv2.sub', 'Muhasabah Jiwa Bersepadu — 4 Dimensi Diri')}</p>
       </div>
+
+      {/* Status 4 dimensi hidup — hanya papar kalau pernah siapkan Audit Jiwa */}
+      <PillarLiveStatus />
 
       {/* Greeting */}
       <div className="bg-[#0d1821] border border-[#c9a96e30] rounded-2xl p-5 text-center space-y-1.5">

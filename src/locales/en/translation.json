@@ -7,6 +7,7 @@
     "utama": "Home",
     "solat": "Prayer",
     "audit_jiwa": "Soul Audit",
+    "soal_hati": "Heart Inquiry",
     "zikir": "Zikir",
     "pintu_rezeki": "Gate of Provision",
     "hablum": "Hablum",
@@ -664,7 +665,20 @@
     "ayat_hijr": "\"Worship your Lord until certainty comes to you\" — Al-Hijr: 99",
     "bulan_baru": "✦ A New Month Has Arrived",
     "bulan_baru_ayat": "\"Every day He is in a matter\" — Ar-Rahman: 29",
-    "bulan_baru_desc": "Don't rely on past deeds. Today you are still a servant who needs His mercy."
+    "bulan_baru_desc": "Don't rely on past deeds. Today you are still a servant who needs His mercy.",
+    "dahan_solat": "Prayer",
+    "dahan_audit": "Soul Audit",
+    "dahan_zikir_am": "General Zikir",
+    "dahan_rezeki": "Gate of Provision",
+    "dahan_jahar": "Zikir Jahar",
+    "dahan_khafi": "Zikir Khafi",
+    "dahan_layu_hint": "A faded branch means this practice has been less consistent lately"
+  },
+  "pillar_live": {
+    "tajuk": "Your 4-Dimension Status",
+    "baseline_desc": "Based on your Soul Audit from {{date}}, updated with your daily practice",
+    "lihat_penuh": "View Full →",
+    "lemah_hint": "{{pillar}} needs your attention most right now — stay consistent, it will rise slowly."
   },
   "upgrade": {
     "tajuk": "This Journey Goes Deeper...",

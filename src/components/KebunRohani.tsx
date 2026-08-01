@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { format, subDays } from 'date-fns'
+import { format, subDays, differenceInCalendarDays } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
 import { useStreak } from '@/hooks/useStreak'
@@ -34,6 +34,56 @@ const TALKIN_LABELS: Record<Stage, string> = {
   matang: '✦ Pokok Tauhid bersinar',
 }
 
+// ─── Dahan per-jenis amalan ───────────────────────────────────────────────────
+// Setiap dahan bertumbuh ikut konsistensi JENIS amalan itu SAHAJA (bilangan
+// hari aktif dalam tetingkap 14-hari bergolek) — bukan skor gabungan pokok.
+
+type BranchKey = 'solat' | 'audit' | 'zikirAm' | 'rezeki' | 'jahar' | 'khafi'
+
+const BRANCH_WINDOW_DAYS = 14
+
+function last14Dates(): string[] {
+  return Array.from({ length: BRANCH_WINDOW_DAYS }, (_, i) => format(subDays(new Date(), i), 'yyyy-MM-dd'))
+}
+
+function getBranchStage(pct: number): Stage {
+  if (pct <= 15) return 'benih'
+  if (pct <= 40) return 'tunas'
+  if (pct <= 65) return 'anak'
+  if (pct <= 90) return 'muda'
+  return 'matang'
+}
+
+interface BranchStat {
+  stage: Stage
+  wilted: boolean
+}
+
+function branchStatFromDates(activeDates: Set<string>): BranchStat {
+  const window = last14Dates()
+  const activeCount = window.filter(d => activeDates.has(d)).length
+  const pct = Math.round((activeCount / BRANCH_WINDOW_DAYS) * 100)
+  const mostRecent = window.find(d => activeDates.has(d)) ?? null
+  const wilted = !mostRecent || differenceInCalendarDays(new Date(), new Date(mostRecent)) > 2
+  return { stage: getBranchStage(pct), wilted }
+}
+
+const FREE_BRANCH_KEYS: BranchKey[] = ['solat', 'audit', 'zikirAm', 'rezeki']
+const TALKIN_BRANCH_KEYS: BranchKey[] = ['solat', 'audit', 'jahar', 'khafi']
+
+const BRANCH_LABEL_KEY: Record<BranchKey, string> = {
+  solat: 'kebun.dahan_solat',
+  audit: 'kebun.dahan_audit',
+  zikirAm: 'kebun.dahan_zikir_am',
+  rezeki: 'kebun.dahan_rezeki',
+  jahar: 'kebun.dahan_jahar',
+  khafi: 'kebun.dahan_khafi',
+}
+
+// Sudut sprout tiap dahan (darjah, 0 = atas, ikut jam) — 4 kedudukan tetap.
+const BRANCH_ANGLES = [-55, -20, 20, 55]
+const BRANCH_DOT_COLOR = ['#e85d75', '#7dd3a8', '#a78bfa', '#c9a96e']
+
 // ─── Tree / siraman state ──────────────────────────────────────────────────────
 
 type WaterState = 'subur' | 'normal' | 'layu' | 'baru'
@@ -62,19 +112,71 @@ const STAGE_HEIGHT: Record<Stage, number> = {
   matang: 54,
 }
 
-const STAGE_CANOPY: Record<Stage, { rx: number; ry: number }> = {
+// ─── Dahan — foliage per-jenis amalan (menggantikan canopy tunggal lama) ──────
+// Batang (STAGE_HEIGHT di atas) reflect skor GABUNGAN; setiap dahan di bawah
+// reflect konsistensi jenis amalannya SENDIRI sahaja (branchStatFromDates).
+
+const BRANCH_LEN: Record<Stage, number> = { benih: 0, tunas: 9, anak: 15, muda: 21, matang: 27 }
+const BRANCH_LEAF: Record<Stage, { rx: number; ry: number }> = {
   benih: { rx: 0, ry: 0 },
-  tunas: { rx: 8, ry: 6 },
-  anak: { rx: 13, ry: 9 },
-  muda: { rx: 17, ry: 12 },
-  matang: { rx: 22, ry: 16 },
+  tunas: { rx: 3.5, ry: 2.8 },
+  anak: { rx: 5.5, ry: 4.2 },
+  muda: { rx: 7.5, ry: 5.8 },
+  matang: { rx: 9.5, ry: 7.2 },
 }
 
-function FreePlant({ stage }: { stage: Stage }) {
+interface BranchVisual { key: BranchKey; stage: Stage; wilted: boolean }
+
+function BranchCluster({ angleDeg, attachX, attachY, stage, wilted, color }: {
+  angleDeg: number; attachX: number; attachY: number; stage: Stage; wilted: boolean; color: string
+}) {
+  const rad = (angleDeg * Math.PI) / 180
+  const fill = wilted ? '#a8763e' : color
+  const len = BRANCH_LEN[stage]
+
+  if (len === 0) {
+    // Benih — dahan belum nampak, titik kecil sahaja sebagai penanda kedudukan.
+    const tipX = attachX + 3 * Math.sin(rad)
+    const tipY = attachY - 3 * Math.cos(rad)
+    return <circle cx={tipX} cy={tipY} r="1.2" fill={fill} opacity="0.5" />
+  }
+
+  const leaf = BRANCH_LEAF[stage]
+  const tipX = attachX + len * Math.sin(rad)
+  const tipY = attachY - len * Math.cos(rad)
+  const showFruit = (stage === 'muda' || stage === 'matang') && !wilted
+
+  return (
+    <g opacity={wilted ? 0.55 : 1}>
+      <line x1={attachX} y1={attachY} x2={tipX} y2={tipY} stroke="#8B6914" strokeWidth="1.5" opacity="0.6" />
+      <ellipse cx={tipX} cy={tipY} rx={leaf.rx} ry={leaf.ry} fill={fill} opacity="0.88" />
+      {showFruit && <circle cx={tipX} cy={tipY} r="1.6" fill="#fde68a" />}
+    </g>
+  )
+}
+
+function DahanLayer({ h, branches }: { h: number; branches: BranchVisual[] }) {
+  const attachX = 40
+  const attachY = 78 - h
+  return (
+    <>
+      {branches.map((b, i) => (
+        <BranchCluster
+          key={b.key}
+          angleDeg={BRANCH_ANGLES[i]}
+          attachX={attachX}
+          attachY={attachY}
+          stage={b.stage}
+          wilted={b.wilted}
+          color={BRANCH_DOT_COLOR[i]}
+        />
+      ))}
+    </>
+  )
+}
+
+function FreePlant({ stage, branches }: { stage: Stage; branches: BranchVisual[] }) {
   const h = STAGE_HEIGHT[stage]
-  const canopy = STAGE_CANOPY[stage]
-  const showInner = stage === 'anak' || stage === 'muda' || stage === 'matang'
-  const showFruits = stage === 'muda' || stage === 'matang'
 
   return (
     <svg viewBox="0 0 80 90" className={cn('w-[160px] h-[160px]', stage === 'matang' && 'animate-breathe')}>
@@ -84,31 +186,14 @@ function FreePlant({ stage }: { stage: Stage }) {
       ) : (
         <rect x="37.5" y={78 - h} width="5" height={h} rx="2" fill="#8B6914" />
       )}
-      {canopy.rx > 0 && (
-        <>
-          <ellipse cx="40" cy={78 - h - 6} rx={canopy.rx} ry={canopy.ry} fill="#639922" opacity="0.85" />
-          {showInner && (
-            <ellipse cx="40" cy={78 - h - 13} rx={canopy.rx * 0.7} ry={canopy.ry * 0.7} fill="#97C459" opacity="0.85" />
-          )}
-          {showFruits && (
-            <>
-              <circle cx={40 - canopy.rx * 0.4} cy={78 - h - 8} r="3" fill="#c9a96e" />
-              <circle cx={40 + canopy.rx * 0.4} cy={78 - h - 11} r="3" fill="#c9a96e" />
-              {stage === 'matang' && <circle cx="40" cy={78 - h - 18} r="3" fill="#c9a96e" />}
-            </>
-          )}
-        </>
-      )}
+      <DahanLayer h={h} branches={branches} />
     </svg>
   )
 }
 
-function TalkinPlant({ stage }: { stage: Stage }) {
+function TalkinPlant({ stage, branches }: { stage: Stage; branches: BranchVisual[] }) {
   const h = STAGE_HEIGHT[stage]
-  const canopy = STAGE_CANOPY[stage]
   const isMatang = stage === 'matang'
-  const showInner = stage === 'anak' || stage === 'muda' || stage === 'matang'
-  const showFruits = stage === 'muda' || stage === 'matang'
 
   return (
     <div className="relative w-[160px] h-[160px]">
@@ -120,21 +205,7 @@ function TalkinPlant({ stage }: { stage: Stage }) {
         ) : (
           <rect x="37.5" y={78 - h} width="5" height={h} rx="2" fill="#a0822e" />
         )}
-        {canopy.rx > 0 && (
-          <>
-            <ellipse cx="40" cy={78 - h - 6} rx={canopy.rx} ry={canopy.ry} fill="#7c5cbf" opacity="0.8" />
-            {showInner && (
-              <ellipse cx="40" cy={78 - h - 13} rx={canopy.rx * 0.7} ry={canopy.ry * 0.7} fill="#a78bfa" opacity="0.85" />
-            )}
-            {showFruits && (
-              <>
-                <circle cx={40 - canopy.rx * 0.4} cy={78 - h - 8} r="3" fill="#fde68a" />
-                <circle cx={40 + canopy.rx * 0.4} cy={78 - h - 11} r="3" fill="#fde68a" />
-                {isMatang && <circle cx="40" cy={78 - h - 18} r="3" fill="#fde68a" />}
-              </>
-            )}
-          </>
-        )}
+        <DahanLayer h={h} branches={branches} />
         {isMatang && (
           <>
             <line x1="40" y1={78 - h - 6} x2="40" y2="6" stroke="#fde68a" strokeWidth="1" opacity="0.5" />
@@ -211,15 +282,19 @@ const EMPTY_STATS: BenihStats = {
   totalDays: 0,
 }
 
-function checkRezekiDone(today: string): boolean {
+function checkRezekiDone(date: string): boolean {
   try {
-    const raw = localStorage.getItem(`madrasah_rezeki_${today}`)
+    const raw = localStorage.getItem(`madrasah_rezeki_${date}`)
     if (!raw) return false
     const parsed = JSON.parse(raw) as { amalan?: Record<string, boolean> }
     return Object.values(parsed.amalan ?? {}).some(Boolean)
   } catch {
     return false
   }
+}
+
+const EMPTY_BRANCH_DATES: Record<BranchKey, Set<string>> = {
+  solat: new Set(), audit: new Set(), zikirAm: new Set(), rezeki: new Set(), jahar: new Set(), khafi: new Set(),
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -229,6 +304,7 @@ export default function KebunRohani() {
   const { user } = useAuthStore()
   const { data: streak } = useStreak()
   const [stats, setStats] = useState<BenihStats>(EMPTY_STATS)
+  const [branchDates, setBranchDates] = useState<Record<BranchKey, Set<string>>>(EMPTY_BRANCH_DATES)
   const [loading, setLoading] = useState(true)
   const [statusOpen, setStatusOpen] = useState(false)
 
@@ -249,19 +325,32 @@ export default function KebunRohani() {
         { data: zikir30Rows },
         { data: solat30Rows },
         { data: muhasabah30Rows },
+        { data: auditJiwa30Rows },
       ] = await Promise.all([
         supabase.from('solat_entries').select('prayers').eq('user_id', user!.id).eq('date', today).maybeSingle(),
         supabase.from('muhasabah_entries').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).eq('date', today),
         supabase.from('zikir_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).eq('date', today).eq('completed', true),
         supabase.from('zikir_sessions').select('date').eq('user_id', user!.id).eq('completed', true).gte('date', since),
-        supabase.from('solat_entries').select('date').eq('user_id', user!.id).gte('date', since),
+        supabase.from('solat_entries').select('date, prayers').eq('user_id', user!.id).gte('date', since),
         supabase.from('muhasabah_entries').select('date').eq('user_id', user!.id).gte('date', since),
+        supabase.from('audit_jiwa_entries').select('tarikh').eq('user_id', user!.id).eq('selesai', true).gte('tarikh', since),
       ])
 
       const activeDays = new Set<string>()
-      ;(zikir30Rows ?? []).forEach((r: { date: string }) => activeDays.add(r.date))
-      ;(solat30Rows ?? []).forEach((r: { date: string }) => activeDays.add(r.date))
-      ;(muhasabah30Rows ?? []).forEach((r: { date: string }) => activeDays.add(r.date))
+      const solatDates = new Set<string>()
+      const auditDates = new Set<string>()
+      const zikirAmDates = new Set<string>()
+      const jaharDates = new Set<string>()
+      const khafiDates = new Set<string>()
+
+      ;(zikir30Rows ?? []).forEach((r: { date: string }) => { activeDays.add(r.date); zikirAmDates.add(r.date) })
+      ;(solat30Rows ?? []).forEach((r: { date: string; prayers: unknown }) => {
+        activeDays.add(r.date)
+        const prayersArr = Array.isArray(r.prayers) ? (r.prayers as Array<{ completed?: boolean }>) : []
+        if (prayersArr.some(p => p?.completed)) solatDates.add(r.date)
+      })
+      ;(muhasabah30Rows ?? []).forEach((r: { date: string }) => { activeDays.add(r.date); auditDates.add(r.date) })
+      ;(auditJiwa30Rows ?? []).forEach((r: { tarikh: string }) => { activeDays.add(r.tarikh); auditDates.add(r.tarikh) })
 
       const prayers = Array.isArray((solatRow as { prayers?: unknown } | null)?.prayers)
         ? ((solatRow as unknown as { prayers: Array<{ completed: boolean }> }).prayers)
@@ -281,7 +370,7 @@ export default function KebunRohani() {
             .eq('user_id', user!.id)
             .eq('session_date', today),
           (supabase.from('amalan_sessions') as any)
-            .select('session_date')
+            .select('session_date, jahar_kiraan, khafi_minit')
             .eq('user_id', user!.id)
             .gte('session_date', since),
         ])
@@ -293,8 +382,17 @@ export default function KebunRohani() {
         })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(amalan30Rows ?? []).forEach((r: any) => {
-          if (r.session_date) activeDays.add(r.session_date)
+          if (!r.session_date) return
+          activeDays.add(r.session_date)
+          if ((r.jahar_kiraan ?? 0) > 0) jaharDates.add(r.session_date)
+          if ((r.khafi_minit ?? 0) > 0) khafiDates.add(r.session_date)
         })
+      }
+
+      const rezekiDates = new Set<string>()
+      for (let i = 0; i < BRANCH_WINDOW_DAYS; i++) {
+        const d = format(subDays(new Date(), i), 'yyyy-MM-dd')
+        if (checkRezekiDone(d)) rezekiDates.add(d)
       }
 
       if (!cancelled) {
@@ -306,6 +404,14 @@ export default function KebunRohani() {
           jaharCount,
           khafiMinit,
           totalDays: activeDays.size,
+        })
+        setBranchDates({
+          solat: solatDates,
+          audit: auditDates,
+          zikirAm: zikirAmDates,
+          rezeki: rezekiDates,
+          jahar: jaharDates,
+          khafi: khafiDates,
         })
         setLoading(false)
       }
@@ -332,6 +438,12 @@ export default function KebunRohani() {
     return getWaterState(streak?.lastEntry ?? null, streak?.current ?? 0)
   }, [streak?.lastEntry, streak?.current])
 
+  const branchKeys = hasTalqin ? TALKIN_BRANCH_KEYS : FREE_BRANCH_KEYS
+  const branches = useMemo(
+    () => branchKeys.map(key => ({ key, ...branchStatFromDates(branchDates[key]) })),
+    [branchDates, hasTalqin] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
   const bulanBaru = isBulanBaru()
 
   if (loading) {
@@ -349,8 +461,23 @@ export default function KebunRohani() {
           {hasTalqin ? '✦ Benih Tauhid' : '🌱 Amalan Jiwa'}
         </p>
 
-        {/* SVG Benih besar */}
-        {hasTalqin ? <TalkinPlant stage={talkinStage} /> : <FreePlant stage={freeStage} />}
+        {/* SVG Benih besar — batang ikut skor gabungan, dahan ikut konsistensi per-jenis */}
+        {hasTalqin
+          ? <TalkinPlant stage={talkinStage} branches={branches} />
+          : <FreePlant stage={freeStage} branches={branches} />}
+
+        {/* Legend dahan */}
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          {branches.map((b, i) => (
+            <div key={b.key} className="flex items-center gap-1.5">
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: b.wilted ? '#b45309' : BRANCH_DOT_COLOR[i] }}
+              />
+              <span className="text-[10px] text-[#8a7a65]">{t(BRANCH_LABEL_KEY[b.key])}</span>
+            </div>
+          ))}
+        </div>
 
         {/* Mesej stage / status siraman */}
         {waterState === 'layu' ? (

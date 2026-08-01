@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useTodaySolat } from '@/hooks/useSolat'
 import { useTodayMuhasabah } from '@/hooks/useMuhasabah'
 import KebunRohani from '@/components/KebunRohani'
+import PillarLiveStatus from '@/components/PillarLiveStatus'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ms } from 'date-fns/locale'
@@ -118,6 +119,9 @@ export default function DashboardPage() {
 
       {/* Kebun Rohani — pertumbuhan amalan & status siraman */}
       <KebunRohani />
+
+      {/* Status 4 Dimensi — ringkas, ada butang "Lihat Penuh" ke /audit-jiwa */}
+      <PillarLiveStatus compact />
 
       {/* Solat ringkas */}
       <div className="bg-[#0d1821] border border-[#1e2d40] rounded-2xl p-4 flex items-center gap-4">

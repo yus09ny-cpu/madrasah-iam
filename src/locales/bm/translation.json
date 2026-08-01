@@ -7,6 +7,7 @@
     "utama": "Utama",
     "solat": "Solat",
     "audit_jiwa": "Audit Jiwa",
+    "soal_hati": "Soal Hati",
     "zikir": "Zikir",
     "pintu_rezeki": "Pintu Rezeki",
     "hablum": "Hablum",
@@ -664,7 +665,20 @@
     "ayat_hijr": "\"Sembahlah Tuhanmu sehingga datang keyakinan kepadamu\" — Al-Hijr: 99",
     "bulan_baru": "✦ Bulan Baru Telah Tiba",
     "bulan_baru_ayat": "\"Setiap hari Allah dalam urusan baru\" — Ar-Rahman: 29",
-    "bulan_baru_desc": "Jangan bergantung pada amal yang lepas. Hari ini kamu masih hamba yang berhajat kepada rahmat-Nya."
+    "bulan_baru_desc": "Jangan bergantung pada amal yang lepas. Hari ini kamu masih hamba yang berhajat kepada rahmat-Nya.",
+    "dahan_solat": "Solat",
+    "dahan_audit": "Audit Jiwa",
+    "dahan_zikir_am": "Zikir Am",
+    "dahan_rezeki": "Pintu Rezeki",
+    "dahan_jahar": "Zikir Jahar",
+    "dahan_khafi": "Zikir Khafi",
+    "dahan_layu_hint": "Dahan pudar bermaksud amalan ini kurang konsisten kebelakangan ini"
+  },
+  "pillar_live": {
+    "tajuk": "Status 4 Dimensi Anda",
+    "baseline_desc": "Berdasarkan Audit Jiwa {{date}}, dikemas kini ikut amalan harian anda",
+    "lihat_penuh": "Lihat Penuh →",
+    "lemah_hint": "{{pillar}} paling perlu perhatian anda sekarang — teruskan istiqamah, ia akan naik perlahan-lahan."
   },
   "upgrade": {
     "tajuk": "Perjalanan Ini Ada Lebih Dalam...",
