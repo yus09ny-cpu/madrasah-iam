@@ -692,12 +692,19 @@ function KhafiSection({ userTier, onBack, onComplete }: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const db = supabase as any
 
-        // Biometric data — silently ignore if table belum wujud. Supabase's
-        // query builder is a thenable, not a real Promise, until awaited —
-        // chaining .catch() on it directly throws "not a function" instead
-        // of catching anything, so this must be a real try/await/catch.
+        // Biometric data — best-effort, never blocks amalan_sessions below.
+        // Supabase's query builder is a thenable, not a real Promise, until
+        // awaited — chaining .catch() on it directly throws "not a function"
+        // instead of catching anything, so this must be a real try/await/catch.
+        // It also never THROWS on a Postgrest error (missing column/table,
+        // RLS denial, etc.) — it resolves normally with { error } — so that
+        // has to be checked and re-thrown explicitly, or the catch below
+        // never fires at all. (2026-08-01 incident: mod_hamba_reflection was
+        // sent here before its migration had run — { error } was never
+        // captured, so every insert silently no-op'd with zero visible
+        // signal, for every user, in both tap and BLE mode, for days.)
         try {
-          await db.from('zikir_khafi_sessions').insert({
+          const { error } = await db.from('zikir_khafi_sessions').insert({
             user_id: user.id, session_date: today,
             duration_min: result.durationMin, actual_sec: result.actualSec,
             pre_bpm: result.preBpm, final_bpm: result.finalBpm, avg_bpm: result.avgBpm,
@@ -705,7 +712,10 @@ function KhafiSection({ userTier, onBack, onComplete }: {
             session_mode: result.sessionMode, dominant_tier: result.dominantTier, deepest_tier: result.deepestTier,
             mod_hamba_reflection: result.modHambaReflection,
           })
-        } catch { /* table/columns belum wujud — jangan halang amalan_sessions di bawah */ }
+          if (error) throw error
+        } catch (err) {
+          console.error('[zikir_khafi_sessions] save failed:', err)
+        }
 
         // INSERT khafi_minit — kalau row dah ada (conflict), fallback ke UPDATE
         const { error: insertErr } = await db.from('amalan_sessions').insert({
