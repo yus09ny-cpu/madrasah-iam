@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   CheckCircle2, ChevronDown, ChevronUp, Flame, Volume2, VolumeX, Settings, RotateCcw, X,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import ZikirKhafiPlayer, { type KhafiSessionResult } from '@/components/zikir/ZikirKhafiPlayer'
 import KhafiHistoryPanel from '@/components/zikir/KhafiHistoryPanel'
@@ -1416,11 +1416,18 @@ function ZiarahTab() {
 export default function AmalanPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user } = useAuthStore()
   const isTalqin = user?.talqin_completed === true
 
   const [activeTab, setActiveTab] = useState<AmalanTab>('zikir')
-  const [phase, setPhase] = useState<SessionPhase>('dashboard')
+  // ?mula=khafi — deep-link straight into the Khafi player (bypasses Fasa1/2/3),
+  // used by Soal Hati's "Ke Zikir Khafi sekarang" CTAs. Read once at mount only —
+  // KhafiSection has no dependency on the amalan_content fetch above, so this is
+  // safe before that request resolves.
+  const [phase, setPhase] = useState<SessionPhase>(() =>
+    searchParams.get('mula') === 'khafi' ? 'khafi' : 'dashboard'
+  )
   const [dashRefreshKey, setDashRefreshKey] = useState(0)
   const [content, setContent] = useState<AmalanItem[]>([])
   const [contentLoaded, setContentLoaded] = useState(false)

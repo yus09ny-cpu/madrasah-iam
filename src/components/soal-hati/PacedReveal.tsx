@@ -43,7 +43,7 @@ export default function PacedReveal({
   initialBeatIndex?: number
   initialAnswers?: Record<string, string>
   onProgress: (beatIndex: number, answers: Record<string, string>, completed: boolean) => void
-  onChapterEnd: (action: 'next-chapter' | 'exit' | 'save-and-exit') => void
+  onChapterEnd: (action: 'next-chapter' | 'exit' | 'save-and-exit' | 'goto-amalan' | 'restart') => void
   accent?: string
 }) {
   const [transcript, setTranscript] = useState<TranscriptItem[]>([])
@@ -115,7 +115,10 @@ export default function PacedReveal({
       }
 
       if (beat.kind === 'gated') {
-        if (answersRef.current[beat.afterCheckpoint] === beat.whenOptionId) {
+        const passes = beat.when
+          ? beat.when(answersRef.current)
+          : !!beat.afterCheckpoint && answersRef.current[beat.afterCheckpoint] === beat.whenOptionId
+        if (passes) {
           for (const line of beat.lines) {
             if (generationRef.current !== gen) return
             if (!instant) await waitPaced(line)
